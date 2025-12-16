@@ -1,0 +1,9 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/shared" },
+    { "path": "./packages/mcp-planka" },
+    { "path": "./apps/link-portal" },
+    { "path": "./apps/telegram-bot" }
+  ]
+}

@@ -1,0 +1,5 @@
+- Use TypeScript (Node.js) and ESM (`type: module`).
+- Prefer minimal, secure defaults.
+- Never store user passwords; store only Planka access tokens encrypted at rest.
+- Avoid logging secrets (tokens, passwords).
+- Keep MCP tool surfaces small and explicit; add tools only when needed.

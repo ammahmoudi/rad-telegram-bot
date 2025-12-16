@@ -1,0 +1,19 @@
+{
+  "name": "rastar-telegram-bot",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n bot,portal,mcp -c blue,green,magenta \"npm -w apps/telegram-bot run dev\" \"npm -w apps/link-portal run dev\" \"npm -w packages/mcp-planka run dev\"",
+    "build": "tsc -b",
+    "start": "npm -w apps/telegram-bot run start"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.8.2"
+  }
+}
