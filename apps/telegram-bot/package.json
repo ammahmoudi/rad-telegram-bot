@@ -11,9 +11,11 @@
   "dependencies": {
     "@rastar/shared": "*",
     "dotenv": "^16.4.7",
+    "express": "^4.21.2",
     "grammy": "^1.35.0"
   },
   "devDependencies": {
+    "@types/express": "^4.17.21",
     "@types/node": "^22.10.0",
     "typescript": "^5.8.2"
   }

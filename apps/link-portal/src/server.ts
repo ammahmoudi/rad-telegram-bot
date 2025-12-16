@@ -63,7 +63,7 @@ app.post('/link/planka', async (req, res) => {
     return;
   }
 
-  const link = consumeLinkState(state);
+  const link = await consumeLinkState(state);
   if (!link) {
     res.status(400).send('Invalid or expired link. Go back to Telegram and run /link_planka again.');
     return;
@@ -71,7 +71,7 @@ app.post('/link/planka', async (req, res) => {
 
   try {
     const token = await plankaLogin(baseUrl, emailOrUsername, password);
-    upsertPlankaToken(link.telegramUserId, normalizeBaseUrl(baseUrl), token);
+    await upsertPlankaToken(link.telegramUserId, normalizeBaseUrl(baseUrl), token);
 
     res.status(200).send(`<!doctype html>
 <html lang="en"><head><meta charset="utf-8" /><title>Linked</title></head>

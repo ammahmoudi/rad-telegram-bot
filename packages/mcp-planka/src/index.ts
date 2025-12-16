@@ -113,18 +113,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
     switch (name) {
       case 'planka.auth.status': {
         const telegramUserId = String((args as any)?.telegramUserId ?? '');
-        const rec = getPlankaToken(telegramUserId);
+        const rec = await getPlankaToken(telegramUserId);
         return text(JSON.stringify({ linked: !!rec, plankaBaseUrl: rec?.plankaBaseUrl ?? null }, null, 2));
       }
 
       case 'planka.projects.list': {
-        const auth = requireAuth(args);
+        const auth = await requireAuth(args);
         const projects = await listProjects(auth);
         return text(JSON.stringify(projects, null, 2));
       }
 
       case 'planka.boards.list': {
-        const auth = requireAuth(args);
+        const auth = await requireAuth(args);
         const projectId = String((args as any)?.projectId ?? '');
         if (!projectId) throw new Error('projectId is required');
         const proj = await getProject(auth, projectId);
@@ -133,7 +133,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
       }
 
       case 'planka.lists.list': {
-        const auth = requireAuth(args);
+        const auth = await requireAuth(args);
         const boardId = String((args as any)?.boardId ?? '');
         if (!boardId) throw new Error('boardId is required');
         const board = await getBoard(auth, boardId);
@@ -142,7 +142,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
       }
 
       case 'planka.cards.search': {
-        const auth = requireAuth(args);
+        const auth = await requireAuth(args);
         const boardId = String((args as any)?.boardId ?? '');
         const query = String((args as any)?.query ?? '');
         if (!boardId) throw new Error('boardId is required');
@@ -162,7 +162,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
       }
 
       case 'planka.cards.move': {
-        const auth = requireAuth(args);
+        const auth = await requireAuth(args);
         const cardId = String((args as any)?.cardId ?? '');
         const listId = String((args as any)?.listId ?? '');
         const position = (args as any)?.position;
@@ -184,13 +184,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
 const transport = new StdioServerTransport();
 await server.connect(transport);
 
-function requireAuth(args: unknown): { plankaBaseUrl: string; accessToken: string } {
+async function requireAuth(args: unknown): Promise<{ plankaBaseUrl: string; accessToken: string }> {
   const telegramUserId = String((args as any)?.telegramUserId ?? '');
   if (!telegramUserId) {
     throw new Error('telegramUserId is required');
   }
 
-  const rec = getPlankaToken(telegramUserId);
+  const rec = await getPlankaToken(telegramUserId);
   if (!rec) {
     throw new Error('Planka not linked for this user. Run /link_planka in Telegram.');
   }

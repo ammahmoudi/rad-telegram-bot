@@ -9,3 +9,12 @@ data/
 *.sqlite
 *.sqlite-wal
 *.sqlite-shm
+
+# Next.js
+.next/
+**/.next/
+out/
+
+# TypeScript build artifacts
+*.tsbuildinfo
+**/*.tsbuildinfo
