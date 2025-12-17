@@ -1,4 +1,10 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
+dotenv.config({ path: path.join(repoRoot, '.env') });
 
 import express from 'express';
 
@@ -16,7 +22,25 @@ app.get('/healthz', (_req, res) => {
 app.get('/link/planka', (req, res) => {
   const state = typeof req.query.state === 'string' ? req.query.state : '';
   if (!state) {
-    res.status(400).send('Missing state');
+    res.status(400).send(`<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Link Planka</title>
+</head>
+<body style="font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; max-width: 560px; margin: 40px auto;">
+  <h1>Link Planka</h1>
+  <p>This page must be opened from Telegram so it includes a one-time <code>state</code> value.</p>
+  <ol>
+    <li>Open Telegram and message your bot.</li>
+    <li>Run <code>/link_planka</code>.</li>
+    <li>Tap the link the bot sends you.</li>
+  </ol>
+  <p>If you already have a link, make sure the URL looks like:</p>
+  <pre style="background: #f6f8fa; padding: 12px; overflow: auto;">/link/planka?state=...</pre>
+</body>
+</html>`);
     return;
   }
 
@@ -72,6 +96,11 @@ app.post('/link/planka', async (req, res) => {
   try {
     const token = await plankaLogin(baseUrl, emailOrUsername, password);
     await upsertPlankaToken(link.telegramUserId, normalizeBaseUrl(baseUrl), token);
+
+    await sendTelegramMessage(
+      link.telegramUserId,
+      `✅ Planka linked for ${escapeHtml(normalizeBaseUrl(baseUrl))}.\nYou can return to Telegram and run /planka_status.`,
+    );
 
     res.status(200).send(`<!doctype html>
 <html lang="en"><head><meta charset="utf-8" /><title>Linked</title></head>
@@ -132,4 +161,24 @@ function escapeHtml(s: string): string {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
+}
+
+async function sendTelegramMessage(chatId: string, text: string): Promise<void> {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  if (!botToken) return;
+
+  try {
+    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text,
+      }),
+    });
+  } catch {
+    // Ignore: linking should succeed even if notification fails.
+  }
 }

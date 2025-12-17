@@ -24,11 +24,6 @@ TypeScript monorepo that contains:
 - Runs at `http://localhost:3000` in `npm run dev`.
 - Protected by HTTP Basic Auth via `ADMIN_BASIC_AUTH_USER` / `ADMIN_BASIC_AUTH_PASS`.
 
-## Telegram webhook mode
-- Default is long polling.
-- Set `TELEGRAM_WEBHOOK_URL` to enable webhook mode. The bot will call `setWebhook()` on startup.
-- Set `TELEGRAM_WEBHOOK_PORT` for the local listener port (behind your reverse proxy).
-
 ## Security notes
 - Never paste passwords/tokens into chat.
 - The link portal stores only the Planka access token (encrypted at rest) and never stores the password.

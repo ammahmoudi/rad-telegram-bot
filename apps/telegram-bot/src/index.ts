@@ -1,7 +1,12 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
 
-import express from 'express';
-import { Bot, webhookCallback } from 'grammy';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import { Bot } from 'grammy';
+
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
+dotenv.config({ path: path.join(repoRoot, '.env') });
 
 import { createLinkState, deletePlankaToken, getPlankaToken } from '@rastar/shared';
 
@@ -11,12 +16,12 @@ if (!TELEGRAM_BOT_TOKEN) {
 }
 
 const LINK_PORTAL_BASE_URL = process.env.LINK_PORTAL_BASE_URL || 'http://localhost:8787';
-const TELEGRAM_WEBHOOK_URL = process.env.TELEGRAM_WEBHOOK_URL;
-const TELEGRAM_WEBHOOK_PORT = Number(process.env.TELEGRAM_WEBHOOK_PORT || process.env.PORT || 8080);
 
 const bot = new Bot(TELEGRAM_BOT_TOKEN);
 
 bot.command('start', async (ctx) => {
+  // eslint-disable-next-line no-console
+  console.log('[telegram-bot] /start', { fromId: ctx.from?.id, username: ctx.from?.username });
   await ctx.reply(
     [
       'Hi! I can link your Planka account and later help you manage cards.',
@@ -35,6 +40,9 @@ bot.command('link_planka', async (ctx) => {
     await ctx.reply('Could not identify your Telegram user.');
     return;
   }
+
+  // eslint-disable-next-line no-console
+  console.log('[telegram-bot] /link_planka', { telegramUserId });
 
   const state = await createLinkState(telegramUserId);
   const linkUrl = `${stripTrailingSlash(LINK_PORTAL_BASE_URL)}/link/planka?state=${encodeURIComponent(state)}`;
@@ -56,6 +64,9 @@ bot.command('planka_status', async (ctx) => {
     return;
   }
 
+  // eslint-disable-next-line no-console
+  console.log('[telegram-bot] /planka_status', { telegramUserId });
+
   const token = await getPlankaToken(telegramUserId);
   if (!token) {
     await ctx.reply('Planka is not linked yet. Run /link_planka.');
@@ -72,6 +83,9 @@ bot.command('planka_unlink', async (ctx) => {
     return;
   }
 
+  // eslint-disable-next-line no-console
+  console.log('[telegram-bot] /planka_unlink', { telegramUserId });
+
   const removed = await deletePlankaToken(telegramUserId);
   await ctx.reply(removed ? 'Planka unlinked.' : 'Planka was not linked.');
 });
@@ -81,38 +95,21 @@ bot.catch((err) => {
   console.error('[telegram-bot] error', err);
 });
 
-await startBot();
-
-async function startBot(): Promise<void> {
-  if (TELEGRAM_WEBHOOK_URL) {
-    const url = new URL(TELEGRAM_WEBHOOK_URL);
-    const webhookPath = url.pathname || '/';
-
-    await bot.api.setWebhook(TELEGRAM_WEBHOOK_URL, {
-      drop_pending_updates: true,
-    });
-
-    const app = express();
-    app.use(express.json());
-
-    app.get('/healthz', (_req, res) => res.status(200).send('ok'));
-    app.post(webhookPath, webhookCallback(bot, 'express'));
-
-    app.listen(TELEGRAM_WEBHOOK_PORT, () => {
-      // eslint-disable-next-line no-console
-      console.log(`[telegram-bot] webhook listening on :${TELEGRAM_WEBHOOK_PORT}${webhookPath}`);
-    });
-
-    return;
-  }
-
-  bot.start({
-    onStart: (info) => {
-      // eslint-disable-next-line no-console
-      console.log(`[telegram-bot] started as @${info.username} (polling)`);
-    },
-  });
+try {
+  // If this bot token was previously used in a webhook-based deployment,
+  // polling will fail with a 409 conflict until the webhook is removed.
+  await bot.api.deleteWebhook({ drop_pending_updates: true });
+} catch (err) {
+  // eslint-disable-next-line no-console
+  console.warn('[telegram-bot] failed to deleteWebhook (continuing)', err);
 }
+
+bot.start({
+  onStart: (info) => {
+    // eslint-disable-next-line no-console
+    console.log(`[telegram-bot] started as @${info.username} (polling)`);
+  },
+});
 
 function stripTrailingSlash(s: string): string {
   return s.replace(/\/+$/, '');
