@@ -8,7 +8,7 @@ dotenv.config({ path: path.join(repoRoot, '.env') });
 
 import express from 'express';
 
-import { consumeLinkState, upsertPlankaToken } from '@rastar/shared';
+import { consumeLinkState, getSystemConfig, peekLinkState, upsertPlankaToken } from '@rastar/shared';
 
 const PORT = Number(process.env.LINK_PORTAL_PORT || 8787);
 
@@ -19,98 +19,601 @@ app.get('/healthz', (_req, res) => {
   res.status(200).send('ok');
 });
 
-app.get('/link/planka', (req, res) => {
+app.get('/link/planka', async (req, res) => {
   const state = typeof req.query.state === 'string' ? req.query.state : '';
+  
+  // Notify user they're on the page (without consuming the state)
+  if (state) {
+    const linkInfo = await peekLinkState(state);
+    if (linkInfo) {
+      await sendTelegramMessage(
+        linkInfo.telegramUserId,
+        '\ud83d\udc40 <b>Link opened!</b>\n\n' +
+        'You\'re now on the secure linking page. Enter your Planka credentials to complete the connection.',
+        { parse_mode: 'HTML' }
+      );
+    }
+  }
+  
   if (!state) {
     res.status(400).send(`<!doctype html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Link Planka</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class'
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+    body { font-family: 'Inter', system-ui, sans-serif; }
+  </style>
 </head>
-<body style="font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; max-width: 560px; margin: 40px auto;">
-  <h1>Link Planka</h1>
-  <p>This page must be opened from Telegram so it includes a one-time <code>state</code> value.</p>
-  <ol>
-    <li>Open Telegram and message your bot.</li>
-    <li>Run <code>/link_planka</code>.</li>
-    <li>Tap the link the bot sends you.</li>
-  </ol>
-  <p>If you already have a link, make sure the URL looks like:</p>
-  <pre style="background: #f6f8fa; padding: 12px; overflow: auto;">/link/planka?state=...</pre>
+<body class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center p-4">
+  <div class="w-full max-w-md">
+    <div class="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg p-8 space-y-6">
+      <!-- Icon -->
+      <div class="mx-auto w-12 h-12 bg-amber-500 dark:bg-amber-600 rounded-lg flex items-center justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+      </div>
+
+      <!-- Header -->
+      <div class="space-y-2 text-center">
+        <h1 class="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+          Missing state parameter
+        </h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400">
+          This page must be opened from Telegram with a one-time state value.
+        </p>
+      </div>
+
+      <!-- Instructions -->
+      <div class="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-4">
+        <h2 class="text-sm font-medium text-slate-900 dark:text-slate-50 mb-3">How to link your account:</h2>
+        <ol class="space-y-2 text-sm text-slate-600 dark:text-slate-400">
+          <li class="flex gap-2">
+            <span class="flex-shrink-0 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-medium">1</span>
+            <span>Open Telegram and message your bot</span>
+          </li>
+          <li class="flex gap-2">
+            <span class="flex-shrink-0 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-medium">2</span>
+            <span>Send the command <code class="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-slate-50 font-mono text-xs">/link_planka</code></span>
+          </li>
+          <li class="flex gap-2">
+            <span class="flex-shrink-0 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-medium">3</span>
+            <span>Tap the link the bot sends you</span>
+          </li>
+        </ol>
+      </div>
+
+      <!-- Example -->
+      <div class="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-4">
+        <div class="text-xs text-slate-500 dark:text-slate-400 mb-2">Valid link format:</div>
+        <code class="text-xs text-slate-900 dark:text-slate-50 font-mono break-all">/link/planka?state=...</code>
+      </div>
+    </div>
+  </div>
 </body>
 </html>`);
     return;
   }
 
   res.status(200).send(`<!doctype html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Link Planka</title>
+  <title>Link Planka Account</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            border: "hsl(214.3 31.8% 91.4%)",
+            input: "hsl(214.3 31.8% 91.4%)",
+            ring: "hsl(221.2 83.2% 53.3%)",
+            background: "hsl(0 0% 100%)",
+            foreground: "hsl(222.2 84% 4.9%)",
+            primary: {
+              DEFAULT: "hsl(221.2 83.2% 53.3%)",
+              foreground: "hsl(210 40% 98%)",
+            },
+            muted: {
+              DEFAULT: "hsl(210 40% 96.1%)",
+              foreground: "hsl(215.4 16.3% 46.9%)",
+            },
+            accent: {
+              DEFAULT: "hsl(210 40% 96.1%)",
+              foreground: "hsl(222.2 47.4% 11.2%)",
+            },
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .animate-in {
+      animation: slideInFromBottom 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes slideInFromBottom {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
 </head>
-<body style="font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; max-width: 560px; margin: 40px auto;">
-  <h1>Link Planka</h1>
-  <p>Enter your Planka credentials to link your account. Your password is only used to obtain an access token and is not stored.</p>
+<body class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center p-4">
+  <div class="w-full max-w-md animate-in">
+    <div class="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg">
+      <div class="p-8 space-y-6">
+        <!-- Header -->
+        <div class="space-y-2 text-center">
+          <div class="mx-auto w-12 h-12 bg-primary rounded-lg flex items-center justify-center mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary-foreground">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+            </svg>
+          </div>
+          <h1 class="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+            Link your account
+          </h1>
+          <p class="text-sm text-slate-500 dark:text-slate-400">
+            Enter your Planka credentials to connect with Telegram
+          </p>
+        </div>
 
-  <form method="post" action="/link/planka">
-    <input type="hidden" name="state" value="${escapeHtml(state)}" />
+        <!-- Form -->
+        <form method="post" action="/link/planka" class="space-y-4" id="linkForm">
+          <input type="hidden" name="state" value="${escapeHtml(state)}" />
 
-    <label>Planka Base URL</label><br/>
-    <input name="baseUrl" placeholder="https://pm-dev.example.com" style="width: 100%; padding: 10px;" required />
-    <br/><br/>
+          <div class="space-y-2">
+            <label for="emailOrUsername" class="text-sm font-medium text-slate-900 dark:text-slate-50 block">
+              Email or Username
+            </label>
+            <input 
+              id="emailOrUsername"
+              type="text" 
+              name="emailOrUsername" 
+              placeholder="john@example.com" 
+              autocomplete="username"
+              required 
+              autofocus
+              class="flex h-10 w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-slate-950 transition-all"
+            />
+          </div>
 
-    <label>Email or Username</label><br/>
-    <input name="emailOrUsername" style="width: 100%; padding: 10px;" required />
-    <br/><br/>
+          <div class="space-y-2">
+            <label for="password" class="text-sm font-medium text-slate-900 dark:text-slate-50 block">
+              Password
+            </label>
+            <input 
+              id="password"
+              type="password" 
+              name="password" 
+              placeholder="••••••••" 
+              autocomplete="current-password"
+              required 
+              class="flex h-10 w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-slate-950 transition-all"
+            />
+          </div>
 
-    <label>Password</label><br/>
-    <input type="password" name="password" style="width: 100%; padding: 10px;" required />
-    <br/><br/>
+          <button 
+            type="submit"
+            id="submitBtn"
+            class="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-slate-950 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+          >
+            <span id="btnText">Link Account</span>
+            <svg id="btnSpinner" class="hidden animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          </button>
+        </form>
 
-    <button type="submit" style="padding: 10px 14px;">Link</button>
-  </form>
+        <script>
+          document.getElementById('linkForm').addEventListener('submit', function() {
+            const btn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('btnText');
+            const btnSpinner = document.getElementById('btnSpinner');
+            
+            btn.disabled = true;
+            btnText.textContent = 'Connecting...';
+            btnSpinner.classList.remove('hidden');
+          });
+        </script>
+
+        <!-- Security Note -->
+        <div class="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-4">
+          <div class="flex gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-600 dark:text-slate-400 flex-shrink-0 mt-0.5">
+              <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            <div class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              <span class="font-medium text-slate-900 dark:text-slate-50">Secure Authentication</span>
+              <p class="mt-1">Your password is only used to obtain an access token and is never stored on our servers.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </body>
 </html>`);
 });
 
 app.post('/link/planka', async (req, res) => {
   const state = typeof req.body.state === 'string' ? req.body.state : '';
-  const baseUrl = typeof req.body.baseUrl === 'string' ? req.body.baseUrl : '';
   const emailOrUsername = typeof req.body.emailOrUsername === 'string' ? req.body.emailOrUsername : '';
   const password = typeof req.body.password === 'string' ? req.body.password : '';
 
-  if (!state || !baseUrl || !emailOrUsername || !password) {
+  if (!state || !emailOrUsername || !password) {
     res.status(400).send('Missing required fields');
     return;
   }
 
   const link = await consumeLinkState(state);
   if (!link) {
-    res.status(400).send('Invalid or expired link. Go back to Telegram and run /link_planka again.');
+    res.status(400).send(`<!doctype html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Link Expired</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class'
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+    body { font-family: 'Inter', system-ui, sans-serif; }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center p-4">
+  <div class="w-full max-w-md">
+    <div class="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg p-8 space-y-6">
+      <!-- Icon -->
+      <div class="mx-auto w-12 h-12 bg-amber-500 dark:bg-amber-600 rounded-lg flex items-center justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+      </div>
+
+      <!-- Header -->
+      <div class="space-y-2 text-center">
+        <h1 class="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+          Link expired
+        </h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400">
+          This link is no longer valid. Links expire after 10 minutes or once used.
+        </p>
+      </div>
+
+      <!-- Instructions -->
+      <div class="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-4">
+        <h2 class="text-sm font-medium text-slate-900 dark:text-slate-50 mb-3">To get a new link:</h2>
+        <ol class="space-y-2 text-sm text-slate-600 dark:text-slate-400">
+          <li class="flex gap-2">
+            <span class="flex-shrink-0 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-medium">1</span>
+            <span>Go back to Telegram</span>
+          </li>
+          <li class="flex gap-2">
+            <span class="flex-shrink-0 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-medium">2</span>
+            <span>Send <code class="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-slate-50 font-mono text-xs">/link_planka</code> again</span>
+          </li>
+          <li class="flex gap-2">
+            <span class="flex-shrink-0 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-medium">3</span>
+            <span>Click the new link within 10 minutes</span>
+          </li>
+        </ol>
+      </div>
+
+      <!-- Tip -->
+      <div class="rounded-lg border border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-950/30 p-4">
+        <div class="flex items-start gap-3 text-left">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5">
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+            <path d="M12 17h.01"></path>
+          </svg>
+          <div class="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+            <strong class="font-medium">Tip:</strong> Each link can only be used once for security reasons.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`);
     return;
   }
+
+  // Get base URL from system config
+  const baseUrl = (await getSystemConfig('PLANKA_BASE_URL')) || 'https://pm-dev.rastar.dev';
 
   try {
     const token = await plankaLogin(baseUrl, emailOrUsername, password);
     await upsertPlankaToken(link.telegramUserId, normalizeBaseUrl(baseUrl), token);
 
+    const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'your_bot';
     await sendTelegramMessage(
       link.telegramUserId,
-      `✅ Planka linked for ${escapeHtml(normalizeBaseUrl(baseUrl))}.\nYou can return to Telegram and run /planka_status.`,
+      `✅ <b>Planka Account Linked!</b>\n\n` +
+      `Your Planka account has been successfully connected.\n` +
+      `Base URL: ${escapeHtml(normalizeBaseUrl(baseUrl))}\n\n` +
+      `Use /planka_status to check your connection anytime.`,
     );
 
     res.status(200).send(`<!doctype html>
-<html lang="en"><head><meta charset="utf-8" /><title>Linked</title></head>
-<body style="font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; max-width: 560px; margin: 40px auto;">
-  <h1>Success</h1>
-  <p>Your Planka account is linked. You can return to Telegram.</p>
-</body></html>`);
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Account Linked</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              DEFAULT: "hsl(221.2 83.2% 53.3%)",
+              foreground: "hsl(210 40% 98%)",
+            },
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .animate-in {
+      animation: slideInFromBottom 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .animate-check {
+      animation: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes slideInFromBottom {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    @keyframes scaleIn {
+      0% {
+        transform: scale(0);
+        opacity: 0;
+      }
+      50% {
+        transform: scale(1.1);
+      }
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center p-4">
+  <div class="w-full max-w-md animate-in">
+    <div class="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg">
+      <div class="p-8 space-y-6 text-center">
+        <!-- Success Icon -->
+        <div class="mx-auto w-16 h-16 bg-emerald-500 dark:bg-emerald-600 rounded-full flex items-center justify-center animate-check">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </div>
+
+        <!-- Header -->
+        <div class="space-y-2">
+          <h1 class="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+            Successfully linked!
+          </h1>
+          <p class="text-sm text-slate-500 dark:text-slate-400">
+            Your Planka account has been connected to Telegram.<br>
+            You can now close this page and return to the bot.
+          </p>
+        </div>
+
+        <!-- Action Button -->
+        <div class="pt-2">
+          <a 
+            href="https://t.me/${escapeHtml(botUsername)}"
+            class="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-slate-950 transition-all active:scale-[0.98]"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
+            </svg>
+            Open Telegram Bot
+          </a>
+        </div>
+
+        <!-- Info Box -->
+        <div class="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-4">
+          <div class="flex items-start gap-3 text-left">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M12 16v-4"></path>
+              <path d="M12 8h.01"></path>
+            </svg>
+            <div class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              Use <code class="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-slate-50 font-mono">/planka_status</code> to check your connection anytime
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`);
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error';
-    res.status(500).send(`Failed to link Planka: ${escapeHtml(msg)}`);
+    
+    // Determine error type and provide specific guidance
+    let errorTitle = 'Connection failed';
+    let errorMessage = msg;
+    let errorTip = 'Please try again or contact support if the problem persists.';
+    
+    if (msg.includes('401') || msg.includes('Invalid credentials') || msg.includes('Unauthorized')) {
+      errorTitle = 'Invalid credentials';
+      errorMessage = 'The email/username or password you entered is incorrect.';
+      errorTip = 'Double-check your Planka login credentials and try again.';
+    } else if (msg.includes('404') || msg.includes('Not found')) {
+      errorTitle = 'Planka server not found';
+      errorMessage = 'Could not connect to the Planka server.';
+      errorTip = 'Please contact your administrator to verify the Planka server URL.';
+    } else if (msg.includes('fetch') || msg.includes('ECONNREFUSED') || msg.includes('network')) {
+      errorTitle = 'Network error';
+      errorMessage = 'Unable to reach the Planka server.';
+      errorTip = 'Check your internet connection and try again. If the problem persists, the Planka server may be down.';
+    } else if (msg.includes('timeout')) {
+      errorTitle = 'Connection timeout';
+      errorMessage = 'The Planka server took too long to respond.';
+      errorTip = 'The server might be busy. Please try again in a few moments.';
+    }
+    
+    res.status(500).send(`<!doctype html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Link Failed</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              DEFAULT: "hsl(221.2 83.2% 53.3%)",
+              foreground: "hsl(210 40% 98%)",
+            },
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .animate-in {
+      animation: slideInFromBottom 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .animate-shake {
+      animation: shake 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes slideInFromBottom {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+      20%, 40%, 60%, 80% { transform: translateX(4px); }
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center p-4">
+  <div class="w-full max-w-md animate-in">
+    <div class="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg">
+      <div class="p-8 space-y-6 text-center">
+        <!-- Error Icon -->
+        <div class="mx-auto w-16 h-16 bg-red-500 dark:bg-red-600 rounded-full flex items-center justify-center animate-shake">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="15" y1="9" x2="9" y2="15"></line>
+            <line x1="9" y1="9" x2="15" y2="15"></line>
+          </svg>
+        </div>
+
+        <!-- Header -->
+        <div class="space-y-2">
+          <h1 class="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+            ${escapeHtml(errorTitle)}
+          </h1>
+          <p class="text-sm text-slate-500 dark:text-slate-400">
+            We couldn't link your Planka account
+          </p>
+        </div>
+
+        <!-- Error Message -->
+        <div class="rounded-lg border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 p-4">
+          <div class="flex items-start gap-3 text-left">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <div class="text-sm text-red-700 dark:text-red-300 leading-relaxed">
+              ${escapeHtml(errorMessage)}
+            </div>
+          </div>
+        </div>
+
+        <!-- Error Tip -->
+        <div class="rounded-lg border border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-950/30 p-4">
+          <div class="flex items-start gap-3 text-left">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+              <path d="M12 17h.01"></path>
+            </svg>
+            <div class="text-sm text-blue-700 dark:text-blue-300 leading-relaxed">
+              <strong class="font-medium">Tip:</strong> ${escapeHtml(errorTip)}
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Button -->
+        <div class="pt-2">
+          <a 
+            href="javascript:history.back()"
+            class="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-slate-950 transition-all active:scale-[0.98]"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+            Try Again
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`);
   }
 });
 
@@ -163,7 +666,11 @@ function escapeHtml(s: string): string {
     .replaceAll("'", '&#39;');
 }
 
-async function sendTelegramMessage(chatId: string, text: string): Promise<void> {
+async function sendTelegramMessage(
+  chatId: string,
+  text: string,
+  options?: { parse_mode?: 'HTML' | 'Markdown' }
+): Promise<void> {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   if (!botToken) return;
 
@@ -176,6 +683,7 @@ async function sendTelegramMessage(chatId: string, text: string): Promise<void> 
       body: JSON.stringify({
         chat_id: chatId,
         text,
+        parse_mode: options?.parse_mode || 'HTML',
       }),
     });
   } catch {

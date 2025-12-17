@@ -21,3 +21,8 @@ model PlankaToken {
   accessTokenEnc  String
   updatedAt       BigInt
 }
+
+model SystemConfig {
+  key   String @id
+  value String
+}

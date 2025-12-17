@@ -41,6 +41,22 @@ export async function createLinkState(telegramUserId: string, ttlSeconds = 10 * 
   return state;
 }
 
+export async function peekLinkState(state: string): Promise<LinkStateRecord | null> {
+  await purgeExpiredLinkStates();
+
+  const found = await getPrisma().linkState.findUnique({ where: { state } });
+  if (!found) return null;
+
+  const expiresAt = Number(found.expiresAt);
+  if (expiresAt <= Date.now()) return null;
+
+  return {
+    state: found.state,
+    telegramUserId: found.telegramUserId,
+    expiresAt,
+  };
+}
+
 export async function consumeLinkState(state: string): Promise<LinkStateRecord | null> {
   await purgeExpiredLinkStates();
 
@@ -136,4 +152,17 @@ function cryptoRandomBase64Url(bytes: number): string {
     .replaceAll('+', '-')
     .replaceAll('/', '_')
     .replaceAll('=', '');
+}
+
+export async function getSystemConfig(key: string): Promise<string | null> {
+  const row = await getPrisma().systemConfig.findUnique({ where: { key } });
+  return row?.value ?? null;
+}
+
+export async function setSystemConfig(key: string, value: string): Promise<void> {
+  await getPrisma().systemConfig.upsert({
+    where: { key },
+    create: { key, value },
+    update: { value },
+  });
 }
