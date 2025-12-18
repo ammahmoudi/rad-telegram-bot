@@ -53,7 +53,9 @@ export class OpenRouterClient {
     ];
 
     // Add conversation history
-    for (const msg of messages) {
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i];
+      
       if (msg.role === 'tool') {
         openaiMessages.push({
           role: 'tool',
@@ -61,21 +63,33 @@ export class OpenRouterClient {
           tool_call_id: msg.toolCallId || '',
         });
       } else if (msg.role === 'assistant' && msg.toolName) {
-        // Assistant made a tool call
+        // Assistant made tool call(s) - collect all tool calls in this turn
+        const toolCalls: any[] = [];
+        let j = i;
+        
+        while (j < messages.length && 
+               messages[j].role === 'assistant' && 
+               messages[j].toolName) {
+          toolCalls.push({
+            id: messages[j].toolCallId || '',
+            type: 'function',
+            function: {
+              name: messages[j].toolName,
+              arguments: messages[j].toolArgs || '{}',
+            },
+          });
+          j++;
+        }
+        
+        // Add single assistant message with all tool calls
         openaiMessages.push({
           role: 'assistant',
           content: null,
-          tool_calls: [
-            {
-              id: msg.toolCallId || '',
-              type: 'function',
-              function: {
-                name: msg.toolName,
-                arguments: msg.toolArgs || '{}',
-              },
-            },
-          ],
+          tool_calls: toolCalls,
         });
+        
+        // Skip ahead past the tool calls we've processed
+        i = j - 1;
       } else {
         openaiMessages.push({
           role: msg.role as 'user' | 'assistant' | 'system',
@@ -144,17 +158,44 @@ export function validateMessageHistory(messages: ChatMessage[]): ChatMessage[] {
   const cleaned: ChatMessage[] = [];
   const toolCallIds = new Set<string>();
 
-  for (const msg of messages) {
-    // Track assistant tool calls
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i];
+
+    // Group consecutive assistant tool call messages together
     if (msg.role === 'assistant' && msg.toolName && msg.toolCallId) {
+      const toolCalls: ChatMessage[] = [msg];
       toolCallIds.add(msg.toolCallId);
-      cleaned.push(msg);
+      
+      // Look ahead for more tool calls in the same turn
+      while (i + 1 < messages.length && 
+             messages[i + 1].role === 'assistant' && 
+             messages[i + 1].toolName && 
+             messages[i + 1].toolCallId) {
+        i++;
+        toolCalls.push(messages[i]);
+        toolCallIds.add(messages[i].toolCallId);
+      }
+      
+      // Add all tool calls
+      cleaned.push(...toolCalls);
+      
+      // Now collect the corresponding tool responses
+      const toolResponses: ChatMessage[] = [];
+      while (i + 1 < messages.length && messages[i + 1].role === 'tool') {
+        i++;
+        const toolMsg = messages[i];
+        if (toolMsg.toolCallId && toolCallIds.has(toolMsg.toolCallId)) {
+          toolResponses.push(toolMsg);
+          toolCallIds.delete(toolMsg.toolCallId);
+        }
+      }
+      
+      cleaned.push(...toolResponses);
     }
     // Only include tool messages if we have the corresponding tool call
     else if (msg.role === 'tool') {
       if (msg.toolCallId && toolCallIds.has(msg.toolCallId)) {
         cleaned.push(msg);
-        // Remove from set once used
         toolCallIds.delete(msg.toolCallId);
       }
       // Skip orphaned tool messages
@@ -172,31 +213,58 @@ export function validateMessageHistory(messages: ChatMessage[]): ChatMessage[] {
 
 /**
  * Trim conversation history to fit within context window
- * Keeps system prompt, recent messages, and ensures tool call/response pairs stay together
+ * Keeps recent messages and ensures tool call/response pairs stay together
  */
 export function trimConversationHistory(
   messages: ChatMessage[],
   maxMessages: number = 20,
 ): ChatMessage[] {
   if (messages.length <= maxMessages) {
-    return messages;
+    return removeOrphanedToolMessages(messages);
   }
 
-  // Always keep the most recent messages
+  // Simple strategy: take last N messages and clean orphans
   const trimmed = messages.slice(-maxMessages);
+  return removeOrphanedToolMessages(trimmed);
+}
 
-  // Ensure tool call/response pairs are complete
+/**
+ * Remove orphaned tool calls and tool responses
+ * - Remove tool responses without their assistant call
+ * - Remove assistant tool calls without their responses
+ */
+function removeOrphanedToolMessages(messages: ChatMessage[]): ChatMessage[] {
   const result: ChatMessage[] = [];
-  for (let i = 0; i < trimmed.length; i++) {
-    const msg = trimmed[i];
-    result.push(msg);
-
-    // If this is a tool call, make sure we include the response
-    if (msg.toolName && i + 1 < trimmed.length && trimmed[i + 1].role === 'tool') {
-      result.push(trimmed[i + 1]);
-      i++; // Skip next iteration
+  const validToolCallIds = new Set<string>();
+  const toolResponseIds = new Set<string>();
+  
+  // First pass: collect tool call IDs and response IDs
+  for (const msg of messages) {
+    if (msg.role === 'assistant' && msg.toolName && msg.toolCallId) {
+      validToolCallIds.add(msg.toolCallId);
+    }
+    if (msg.role === 'tool' && msg.toolCallId) {
+      toolResponseIds.add(msg.toolCallId);
     }
   }
-
+  
+  // Second pass: only include complete tool call/response pairs
+  for (const msg of messages) {
+    if (msg.role === 'tool') {
+      // Only include tool response if we have its assistant call
+      if (msg.toolCallId && validToolCallIds.has(msg.toolCallId)) {
+        result.push(msg);
+      }
+    } else if (msg.role === 'assistant' && msg.toolName && msg.toolCallId) {
+      // Only include assistant tool call if we have its response
+      if (toolResponseIds.has(msg.toolCallId)) {
+        result.push(msg);
+      }
+    } else {
+      // Include all other messages (user, regular assistant)
+      result.push(msg);
+    }
+  }
+  
   return result;
 }

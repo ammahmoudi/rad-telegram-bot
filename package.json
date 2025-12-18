@@ -10,7 +10,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently -n bot,portal,admin,mcp -c blue,green,yellow,magenta \"npm -w apps/telegram-bot run dev\" \"npm -w apps/link-portal run dev\" \"npm -w apps/admin-panel run dev\" \"npm -w packages/mcp-planka run dev\"",
+    "dev": "concurrently -n bot,portal,admin -c blue,green,yellow \"npm -w apps/telegram-bot run dev\" \"npm -w apps/link-portal run dev\" \"npm -w apps/admin-panel run dev\"",
     "build": "tsc -b",
     "prisma:generate": "npm -w packages/shared run prisma:generate",
     "admin:build": "npm -w apps/admin-panel run build",

@@ -1,3 +1,5 @@
+console.log('[telegram-bot] Starting bot initialization...');
+
 import dotenv from 'dotenv';
 
 import path from 'node:path';
@@ -7,6 +9,8 @@ import { Bot } from 'grammy';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 dotenv.config({ path: path.join(repoRoot, '.env') });
+
+console.log('[telegram-bot] Environment loaded');
 
 import {
   createLinkState,
@@ -26,7 +30,8 @@ import {
 } from '@rastar/shared';
 import type { ChatCompletionTool } from 'openai/resources/chat/completions';
 
-import { executePlankaTool } from './planka-tools.js';
+import { executeMcpTool } from './planka-tools.js';
+import { initializeMcpServers, getMcpManager } from './mcp-client.js';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 if (!TELEGRAM_BOT_TOKEN) {
@@ -72,7 +77,7 @@ async function getAiClient(): Promise<OpenRouterClient | null> {
 
 /**
  * Get available AI tools for the user
- * Returns Planka tools if user has linked their account
+ * Returns MCP tools if user has access
  */
 async function getAiTools(telegramUserId: string): Promise<ChatCompletionTool[]> {
   const token = await getPlankaToken(telegramUserId);
@@ -82,8 +87,37 @@ async function getAiTools(telegramUserId: string): Promise<ChatCompletionTool[]>
     return [];
   }
 
-  console.log('[getAiTools] Returning 6 Planka tools');
-  // Define core Planka tools for AI assistant
+  // Get tools dynamically from MCP server
+  const manager = getMcpManager();
+  try {
+    const mcpTools = await manager.listTools('planka');
+    console.log('[getAiTools] Found', mcpTools.length, 'MCP tools');
+    
+    // Convert MCP tools to OpenAI function calling format
+    // Replace dots with underscores in tool names (OpenAI requires ^[a-zA-Z0-9_-]+$)
+    const aiTools: ChatCompletionTool[] = mcpTools.map((tool) => ({
+      type: 'function' as const,
+      function: {
+        name: tool.name.replace(/\./g, '_'),
+        description: tool.description || '',
+        parameters: tool.inputSchema as any,
+      },
+    }));
+    
+    return aiTools;
+  } catch (error) {
+    console.error('[getAiTools] Error listing MCP tools:', error);
+    return [];
+  }
+}
+
+// Old static tool definitions (commented out, now using MCP server):
+/*
+async function getAiToolsOld(telegramUserId: string): Promise<ChatCompletionTool[]> {
+  const token = await getPlankaToken(telegramUserId);
+  if (!token) {
+    return [];
+  }
   return [
     {
       type: 'function',
@@ -208,18 +242,35 @@ async function getAiTools(telegramUserId: string): Promise<ChatCompletionTool[]>
     },
   ];
 }
+*/
 
-const SYSTEM_PROMPT = `You are a helpful AI assistant integrated with a Telegram bot. You can help users manage their Planka tasks and boards.
+const SYSTEM_PROMPT = `You are a Planka assistant. BE EXTREMELY EFFICIENT with API calls.
 
-When users ask about Planka, you can use the available tools to:
-- List projects, boards, and lists
-- Search for cards in boards
-- Create new cards in lists
-- Update existing cards
+🚨 CRITICAL RULES:
+1. Maximum 5 tool calls TOTAL per request
+2. After making ANY tool calls, you MUST provide a text response
+3. NEVER make tool calls without responding after
 
-Always be concise and friendly. Use Telegram-friendly formatting (HTML tags like <b>, <i>, <code>).
+📋 FINDING TASKS FOR A PERSON:
+User: "Show me [Name]'s tasks"
 
-When searching or listing data, first get the projects, then boards, then lists/cards as needed.`;
+Strategy:
+1. planka_projects_list (1 call)
+2. planka_boards_list for ONE likely project (1 call) 
+3. planka_cards_search with person's name in that board (1 call)
+4. RESPOND immediately with results
+
+❌ NEVER EVER:
+- List members from multiple projects
+- Search through 10+ boards
+- Make calls without responding
+
+✅ ALWAYS:
+- Respond after tool calls with findings
+- Use <b>bold</b> formatting
+- Keep responses concise
+
+If you don't find results in first search, tell user and ask if they want to search more projects.`;
 
 const bot = new Bot(TELEGRAM_BOT_TOKEN);
 
@@ -507,12 +558,12 @@ bot.on('message:text', async (ctx) => {
     // Validate and clean message history (remove orphaned tool messages)
     const validatedHistory = validateMessageHistory(chatHistory);
 
-    // Trim to fit context window
-    const trimmedHistory = trimConversationHistory(validatedHistory, 30);
-
     // Add user message
     await addMessage(session.id, 'user', text);
-    trimmedHistory.push({ role: 'user', content: text });
+    validatedHistory.push({ role: 'user', content: text });
+
+    // Trim to fit context window (keep last 20 messages)
+    const trimmedHistory = trimConversationHistory(validatedHistory, 20);
 
     // Get Planka tools if user has linked account
     const tools = await getAiTools(telegramUserId);
@@ -523,7 +574,7 @@ bot.on('message:text', async (ctx) => {
 
     // Get AI response with system prompt
     console.log('[telegram-bot] Conversation history length:', trimmedHistory.length);
-    console.log('[telegram-bot] Last 2 messages:', JSON.stringify(trimmedHistory.slice(-2), null, 2));
+    console.log('[telegram-bot] Last 3 messages:', JSON.stringify(trimmedHistory.slice(-3).map(m => ({ role: m.role, content: m.content?.substring(0, 100) || '(tool call)', toolName: m.toolName })), null, 2));
     console.log('[telegram-bot] Calling AI with', tools.length, 'tools');
     let response = await client.chat(trimmedHistory, { systemPrompt: SYSTEM_PROMPT }, tools);
     console.log('[telegram-bot] AI response:', { 
@@ -537,9 +588,11 @@ bot.on('message:text', async (ctx) => {
     }
 
     // Handle tool calls
-    let maxToolCalls = 5; // Prevent infinite loops
+    let maxToolCalls = 4; // Limit to 4 rounds of tool calls
+    let totalToolCallsMade = 0;
     while (response.toolCalls && response.toolCalls.length > 0 && maxToolCalls > 0) {
       maxToolCalls--;
+      totalToolCallsMade += response.toolCalls.length;
 
       for (const toolCall of response.toolCalls) {
         console.log('[telegram-bot] Tool call:', { id: toolCall.id, name: toolCall.name, args: toolCall.arguments });
@@ -555,9 +608,11 @@ bot.on('message:text', async (ctx) => {
         );
 
         // Execute tool
-        const toolResult = await executePlankaTool(
+        // Convert underscored name back to dots for MCP (e.g., planka_auth_status -> planka.auth.status)
+        const mcpToolName = toolCall.name.replace(/_/g, '.');
+        const toolResult = await executeMcpTool(
           telegramUserId,
-          toolCall.name,
+          mcpToolName,
           JSON.parse(toolCall.arguments),
         );
         console.log('[telegram-bot] Tool result:', { success: toolResult.success, contentLength: toolResult.content?.length || 0, error: toolResult.error });
@@ -586,16 +641,26 @@ bot.on('message:text', async (ctx) => {
 
       // Get next response from AI
       await ctx.replyWithChatAction('typing');
-      response = await client.chat(trimConversationHistory(trimmedHistory, 30), {}, tools);
+      response = await client.chat(trimConversationHistory(trimmedHistory, 20), {}, tools);
     }
+
+    // Log final response details
+    console.log('[telegram-bot] Final AI response after', totalToolCallsMade, 'tool calls:', {
+      hasContent: !!response.content,
+      contentLength: response.content?.length || 0,
+      toolCallsCount: response.toolCalls?.length || 0,
+      finishReason: response.finishReason
+    });
 
     // Save assistant response
     if (response.content) {
       await addMessage(session.id, 'assistant', response.content);
+    } else {
+      console.log('[telegram-bot] WARNING: No content in final response!');
     }
 
     // Send response to user
-    const finalContent = response.content || '🤔 I processed your request but have nothing to say.';
+    const finalContent = response.content || '🤔 Something went wrong - I made tool calls but couldn\'t generate a response. Please try asking in a different way.';
     console.log('[telegram-bot] Sending final response, length:', finalContent.length);
     
     // Split long messages
@@ -650,11 +715,36 @@ try {
   console.warn('[telegram-bot] failed to deleteWebhook (continuing)', err);
 }
 
+// Initialize MCP servers before starting the bot
+try {
+  // eslint-disable-next-line no-console
+  console.log('[telegram-bot] Initializing MCP servers...');
+  await initializeMcpServers();
+  // eslint-disable-next-line no-console
+  console.log('[telegram-bot] MCP servers initialized successfully');
+} catch (err) {
+  // eslint-disable-next-line no-console
+  console.error('[telegram-bot] Failed to initialize MCP servers:', err);
+  // eslint-disable-next-line no-console
+  console.log('[telegram-bot] Bot will start without MCP tools');
+}
+
 bot.start({
   onStart: (info) => {
     // eslint-disable-next-line no-console
     console.log(`[telegram-bot] started as @${info.username} (polling)`);
   },
+});
+
+// Keep process alive and handle errors
+process.on('unhandledRejection', (err) => {
+  // eslint-disable-next-line no-console
+  console.error('[telegram-bot] Unhandled rejection:', err);
+});
+
+process.on('uncaughtException', (err) => {
+  // eslint-disable-next-line no-console
+  console.error('[telegram-bot] Uncaught exception:', err);
 });
 
 function stripTrailingSlash(s: string): string {

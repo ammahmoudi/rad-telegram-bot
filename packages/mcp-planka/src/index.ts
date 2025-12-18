@@ -134,6 +134,75 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
         return text(JSON.stringify(lists, null, 2));
       }
 
+      case 'planka.cards.searchGlobal': {
+        const auth = await requireAuth(args);
+        const query = String((args as any)?.query ?? '');
+        if (!query) throw new Error('query is required');
+
+        // Get all projects
+        const projects = await listProjects(auth);
+        const allCards: any[] = [];
+        const q = query.toLowerCase();
+
+        // Search through all projects and boards
+        for (const project of projects) {
+          try {
+            const boards = (project as any)?.included?.boards ?? [];
+            for (const board of boards) {
+              try {
+                const boardData = await getBoard(auth, board.id);
+                const cards = (boardData as any)?.included?.cards ?? [];
+                
+                // Filter cards matching query
+                const matchingCards = cards.filter((c: any) => {
+                  const name = String(c?.name ?? '').toLowerCase();
+                  const desc = String(c?.description ?? '').toLowerCase();
+                  return name.includes(q) || desc.includes(q);
+                });
+
+                // Add context to each card
+                matchingCards.forEach((card: any) => {
+                  allCards.push({
+                    ...card,
+                    _context: {
+                      projectId: project.id,
+                      projectName: project.name,
+                      boardId: board.id,
+                      boardName: board.name,
+                    },
+                  });
+                });
+              } catch (boardErr) {
+                // Skip boards we can't access
+                continue;
+              }
+            }
+          } catch (projErr) {
+            // Skip projects we can't access
+            continue;
+          }
+        }
+
+        return text(JSON.stringify(allCards, null, 2));
+      }
+
+      case 'planka.cards.list': {
+        const auth = await requireAuth(args);
+        const boardId = String((args as any)?.boardId ?? '');
+        const listId = (args as any)?.listId ? String((args as any).listId) : null;
+        if (!boardId) throw new Error('boardId is required');
+
+        const board = await getBoard(auth, boardId);
+        let cards: any[] = (board as any)?.included?.cards ?? [];
+
+        // Filter by list if specified
+        if (listId) {
+          cards = cards.filter((c) => c.listId === listId);
+        }
+
+        return text(JSON.stringify(cards, null, 2));
+      }
+
       case 'planka.cards.search': {
         const auth = await requireAuth(args);
         const boardId = String((args as any)?.boardId ?? '');
