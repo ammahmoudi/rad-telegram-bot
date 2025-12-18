@@ -1,6 +1,5 @@
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam, ChatCompletionTool } from 'openai/resources/chat/completions';
-import { getPlankaToken } from './db.js';
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system' | 'tool';
@@ -16,17 +15,6 @@ export interface ChatOptions {
   maxTokens?: number;
   systemPrompt?: string;
 }
-
-const DEFAULT_SYSTEM_PROMPT = `You are a helpful AI assistant integrated with a Telegram bot. You can help users manage their Planka tasks and boards.
-
-When users ask about Planka, you can use the available tools to:
-- List boards, lists, and cards
-- Create new cards
-- Update card details
-- Move cards between lists
-- Search for cards
-
-Always be concise and friendly. Use Telegram-friendly formatting (HTML tags like <b>, <i>, <code>).`;
 
 export class OpenRouterClient {
   private client: OpenAI;
@@ -57,7 +45,7 @@ export class OpenRouterClient {
     finishReason: string;
   }> {
     const model = options.model || this.model;
-    const systemPrompt = options.systemPrompt || DEFAULT_SYSTEM_PROMPT;
+    const systemPrompt = options.systemPrompt || 'You are a helpful AI assistant.';
 
     // Build messages array with system prompt
     const openaiMessages: ChatCompletionMessageParam[] = [
@@ -149,118 +137,38 @@ export class OpenRouterClient {
 }
 
 /**
- * Get Planka MCP tools for the AI assistant
+ * Validate and clean message history to ensure tool messages always follow assistant tool_calls
+ * This prevents OpenAI API errors about orphaned tool messages
  */
-export async function getPlankaMcpTools(telegramUserId: string): Promise<ChatCompletionTool[]> {
-  const token = await getPlankaToken(telegramUserId);
-  if (!token) {
-    return [];
+export function validateMessageHistory(messages: ChatMessage[]): ChatMessage[] {
+  const cleaned: ChatMessage[] = [];
+  const toolCallIds = new Set<string>();
+
+  for (const msg of messages) {
+    // Track assistant tool calls
+    if (msg.role === 'assistant' && msg.toolName && msg.toolCallId) {
+      toolCallIds.add(msg.toolCallId);
+      cleaned.push(msg);
+    }
+    // Only include tool messages if we have the corresponding tool call
+    else if (msg.role === 'tool') {
+      if (msg.toolCallId && toolCallIds.has(msg.toolCallId)) {
+        cleaned.push(msg);
+        // Remove from set once used
+        toolCallIds.delete(msg.toolCallId);
+      }
+      // Skip orphaned tool messages
+    }
+    // Include all other messages
+    else {
+      cleaned.push(msg);
+    }
   }
 
-  // Define available Planka tools
-  return [
-    {
-      type: 'function',
-      function: {
-        name: 'planka_list_boards',
-        description: 'List all accessible Planka boards',
-        parameters: {
-          type: 'object',
-          properties: {},
-          required: [],
-        },
-      },
-    },
-    {
-      type: 'function',
-      function: {
-        name: 'planka_list_cards',
-        description: 'List cards in a specific board or list',
-        parameters: {
-          type: 'object',
-          properties: {
-            boardId: {
-              type: 'string',
-              description: 'The ID of the board',
-            },
-            listId: {
-              type: 'string',
-              description: 'Optional: The ID of the list to filter cards',
-            },
-          },
-          required: ['boardId'],
-        },
-      },
-    },
-    {
-      type: 'function',
-      function: {
-        name: 'planka_create_card',
-        description: 'Create a new card in a Planka list',
-        parameters: {
-          type: 'object',
-          properties: {
-            listId: {
-              type: 'string',
-              description: 'The ID of the list where the card should be created',
-            },
-            name: {
-              type: 'string',
-              description: 'The title/name of the card',
-            },
-            description: {
-              type: 'string',
-              description: 'Optional: The description of the card',
-            },
-          },
-          required: ['listId', 'name'],
-        },
-      },
-    },
-    {
-      type: 'function',
-      function: {
-        name: 'planka_update_card',
-        description: 'Update an existing Planka card',
-        parameters: {
-          type: 'object',
-          properties: {
-            cardId: {
-              type: 'string',
-              description: 'The ID of the card to update',
-            },
-            name: {
-              type: 'string',
-              description: 'Optional: New name for the card',
-            },
-            description: {
-              type: 'string',
-              description: 'Optional: New description for the card',
-            },
-          },
-          required: ['cardId'],
-        },
-      },
-    },
-    {
-      type: 'function',
-      function: {
-        name: 'planka_search_cards',
-        description: 'Search for cards by keyword across all boards',
-        parameters: {
-          type: 'object',
-          properties: {
-            query: {
-              type: 'string',
-              description: 'Search query to find cards',
-            },
-          },
-          required: ['query'],
-        },
-      },
-    },
-  ];
+  return cleaned;
 }
+
+
 
 /**
  * Trim conversation history to fit within context window

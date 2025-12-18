@@ -2,6 +2,7 @@ import { getPlankaToken } from '@rastar/shared';
 import {
   type PlankaAuth,
   listProjects,
+  getProject,
   getBoard,
   createCard,
   updateCard,
@@ -21,6 +22,7 @@ export async function executePlankaTool(
   toolName: string,
   args: Record<string, any>,
 ): Promise<ToolExecutionResult> {
+  console.log('[executePlankaTool]', { toolName, args });
   try {
     // Get user's Planka credentials
     const token = await getPlankaToken(telegramUserId);
@@ -39,20 +41,26 @@ export async function executePlankaTool(
 
     // Route to appropriate tool handler
     switch (toolName) {
-      case 'planka_list_boards':
-        return await handleListBoards(auth);
+      case 'planka_projects_list':
+        return await handleListProjects(auth);
+
+      case 'planka_boards_list':
+        return await handleListBoards(auth, args.projectId);
+
+      case 'planka_lists_list':
+        return await handleListLists(auth, args.boardId);
 
       case 'planka_list_cards':
         return await handleListCards(auth, args.boardId, args.listId);
 
-      case 'planka_create_card':
-        return await handleCreateCard(auth, args.listId, args.name, args.description);
+      case 'planka_cards_create':
+        return await handleCreateCard(auth, args.listId, args.name, args.description, args.position);
 
-      case 'planka_update_card':
+      case 'planka_cards_update':
         return await handleUpdateCard(auth, args.cardId, args.name, args.description);
 
-      case 'planka_search_cards':
-        return await handleSearchCards(auth, args.query);
+      case 'planka_cards_search':
+        return await handleSearchCards(auth, args.boardId, args.query);
 
       default:
         return {
@@ -71,19 +79,24 @@ export async function executePlankaTool(
   }
 }
 
-async function handleListBoards(auth: PlankaAuth): Promise<ToolExecutionResult> {
+async function handleListProjects(auth: PlankaAuth): Promise<ToolExecutionResult> {
+  console.log('[handleListProjects] Fetching projects');
   const projects = await listProjects(auth);
+  console.log('[handleListProjects] Projects found:', projects.length);
+  if (projects.length > 0) {
+    console.log('[handleListProjects] First project structure:', JSON.stringify(projects[0], null, 2));
+  }
 
   if (!projects || projects.length === 0) {
     return {
       success: true,
-      content: 'No boards found. You may not have access to any boards yet.',
+      content: 'No projects found. You may not have access to any projects yet.',
     };
   }
 
-  const boardList = projects
+  const projectList = projects
     .map((p: any, idx: number) => {
-      const name = p.name || 'Unnamed Board';
+      const name = p.name || 'Unnamed Project';
       const id = p.id || '';
       return `${idx + 1}. <b>${name}</b> (ID: <code>${id}</code>)`;
     })
@@ -91,8 +104,88 @@ async function handleListBoards(auth: PlankaAuth): Promise<ToolExecutionResult> 
 
   return {
     success: true,
-    content: `📋 <b>Your Planka Boards:</b>\n\n${boardList}`,
+    content: `📁 <b>Your Planka Projects:</b>\n\n${projectList}`,
   };
+}
+
+async function handleListBoards(auth: PlankaAuth, projectId: string): Promise<ToolExecutionResult> {
+  try {
+    console.log('[handleListBoards] Fetching project details for:', projectId);
+    const project: any = await getProject(auth, projectId);
+    console.log('[handleListBoards] Project response keys:', Object.keys(project));
+    
+    const projectName = project.item?.name || 'Unknown Project';
+    console.log('[handleListBoards] Project name:', projectName);
+    
+    // Boards are in the included section
+    const boards = project.included?.boards || [];
+    console.log('[handleListBoards] Boards found:', boards.length);
+    if (boards.length > 0) {
+      console.log('[handleListBoards] First board:', JSON.stringify(boards[0], null, 2));
+    }
+
+    if (boards.length === 0) {
+      return {
+        success: true,
+        content: `No boards found in project "${projectName}".`,
+      };
+    }
+
+    const boardList = boards
+      .map((b: any, idx: number) => {
+        const name = b.name || 'Unnamed Board';
+        const id = b.id || '';
+        console.log(`[handleListBoards] Board ${idx + 1}: ${name} (${id})`);
+        return `${idx + 1}. <b>${name}</b> (ID: <code>${id}</code>)`;
+      })
+      .join('\n');
+
+    console.log('[handleListBoards] Returning board list');
+    return {
+      success: true,
+      content: `📋 <b>Boards in "${projectName}":</b>\n\n${boardList}`,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      content: '',
+      error: error instanceof Error ? error.message : 'Failed to list boards',
+    };
+  }
+}
+
+async function handleListLists(auth: PlankaAuth, boardId: string): Promise<ToolExecutionResult> {
+  try {
+    const board = await getBoard(auth, boardId);
+    const boardName = board.item?.name || 'Board';
+    const lists = board.included?.lists || [];
+
+    if (lists.length === 0) {
+      return {
+        success: true,
+        content: `No lists found in board "${boardName}".`,
+      };
+    }
+
+    const listItems = lists
+      .map((l: any, idx: number) => {
+        const name = l.name || 'Unnamed List';
+        const id = l.id || '';
+        return `${idx + 1}. <b>${name}</b> (ID: <code>${id}</code>)`;
+      })
+      .join('\n');
+
+    return {
+      success: true,
+      content: `📝 <b>Lists in "${boardName}":</b>\n\n${listItems}`,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      content: '',
+      error: error instanceof Error ? error.message : 'Failed to list lists',
+    };
+  }
 }
 
 async function handleListCards(
@@ -149,6 +242,7 @@ async function handleCreateCard(
   listId: string,
   name: string,
   description?: string,
+  position?: number,
 ): Promise<ToolExecutionResult> {
   try {
     const result = await createCard(auth, listId, name, description);
@@ -196,66 +290,43 @@ async function handleUpdateCard(
 
 async function handleSearchCards(
   auth: PlankaAuth,
+  boardId: string,
   query: string,
 ): Promise<ToolExecutionResult> {
   try {
-    // Get all projects/boards
-    const projects = await listProjects(auth);
+    const board = await getBoard(auth, boardId);
+    const boardName = board.item?.name || 'Board';
+    const cards = board.included?.cards || [];
+    const lists = board.included?.lists || [];
 
-    const allCards: any[] = [];
+    // Filter cards by query
+    const q = query.toLowerCase();
+    const matchingCards = cards.filter((c: any) => {
+      const name = (c.name || '').toLowerCase();
+      const desc = (c.description || '').toLowerCase();
+      return name.includes(q) || desc.includes(q);
+    });
 
-    // Search across all boards
-    for (const project of projects) {
-      try {
-        const board = await getBoard(auth, project.id);
-        const cards = board.included?.cards || [];
-        const lists = board.included?.lists || [];
-
-        // Filter cards by query
-        const matchingCards = cards.filter((c: any) => {
-          const name = (c.name || '').toLowerCase();
-          const desc = (c.description || '').toLowerCase();
-          const q = query.toLowerCase();
-          return name.includes(q) || desc.includes(q);
-        });
-
-        // Add board context
-        matchingCards.forEach((c: any) => {
-          const list = lists.find((l: any) => l.id === c.listId);
-          allCards.push({
-            ...c,
-            boardName: project.name,
-            listName: list?.name || 'Unknown',
-          });
-        });
-      } catch {
-        // Skip boards we can't access
-        continue;
-      }
-    }
-
-    if (allCards.length === 0) {
+    if (matchingCards.length === 0) {
       return {
         success: true,
-        content: `🔍 No cards found matching "<b>${query}</b>"`,
+        content: `No cards found matching "${query}" in ${boardName}.`,
       };
     }
 
-    const resultList = allCards
-      .slice(0, 10) // Limit to 10 results
+    const cardList = matchingCards
       .map((c: any, idx: number) => {
-        const name = c.name || 'Unnamed';
-        const board = c.boardName || 'Unknown Board';
-        const list = c.listName || 'Unknown List';
-        return `${idx + 1}. <b>${name}</b>\n   📋 ${board} → ${list}\n   ID: <code>${c.id}</code>`;
+        const name = c.name || 'Unnamed Card';
+        const id = c.id || '';
+        const list = lists.find((l: any) => l.id === c.listId);
+        const listName = list?.name || 'Unknown List';
+        return `${idx + 1}. <b>${name}</b> (${listName})\n   ID: <code>${id}</code>`;
       })
       .join('\n\n');
 
     return {
       success: true,
-      content: `🔍 <b>Search results for "${query}":</b>\n\n${resultList}${
-        allCards.length > 10 ? `\n\n<i>...and ${allCards.length - 10} more</i>` : ''
-      }`,
+      content: `🔍 <b>Search results for "${query}" in ${boardName}:</b>\n\n${cardList}`,
     };
   } catch (error) {
     return {

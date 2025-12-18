@@ -13,8 +13,8 @@ import {
   deletePlankaToken,
   getPlankaToken,
   OpenRouterClient,
-  getPlankaMcpTools,
   trimConversationHistory,
+  validateMessageHistory,
   getOrCreateChatSession,
   createNewChatSession,
   getSessionMessages,
@@ -24,6 +24,7 @@ import {
   getSystemConfig,
   type ChatMessage,
 } from '@rastar/shared';
+import type { ChatCompletionTool } from 'openai/resources/chat/completions';
 
 import { executePlankaTool } from './planka-tools.js';
 
@@ -68,6 +69,157 @@ async function getAiClient(): Promise<OpenRouterClient | null> {
 
   return aiClient;
 }
+
+/**
+ * Get available AI tools for the user
+ * Returns Planka tools if user has linked their account
+ */
+async function getAiTools(telegramUserId: string): Promise<ChatCompletionTool[]> {
+  const token = await getPlankaToken(telegramUserId);
+  console.log('[getAiTools] User has Planka token:', !!token);
+  if (!token) {
+    console.log('[getAiTools] No Planka token, returning empty tools');
+    return [];
+  }
+
+  console.log('[getAiTools] Returning 6 Planka tools');
+  // Define core Planka tools for AI assistant
+  return [
+    {
+      type: 'function',
+      function: {
+        name: 'planka_projects_list',
+        description: 'List all accessible Planka projects',
+        parameters: {
+          type: 'object',
+          properties: {},
+          required: [],
+        },
+      },
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'planka_boards_list',
+        description: 'List all boards in a specific project',
+        parameters: {
+          type: 'object',
+          properties: {
+            projectId: {
+              type: 'string',
+              description: 'The ID of the project',
+            },
+          },
+          required: ['projectId'],
+        },
+      },
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'planka_lists_list',
+        description: 'List all lists in a specific board',
+        parameters: {
+          type: 'object',
+          properties: {
+            boardId: {
+              type: 'string',
+              description: 'The ID of the board',
+            },
+          },
+          required: ['boardId'],
+        },
+      },
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'planka_cards_search',
+        description: 'Search for cards by keyword in a specific board',
+        parameters: {
+          type: 'object',
+          properties: {
+            boardId: {
+              type: 'string',
+              description: 'The ID of the board to search in',
+            },
+            query: {
+              type: 'string',
+              description: 'Search query to find cards',
+            },
+          },
+          required: ['boardId', 'query'],
+        },
+      },
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'planka_cards_create',
+        description: 'Create a new card in a Planka list',
+        parameters: {
+          type: 'object',
+          properties: {
+            listId: {
+              type: 'string',
+              description: 'The ID of the list where the card should be created',
+            },
+            name: {
+              type: 'string',
+              description: 'The title/name of the card',
+            },
+            description: {
+              type: 'string',
+              description: 'Optional: The description of the card',
+            },
+            position: {
+              type: 'number',
+              description: 'Optional: Position of the card in the list',
+            },
+          },
+          required: ['listId', 'name'],
+        },
+      },
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'planka_cards_update',
+        description: 'Update an existing Planka card',
+        parameters: {
+          type: 'object',
+          properties: {
+            cardId: {
+              type: 'string',
+              description: 'The ID of the card to update',
+            },
+            name: {
+              type: 'string',
+              description: 'Optional: New name for the card',
+            },
+            description: {
+              type: 'string',
+              description: 'Optional: New description for the card',
+            },
+          },
+          required: ['cardId'],
+        },
+      },
+    },
+  ];
+}
+
+const SYSTEM_PROMPT = `You are a helpful AI assistant integrated with a Telegram bot. You can help users manage their Planka tasks and boards.
+
+When users ask about Planka, you can use the available tools to:
+- List projects, boards, and lists
+- Search for cards in boards
+- Create new cards in lists
+- Update existing cards
+
+Always be concise and friendly. Use Telegram-friendly formatting (HTML tags like <b>, <i>, <code>).
+
+When searching or listing data, first get the projects, then boards, then lists/cards as needed.`;
 
 const bot = new Bot(TELEGRAM_BOT_TOKEN);
 
@@ -352,18 +504,37 @@ bot.on('message:text', async (ctx) => {
       toolArgs: m.toolArgs || undefined,
     }));
 
+    // Validate and clean message history (remove orphaned tool messages)
+    const validatedHistory = validateMessageHistory(chatHistory);
+
     // Trim to fit context window
-    const trimmedHistory = trimConversationHistory(chatHistory, 30);
+    const trimmedHistory = trimConversationHistory(validatedHistory, 30);
 
     // Add user message
     await addMessage(session.id, 'user', text);
     trimmedHistory.push({ role: 'user', content: text });
 
     // Get Planka tools if user has linked account
-    const tools = await getPlankaMcpTools(telegramUserId);
+    const tools = await getAiTools(telegramUserId);
+    console.log('[telegram-bot] Tools available:', tools.length);
+    if (tools.length > 0) {
+      console.log('[telegram-bot] Tool names:', tools.map(t => (t as any).function?.name).filter(Boolean));
+    }
 
-    // Get AI response
-    let response = await client.chat(trimmedHistory, {}, tools);
+    // Get AI response with system prompt
+    console.log('[telegram-bot] Conversation history length:', trimmedHistory.length);
+    console.log('[telegram-bot] Last 2 messages:', JSON.stringify(trimmedHistory.slice(-2), null, 2));
+    console.log('[telegram-bot] Calling AI with', tools.length, 'tools');
+    let response = await client.chat(trimmedHistory, { systemPrompt: SYSTEM_PROMPT }, tools);
+    console.log('[telegram-bot] AI response:', { 
+      hasContent: !!response.content, 
+      contentLength: response.content?.length || 0,
+      toolCallsCount: response.toolCalls?.length || 0,
+      finishReason: response.finishReason 
+    });
+    if (response.content) {
+      console.log('[telegram-bot] AI response content:', response.content.substring(0, 200));
+    }
 
     // Handle tool calls
     let maxToolCalls = 5; // Prevent infinite loops
@@ -371,6 +542,8 @@ bot.on('message:text', async (ctx) => {
       maxToolCalls--;
 
       for (const toolCall of response.toolCalls) {
+        console.log('[telegram-bot] Tool call:', { id: toolCall.id, name: toolCall.name, args: toolCall.arguments });
+        
         // Save assistant's tool call
         await addMessage(
           session.id,
@@ -387,6 +560,7 @@ bot.on('message:text', async (ctx) => {
           toolCall.name,
           JSON.parse(toolCall.arguments),
         );
+        console.log('[telegram-bot] Tool result:', { success: toolResult.success, contentLength: toolResult.content?.length || 0, error: toolResult.error });
 
         const resultContent = toolResult.success
           ? toolResult.content
@@ -422,6 +596,7 @@ bot.on('message:text', async (ctx) => {
 
     // Send response to user
     const finalContent = response.content || '🤔 I processed your request but have nothing to say.';
+    console.log('[telegram-bot] Sending final response, length:', finalContent.length);
     
     // Split long messages
     if (finalContent.length > 4000) {
