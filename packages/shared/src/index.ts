@@ -2,3 +2,4 @@ export * from './crypto.js';
 export * from './db.js';
 export * from './prisma.js';
 export * from './ai-chat.js';
+export * from './openrouter.js';

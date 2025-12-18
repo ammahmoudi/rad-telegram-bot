@@ -66,11 +66,21 @@ The Telegram bot now includes AI-powered chat capabilities using OpenRouter:
    - Move cards between lists
 
 ### Model Options
-Choose from various AI models via the admin panel:
-- **Anthropic**: Claude 3.5 Sonnet, Claude 3 Opus, Claude 3 Haiku
-- **OpenAI**: GPT-4o, GPT-4 Turbo, GPT-3.5 Turbo
-- **Google**: Gemini 1.5 Pro, Gemini 1.5 Flash
-- **Meta**: Llama 3.1 70B, Llama 3.1 8B
+
+The admin panel now provides **400+ AI models** from OpenRouter with real-time pricing:
+
+#### Smart Features
+- **🤖 Auto Router** (`openrouter/auto`) - Automatically selects the best model for each prompt
+- **💰 Free Models First** - Free models displayed at the top
+- **🔍 Search & Filter** - Search by name/ID, filter by free models only
+- **💵 Live Pricing** - See real-time cost per million tokens
+- **📊 Grouped by Provider** - Organized by Anthropic, OpenAI, Google, Meta, etc.
+
+Popular models include:
+- **Claude 3.5 Sonnet** - Best for reasoning and tool use
+- **GPT-4o** - Very capable, multimodal
+- **Gemini 2.0 Flash** - Fast, free, and capable
+- **Llama 3.1 70B** - Open source, powerful
 
 ## What's next
 - Add more MCP servers under `packages/` (e.g. lunch, accounts).

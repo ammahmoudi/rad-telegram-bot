@@ -1,4 +1,5 @@
 import { getSystemConfig, listPlankaTokens } from '@rastar/shared';
+import { ModelSelector } from '@/components/ModelSelector';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -52,35 +53,22 @@ export default async function HomePage() {
                 <label htmlFor="plankaBaseUrl" className="text-sm font-medium text-slate-900 dark:text-slate-50 block">
                   Planka Base URL
                 </label>
-                <div className="flex gap-3">
-                  <input
-                    id="plankaBaseUrl"
-                    type="url"
-                    name="plankaBaseUrl"
-                    defaultValue={plankaBaseUrl}
-                    placeholder="https://pm-dev.rastar.dev"
-                    className="flex-1 h-10 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-slate-950"
-                    required
-                  />
-                  <button
-                    type="submit"
-                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-slate-950 transition-all active:scale-[0.98]"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                      <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                      <polyline points="7 3 7 8 15 8"></polyline>
-                    </svg>
-                    Save
-                  </button>
-                </div>
+                <input
+                  id="plankaBaseUrl"
+                  type="url"
+                  name="plankaBaseUrl"
+                  defaultValue={plankaBaseUrl}
+                  placeholder="https://pm-dev.rastar.dev"
+                  className="w-full h-10 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-slate-950"
+                  required
+                />
                 <p className="text-xs text-slate-500 dark:text-slate-400">
                   This URL will be used for all new Planka account links. Existing links are not affected.
                 </p>
               </div>
 
               <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50 mb-4 flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50 mb-2 flex items-center gap-2">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
                     <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
@@ -88,6 +76,9 @@ export default async function HomePage() {
                   </svg>
                   AI Configuration
                 </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg px-3 py-2">
+                  ℹ️ <strong>Note:</strong> Settings here override environment variables (.env). If not set here, the bot will use values from your .env file.
+                </p>
                 
                 <div className="space-y-4">
                   <div className="space-y-2">
@@ -96,17 +87,22 @@ export default async function HomePage() {
                       {hasApiKey && (
                         <span className="ml-2 text-xs text-green-600 dark:text-green-400">✓ Configured</span>
                       )}
+                      {!hasApiKey && (
+                        <span className="ml-2 text-xs text-amber-600 dark:text-amber-400">
+                          (using .env if available)
+                        </span>
+                      )}
                     </label>
                     <input
                       id="openRouterKey"
                       type="password"
                       name="openRouterKey"
                       defaultValue={openRouterKey}
-                      placeholder="sk-or-v1-..."
+                      placeholder="sk-or-v1-... (leave empty to use .env)"
                       className="w-full h-10 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-slate-950"
                     />
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Get your API key from <a href="https://openrouter.ai/keys" target="_blank" className="text-primary hover:underline">openrouter.ai/keys</a>
+                      Get your API key from <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">openrouter.ai/keys</a>
                     </p>
                   </div>
 
@@ -114,34 +110,35 @@ export default async function HomePage() {
                     <label htmlFor="defaultModel" className="text-sm font-medium text-slate-900 dark:text-slate-50 block">
                       Default AI Model
                     </label>
-                    <select
-                      id="defaultModel"
-                      name="defaultModel"
-                      defaultValue={defaultModel}
-                      className="w-full h-10 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-slate-950"
-                    >
-                      <optgroup label="Anthropic">
-                        <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
-                        <option value="anthropic/claude-3-opus">Claude 3 Opus</option>
-                        <option value="anthropic/claude-3-haiku">Claude 3 Haiku</option>
-                      </optgroup>
-                      <optgroup label="OpenAI">
-                        <option value="openai/gpt-4o">GPT-4o</option>
-                        <option value="openai/gpt-4-turbo">GPT-4 Turbo</option>
-                        <option value="openai/gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                      </optgroup>
-                      <optgroup label="Google">
-                        <option value="google/gemini-pro-1.5">Gemini 1.5 Pro</option>
-                        <option value="google/gemini-flash-1.5">Gemini 1.5 Flash</option>
-                      </optgroup>
-                      <optgroup label="Meta">
-                        <option value="meta-llama/llama-3.1-70b-instruct">Llama 3.1 70B</option>
-                        <option value="meta-llama/llama-3.1-8b-instruct">Llama 3.1 8B</option>
-                      </optgroup>
-                    </select>
+                    <ModelSelector name="defaultModel" defaultValue={defaultModel} />
+                    <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2 space-y-1">
+                      <p className="text-xs text-amber-900 dark:text-amber-200">
+                        ⚠️ <strong>Tool Support Required:</strong> Only models supporting tool/function calling are shown. The bot needs this to interact with Planka.
+                      </p>
+                      <p className="text-xs text-amber-800 dark:text-amber-300">
+                        💡 Avoid <strong>openrouter/auto</strong> mode as it may route to models without tool support.
+                      </p>
+                    </div>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Browse all models at <a href="https://openrouter.ai/models" target="_blank" className="text-primary hover:underline">openrouter.ai/models</a>
+                      Browse all models at <a href="https://openrouter.ai/models" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">openrouter.ai/models</a>
                     </p>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-800">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Changes take effect immediately (bot will detect on next message)
+                    </p>
+                    <button
+                      type="submit"
+                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-slate-950 transition-all active:scale-[0.98]"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                        <polyline points="7 3 7 8 15 8"></polyline>
+                      </svg>
+                      Save All Settings
+                    </button>
                   </div>
                 </div>
               </div>

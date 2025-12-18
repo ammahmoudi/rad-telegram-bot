@@ -37,31 +37,35 @@ const TELEGRAM_BOT_USERNAME = process.env.TELEGRAM_BOT_USERNAME || 'rastaar_bot'
 
 // Initialize AI client - will be set up after checking env and system config
 let aiClient: OpenRouterClient | null = null;
+let cachedApiKey: string | undefined = undefined;
+let cachedModel: string | undefined = undefined;
 
 /**
  * Get or initialize the AI client
  * Checks both environment variables and system config
+ * Recreates client if API key or model changes
  */
 async function getAiClient(): Promise<OpenRouterClient | null> {
-  if (aiClient) return aiClient;
-
-  // Check env first, then system config
-  let apiKey = process.env.OPENROUTER_API_KEY;
-  let model = process.env.DEFAULT_AI_MODEL;
-
-  if (!apiKey) {
-    apiKey = (await getSystemConfig('OPENROUTER_API_KEY')) || undefined;
-  }
-
-  if (!model) {
-    model = (await getSystemConfig('DEFAULT_AI_MODEL')) || 'anthropic/claude-3.5-sonnet';
-  }
+  // Get current config (system config overrides env)
+  const systemApiKey = await getSystemConfig('OPENROUTER_API_KEY');
+  const systemModel = await getSystemConfig('DEFAULT_AI_MODEL');
+  
+  const apiKey = systemApiKey || process.env.OPENROUTER_API_KEY;
+  const model = systemModel || process.env.DEFAULT_AI_MODEL || 'anthropic/claude-3.5-sonnet';
 
   if (!apiKey) {
     return null;
   }
 
-  aiClient = new OpenRouterClient(apiKey, model);
+  // Recreate client if settings changed
+  if (!aiClient || cachedApiKey !== apiKey || cachedModel !== model) {
+    // eslint-disable-next-line no-console
+    console.log('[telegram-bot] Initializing AI client with model:', model);
+    aiClient = new OpenRouterClient(apiKey, model);
+    cachedApiKey = apiKey;
+    cachedModel = model;
+  }
+
   return aiClient;
 }
 
@@ -431,9 +435,29 @@ bot.on('message:text', async (ctx) => {
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('[telegram-bot] AI chat error', error);
-    await ctx.reply(
-      '❌ Sorry, I encountered an error processing your message. Please try again.',
-    );
+    
+    // Provide more specific error messages
+    let errorMessage = '❌ Sorry, I encountered an error processing your message. Please try again.';
+    
+    if (error instanceof Error) {
+      const errorStr = error.message.toLowerCase();
+      
+      if (errorStr.includes('tool use') || errorStr.includes('endpoints found')) {
+        errorMessage = '❌ The current AI model doesn\'t support tool use (function calling). Please ask an admin to select a different model that supports tools, such as:\n\n' +
+          '• anthropic/claude-3.5-sonnet\n' +
+          '• openai/gpt-4-turbo\n' +
+          '• google/gemini-pro-1.5\n\n' +
+          'Tip: Avoid using "openrouter/auto" mode as it may route to models without tool support.';
+      } else if (errorStr.includes('rate limit') || errorStr.includes('temporarily rate-limited')) {
+        errorMessage = '❌ The AI model is temporarily rate-limited. Please try again in a few moments, or ask an admin to switch to a different model.';
+      } else if (errorStr.includes('insufficient credits') || errorStr.includes('quota')) {
+        errorMessage = '❌ Insufficient API credits. Please ask an admin to add credits to the OpenRouter account.';
+      } else if (errorStr.includes('unauthorized') || errorStr.includes('401')) {
+        errorMessage = '❌ API authentication failed. Please ask an admin to check the OpenRouter API key.';
+      }
+    }
+    
+    await ctx.reply(errorMessage);
   }
 });
 
