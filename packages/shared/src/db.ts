@@ -166,3 +166,219 @@ export async function setSystemConfig(key: string, value: string): Promise<void>
     update: { value },
   });
 }
+
+// ============================================================================
+// Chat Session Management
+// ============================================================================
+
+export type ChatSessionRecord = {
+  id: string;
+  telegramUserId: string;
+  createdAt: number;
+  updatedAt: number;
+  messageCount?: number;
+};
+
+export type MessageRecord = {
+  id: string;
+  sessionId: string;
+  role: string;
+  content: string;
+  toolCallId?: string | null;
+  toolName?: string | null;
+  toolArgs?: string | null;
+  createdAt: number;
+};
+
+/**
+ * Get or create a chat session for a user
+ * Sessions are created on-demand and reused
+ */
+export async function getOrCreateChatSession(telegramUserId: string): Promise<ChatSessionRecord> {
+  const prisma = getPrisma();
+
+  // Try to get the most recent session
+  const existing = await prisma.chatSession.findFirst({
+    where: { telegramUserId },
+    orderBy: { updatedAt: 'desc' },
+  });
+
+  if (existing) {
+    return {
+      id: existing.id,
+      telegramUserId: existing.telegramUserId,
+      createdAt: Number(existing.createdAt),
+      updatedAt: Number(existing.updatedAt),
+    };
+  }
+
+  // Create new session
+  const now = Date.now();
+  const session = await prisma.chatSession.create({
+    data: {
+      telegramUserId,
+      createdAt: BigInt(now),
+      updatedAt: BigInt(now),
+    },
+  });
+
+  return {
+    id: session.id,
+    telegramUserId: session.telegramUserId,
+    createdAt: Number(session.createdAt),
+    updatedAt: Number(session.updatedAt),
+  };
+}
+
+/**
+ * Create a new chat session (e.g., for /new_chat command)
+ */
+export async function createNewChatSession(telegramUserId: string): Promise<ChatSessionRecord> {
+  const now = Date.now();
+  const session = await getPrisma().chatSession.create({
+    data: {
+      telegramUserId,
+      createdAt: BigInt(now),
+      updatedAt: BigInt(now),
+    },
+  });
+
+  return {
+    id: session.id,
+    telegramUserId: session.telegramUserId,
+    createdAt: Number(session.createdAt),
+    updatedAt: Number(session.updatedAt),
+  };
+}
+
+/**
+ * Get messages for a session
+ */
+export async function getSessionMessages(
+  sessionId: string,
+  limit: number = 50,
+): Promise<MessageRecord[]> {
+  const messages = await getPrisma().message.findMany({
+    where: { sessionId },
+    orderBy: { createdAt: 'asc' },
+    take: limit,
+  });
+
+  return messages.map((m) => ({
+    id: m.id,
+    sessionId: m.sessionId,
+    role: m.role,
+    content: m.content,
+    toolCallId: m.toolCallId,
+    toolName: m.toolName,
+    toolArgs: m.toolArgs,
+    createdAt: Number(m.createdAt),
+  }));
+}
+
+/**
+ * Add a message to a session
+ */
+export async function addMessage(
+  sessionId: string,
+  role: string,
+  content: string,
+  toolCallId?: string,
+  toolName?: string,
+  toolArgs?: string,
+): Promise<MessageRecord> {
+  const now = Date.now();
+  const prisma = getPrisma();
+
+  const message = await prisma.message.create({
+    data: {
+      sessionId,
+      role,
+      content,
+      toolCallId,
+      toolName,
+      toolArgs,
+      createdAt: BigInt(now),
+    },
+  });
+
+  // Update session updatedAt
+  await prisma.chatSession.update({
+    where: { id: sessionId },
+    data: { updatedAt: BigInt(now) },
+  });
+
+  return {
+    id: message.id,
+    sessionId: message.sessionId,
+    role: message.role,
+    content: message.content,
+    toolCallId: message.toolCallId,
+    toolName: message.toolName,
+    toolArgs: message.toolArgs,
+    createdAt: Number(message.createdAt),
+  };
+}
+
+/**
+ * List all sessions for a user
+ */
+export async function listUserSessions(telegramUserId: string): Promise<ChatSessionRecord[]> {
+  const sessions = await getPrisma().chatSession.findMany({
+    where: { telegramUserId },
+    orderBy: { updatedAt: 'desc' },
+    include: {
+      _count: {
+        select: { messages: true },
+      },
+    },
+  });
+
+  return sessions.map((s) => ({
+    id: s.id,
+    telegramUserId: s.telegramUserId,
+    createdAt: Number(s.createdAt),
+    updatedAt: Number(s.updatedAt),
+    messageCount: s._count.messages,
+  }));
+}
+
+/**
+ * Delete a chat session and all its messages
+ */
+export async function deleteChatSession(sessionId: string): Promise<boolean> {
+  try {
+    await getPrisma().chatSession.delete({ where: { id: sessionId } });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Delete old sessions to manage storage
+ * Keeps the most recent N sessions per user
+ */
+export async function pruneOldSessions(
+  telegramUserId: string,
+  keepMostRecent: number = 5,
+): Promise<number> {
+  const prisma = getPrisma();
+
+  const sessions = await prisma.chatSession.findMany({
+    where: { telegramUserId },
+    orderBy: { updatedAt: 'desc' },
+    select: { id: true },
+  });
+
+  if (sessions.length <= keepMostRecent) {
+    return 0;
+  }
+
+  const toDelete = sessions.slice(keepMostRecent).map((s) => s.id);
+  const result = await prisma.chatSession.deleteMany({
+    where: { id: { in: toDelete } },
+  });
+
+  return result.count;
+}

@@ -7,6 +7,8 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const plankaBaseUrl = formData.get('plankaBaseUrl');
+    const openRouterKey = formData.get('openRouterKey');
+    const defaultModel = formData.get('defaultModel');
 
     if (!plankaBaseUrl || typeof plankaBaseUrl !== 'string') {
       return NextResponse.json({ error: 'Invalid URL' }, { status: 400 });
@@ -14,8 +16,19 @@ export async function POST(request: Request) {
 
     // Normalize URL (remove trailing slash)
     const normalizedUrl = plankaBaseUrl.replace(/\/+$/, '');
-
     await setSystemConfig('PLANKA_BASE_URL', normalizedUrl);
+
+    // Update AI configuration if provided
+    if (openRouterKey && typeof openRouterKey === 'string') {
+      // Only update if not empty or if explicitly clearing
+      if (openRouterKey.trim().length > 0) {
+        await setSystemConfig('OPENROUTER_API_KEY', openRouterKey.trim());
+      }
+    }
+
+    if (defaultModel && typeof defaultModel === 'string') {
+      await setSystemConfig('DEFAULT_AI_MODEL', defaultModel);
+    }
 
     // Redirect back to home page
     return NextResponse.redirect(new URL('/', request.url));

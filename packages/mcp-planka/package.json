@@ -3,6 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "main": "dist/planka.js",
+  "types": "dist/planka.d.ts",
+  "exports": {
+    ".": "./dist/planka.js",
+    "./planka": "./dist/planka.js"
+  },
   "bin": {
     "mcp-planka": "dist/index.js"
   },

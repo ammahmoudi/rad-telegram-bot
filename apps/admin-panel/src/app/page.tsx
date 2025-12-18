@@ -6,6 +6,10 @@ export const dynamic = 'force-dynamic';
 export default async function HomePage() {
   const tokens = await listPlankaTokens();
   const plankaBaseUrl = (await getSystemConfig('PLANKA_BASE_URL')) || 'Not set';
+  const openRouterKey = (await getSystemConfig('OPENROUTER_API_KEY')) || '';
+  const defaultModel = (await getSystemConfig('DEFAULT_AI_MODEL')) || 'anthropic/claude-3.5-sonnet';
+  
+  const hasApiKey = openRouterKey.length > 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
@@ -43,7 +47,7 @@ export default async function HomePage() {
             </p>
           </div>
           <div className="p-6">
-            <form action="/api/update-config" method="POST" className="space-y-4">
+            <form action="/api/update-config" method="POST" className="space-y-6">
               <div className="space-y-2">
                 <label htmlFor="plankaBaseUrl" className="text-sm font-medium text-slate-900 dark:text-slate-50 block">
                   Planka Base URL
@@ -73,6 +77,73 @@ export default async function HomePage() {
                 <p className="text-xs text-slate-500 dark:text-slate-400">
                   This URL will be used for all new Planka account links. Existing links are not affected.
                 </p>
+              </div>
+
+              <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50 mb-4 flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                    <line x1="12" x2="12" y1="19" y2="22"></line>
+                  </svg>
+                  AI Configuration
+                </h3>
+                
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label htmlFor="openRouterKey" className="text-sm font-medium text-slate-900 dark:text-slate-50 block">
+                      OpenRouter API Key
+                      {hasApiKey && (
+                        <span className="ml-2 text-xs text-green-600 dark:text-green-400">✓ Configured</span>
+                      )}
+                    </label>
+                    <input
+                      id="openRouterKey"
+                      type="password"
+                      name="openRouterKey"
+                      defaultValue={openRouterKey}
+                      placeholder="sk-or-v1-..."
+                      className="w-full h-10 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-slate-950"
+                    />
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Get your API key from <a href="https://openrouter.ai/keys" target="_blank" className="text-primary hover:underline">openrouter.ai/keys</a>
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="defaultModel" className="text-sm font-medium text-slate-900 dark:text-slate-50 block">
+                      Default AI Model
+                    </label>
+                    <select
+                      id="defaultModel"
+                      name="defaultModel"
+                      defaultValue={defaultModel}
+                      className="w-full h-10 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-slate-950"
+                    >
+                      <optgroup label="Anthropic">
+                        <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
+                        <option value="anthropic/claude-3-opus">Claude 3 Opus</option>
+                        <option value="anthropic/claude-3-haiku">Claude 3 Haiku</option>
+                      </optgroup>
+                      <optgroup label="OpenAI">
+                        <option value="openai/gpt-4o">GPT-4o</option>
+                        <option value="openai/gpt-4-turbo">GPT-4 Turbo</option>
+                        <option value="openai/gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                      </optgroup>
+                      <optgroup label="Google">
+                        <option value="google/gemini-pro-1.5">Gemini 1.5 Pro</option>
+                        <option value="google/gemini-flash-1.5">Gemini 1.5 Flash</option>
+                      </optgroup>
+                      <optgroup label="Meta">
+                        <option value="meta-llama/llama-3.1-70b-instruct">Llama 3.1 70B</option>
+                        <option value="meta-llama/llama-3.1-8b-instruct">Llama 3.1 8B</option>
+                      </optgroup>
+                    </select>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Browse all models at <a href="https://openrouter.ai/models" target="_blank" className="text-primary hover:underline">openrouter.ai/models</a>
+                    </p>
+                  </div>
+                </div>
               </div>
             </form>
           </div>

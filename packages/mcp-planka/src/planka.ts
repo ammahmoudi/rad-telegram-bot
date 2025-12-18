@@ -54,3 +54,37 @@ export async function moveCard(auth: PlankaAuth, cardId: string, listId: string,
     body: JSON.stringify(body),
   });
 }
+
+export async function createCard(
+  auth: PlankaAuth,
+  listId: string,
+  name: string,
+  description?: string,
+): Promise<any> {
+  const body: any = {
+    position: 0,
+    name,
+  };
+
+  if (description) {
+    body.description = description;
+  }
+
+  return await plankaFetch(auth, `/api/lists/${encodeURIComponent(listId)}/cards`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function updateCard(
+  auth: PlankaAuth,
+  cardId: string,
+  updates: { name?: string; description?: string },
+): Promise<any> {
+  return await plankaFetch(auth, `/api/cards/${encodeURIComponent(cardId)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
+  });
+}

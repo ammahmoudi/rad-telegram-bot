@@ -8,7 +8,24 @@ import { Bot } from 'grammy';
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 dotenv.config({ path: path.join(repoRoot, '.env') });
 
-import { createLinkState, deletePlankaToken, getPlankaToken } from '@rastar/shared';
+import {
+  createLinkState,
+  deletePlankaToken,
+  getPlankaToken,
+  OpenRouterClient,
+  getPlankaMcpTools,
+  trimConversationHistory,
+  getOrCreateChatSession,
+  createNewChatSession,
+  getSessionMessages,
+  addMessage,
+  listUserSessions,
+  deleteChatSession,
+  getSystemConfig,
+  type ChatMessage,
+} from '@rastar/shared';
+
+import { executePlankaTool } from './planka-tools.js';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 if (!TELEGRAM_BOT_TOKEN) {
@@ -18,6 +35,36 @@ if (!TELEGRAM_BOT_TOKEN) {
 const LINK_PORTAL_BASE_URL = process.env.LINK_PORTAL_BASE_URL || 'http://localhost:8787';
 const TELEGRAM_BOT_USERNAME = process.env.TELEGRAM_BOT_USERNAME || 'rastaar_bot';
 
+// Initialize AI client - will be set up after checking env and system config
+let aiClient: OpenRouterClient | null = null;
+
+/**
+ * Get or initialize the AI client
+ * Checks both environment variables and system config
+ */
+async function getAiClient(): Promise<OpenRouterClient | null> {
+  if (aiClient) return aiClient;
+
+  // Check env first, then system config
+  let apiKey = process.env.OPENROUTER_API_KEY;
+  let model = process.env.DEFAULT_AI_MODEL;
+
+  if (!apiKey) {
+    apiKey = (await getSystemConfig('OPENROUTER_API_KEY')) || undefined;
+  }
+
+  if (!model) {
+    model = (await getSystemConfig('DEFAULT_AI_MODEL')) || 'anthropic/claude-3.5-sonnet';
+  }
+
+  if (!apiKey) {
+    return null;
+  }
+
+  aiClient = new OpenRouterClient(apiKey, model);
+  return aiClient;
+}
+
 const bot = new Bot(TELEGRAM_BOT_TOKEN);
 
 bot.command('start', async (ctx) => {
@@ -25,21 +72,34 @@ bot.command('start', async (ctx) => {
   console.log('[telegram-bot] /start', { fromId: ctx.from?.id, username: ctx.from?.username });
   
   const name = ctx.from?.first_name || 'there';
+  const client = await getAiClient();
+  const hasAI = client !== null;
   
   await ctx.reply(
     [
       `👋 <b>Hi ${name}!</b>`,
       '',
-      'I can help you manage your Planka tasks right from Telegram.',
+      hasAI
+        ? '🤖 I\'m an AI assistant that can help you manage your Planka tasks right from Telegram.'
+        : 'I can help you manage your Planka tasks right from Telegram.',
       '',
       '🔧 <b>Available Commands:</b>',
       '',
       '🔗 /link_planka - Connect your Planka account',
       '📊 /planka_status - Check connection status',
       '🔓 /planka_unlink - Disconnect your account',
+      ...(hasAI
+        ? [
+            '💬 /new_chat - Start a new conversation',
+            '📚 /history - View your chat sessions',
+            '🗑️ /clear_chat - Clear current conversation',
+          ]
+        : []),
       '',
       '💡 <b>Getting Started:</b>',
-      'Start by running /link_planka to connect your account!',
+      hasAI
+        ? 'Just send me a message to start chatting! I can help you with Planka tasks once you connect your account with /link_planka'
+        : 'Start by running /link_planka to connect your account!',
     ].join('\n'),
     { parse_mode: 'HTML' },
   );
@@ -83,7 +143,7 @@ bot.command('link_planka', async (ctx) => {
       '2️⃣ Enter your Planka credentials',
       '3️⃣ Return here after successful linking',
       '',
-      linkUrl,
+      `👉 <a href="${linkUrl}">Open Secure Link Portal</a>`,
       '',
       '⏱️ This link expires in 10 minutes',
       '🔒 Your password is never stored - only used to get an access token',
@@ -164,6 +224,215 @@ bot.command('planka_unlink', async (ctx) => {
         '🔗 Run /link_planka to connect an account',
       ].join('\n'),
       { parse_mode: 'HTML' },
+    );
+  }
+});
+
+// ============================================================================
+// AI Chat Commands
+// ============================================================================
+
+bot.command('new_chat', async (ctx) => {
+  const client = await getAiClient();
+  if (!client) {
+    await ctx.reply('❌ AI chat is not configured. Please set OPENROUTER_API_KEY in admin panel.');
+    return;
+  }
+
+  const telegramUserId = String(ctx.from?.id ?? '');
+  if (!telegramUserId) {
+    await ctx.reply('Could not identify your Telegram user.');
+    return;
+  }
+
+  const session = await createNewChatSession(telegramUserId);
+  await ctx.reply('✨ <b>New conversation started!</b>\n\nSend me a message to begin.', {
+    parse_mode: 'HTML',
+  });
+});
+
+bot.command('history', async (ctx) => {
+  const client = await getAiClient();
+  if (!client) {
+    await ctx.reply('❌ AI chat is not configured.');
+    return;
+  }
+
+  const telegramUserId = String(ctx.from?.id ?? '');
+  if (!telegramUserId) {
+    await ctx.reply('Could not identify your Telegram user.');
+    return;
+  }
+
+  const sessions = await listUserSessions(telegramUserId);
+  
+  if (sessions.length === 0) {
+    await ctx.reply('📚 No chat sessions yet. Send me a message to start!');
+    return;
+  }
+
+  const sessionList = sessions
+    .slice(0, 5)
+    .map((s, idx) => {
+      const date = new Date(s.updatedAt).toLocaleDateString();
+      const time = new Date(s.updatedAt).toLocaleTimeString();
+      const msgCount = s.messageCount || 0;
+      return `${idx + 1}. ${date} ${time} - ${msgCount} messages`;
+    })
+    .join('\n');
+
+  await ctx.reply(
+    `📚 <b>Recent Chat Sessions:</b>\n\n${sessionList}\n\n<i>Showing ${Math.min(5, sessions.length)} of ${sessions.length} sessions</i>`,
+    { parse_mode: 'HTML' },
+  );
+});
+
+bot.command('clear_chat', async (ctx) => {
+  const client = await getAiClient();
+  if (!client) {
+    await ctx.reply('❌ AI chat is not configured.');
+    return;
+  }
+
+  const telegramUserId = String(ctx.from?.id ?? '');
+  if (!telegramUserId) {
+    await ctx.reply('Could not identify your Telegram user.');
+    return;
+  }
+
+  const session = await createNewChatSession(telegramUserId);
+  await ctx.reply('🗑️ <b>Chat cleared!</b>\n\nStarting fresh. Send me a message!', {
+    parse_mode: 'HTML',
+  });
+});
+
+// ============================================================================
+// AI Chat Handler (for regular messages)
+// ============================================================================
+
+bot.on('message:text', async (ctx) => {
+  const client = await getAiClient();
+  if (!client) {
+    return; // AI not configured, ignore messages
+  }
+
+  const text = ctx.message.text;
+  
+  // Ignore commands (already handled above)
+  if (text.startsWith('/')) {
+    return;
+  }
+
+  const telegramUserId = String(ctx.from?.id ?? '');
+  if (!telegramUserId) {
+    return;
+  }
+
+  // eslint-disable-next-line no-console
+  console.log('[telegram-bot] AI chat message', { telegramUserId, text: text.slice(0, 50) });
+
+  try {
+    // Show typing indicator
+    await ctx.replyWithChatAction('typing');
+
+    // Get or create session
+    const session = await getOrCreateChatSession(telegramUserId);
+
+    // Get conversation history
+    const messages = await getSessionMessages(session.id, 50);
+    const chatHistory: ChatMessage[] = messages.map((m) => ({
+      role: m.role as any,
+      content: m.content,
+      toolCallId: m.toolCallId || undefined,
+      toolName: m.toolName || undefined,
+      toolArgs: m.toolArgs || undefined,
+    }));
+
+    // Trim to fit context window
+    const trimmedHistory = trimConversationHistory(chatHistory, 30);
+
+    // Add user message
+    await addMessage(session.id, 'user', text);
+    trimmedHistory.push({ role: 'user', content: text });
+
+    // Get Planka tools if user has linked account
+    const tools = await getPlankaMcpTools(telegramUserId);
+
+    // Get AI response
+    let response = await client.chat(trimmedHistory, {}, tools);
+
+    // Handle tool calls
+    let maxToolCalls = 5; // Prevent infinite loops
+    while (response.toolCalls && response.toolCalls.length > 0 && maxToolCalls > 0) {
+      maxToolCalls--;
+
+      for (const toolCall of response.toolCalls) {
+        // Save assistant's tool call
+        await addMessage(
+          session.id,
+          'assistant',
+          '',
+          toolCall.id,
+          toolCall.name,
+          toolCall.arguments,
+        );
+
+        // Execute tool
+        const toolResult = await executePlankaTool(
+          telegramUserId,
+          toolCall.name,
+          JSON.parse(toolCall.arguments),
+        );
+
+        const resultContent = toolResult.success
+          ? toolResult.content
+          : `Error: ${toolResult.error}`;
+
+        // Save tool result
+        await addMessage(session.id, 'tool', resultContent, toolCall.id);
+
+        // Add to history
+        trimmedHistory.push({
+          role: 'assistant',
+          content: '',
+          toolCallId: toolCall.id,
+          toolName: toolCall.name,
+          toolArgs: toolCall.arguments,
+        });
+        trimmedHistory.push({
+          role: 'tool',
+          content: resultContent,
+          toolCallId: toolCall.id,
+        });
+      }
+
+      // Get next response from AI
+      await ctx.replyWithChatAction('typing');
+      response = await client.chat(trimConversationHistory(trimmedHistory, 30), {}, tools);
+    }
+
+    // Save assistant response
+    if (response.content) {
+      await addMessage(session.id, 'assistant', response.content);
+    }
+
+    // Send response to user
+    const finalContent = response.content || '🤔 I processed your request but have nothing to say.';
+    
+    // Split long messages
+    if (finalContent.length > 4000) {
+      const chunks = finalContent.match(/.{1,4000}/gs) || [];
+      for (const chunk of chunks) {
+        await ctx.reply(chunk, { parse_mode: 'HTML' });
+      }
+    } else {
+      await ctx.reply(finalContent, { parse_mode: 'HTML' });
+    }
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('[telegram-bot] AI chat error', error);
+    await ctx.reply(
+      '❌ Sorry, I encountered an error processing your message. Please try again.',
     );
   }
 });

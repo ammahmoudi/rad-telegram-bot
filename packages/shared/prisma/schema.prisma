@@ -26,3 +26,30 @@ model SystemConfig {
   key   String @id
   value String
 }
+
+model ChatSession {
+  id             String @id @default(cuid())
+  telegramUserId String
+  createdAt      BigInt
+  updatedAt      BigInt
+  messages       Message[]
+
+  @@index([telegramUserId])
+  @@index([updatedAt])
+}
+
+model Message {
+  id            String @id @default(cuid())
+  sessionId     String
+  role          String // 'user', 'assistant', 'system', 'tool'
+  content       String
+  toolCallId    String? // For tool responses
+  toolName      String? // For tool calls
+  toolArgs      String? // JSON string of tool arguments
+  createdAt     BigInt
+  
+  session       ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([createdAt])
+}
