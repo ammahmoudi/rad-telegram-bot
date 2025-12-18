@@ -17,7 +17,57 @@ import {
 
 import { getPlankaToken } from '@rastar/shared';
 
-import { getBoard, getProject, listProjects, moveCard } from './planka.js';
+import {
+  getBoard,
+  getProject,
+  listProjects,
+  moveCard,
+  createBoard,
+  updateBoard,
+  deleteBoard,
+  createList,
+  updateList,
+  archiveList,
+  deleteList,
+  createCard,
+  updateCard,
+  deleteCard,
+  getLabels,
+  createLabel,
+  updateLabel,
+  deleteLabel,
+  assignLabelToCard,
+  removeLabelFromCard,
+  getMembers,
+  assignMemberToCard,
+  removeMemberFromCard,
+  getComments,
+  createComment,
+  updateComment,
+  deleteComment,
+  createTaskList,
+  updateTaskList,
+  deleteTaskList,
+  createTask,
+  updateTask,
+  deleteTask,
+  getAttachments,
+  deleteAttachment,
+} from './api/index.js';
+
+import { requireAuth, text } from './tools/helpers.js';
+import {
+  authTools,
+  projectTools,
+  boardTools,
+  listTools,
+  cardTools,
+  labelTools,
+  memberTools,
+  commentTools,
+  taskTools,
+  attachmentTools,
+} from './tools/index.js';
 
 type ToolResponse = {
   content: Array<{ type: 'text'; text: string }>;
@@ -33,79 +83,16 @@ const server = new Server(
 );
 
 const tools = [
-  {
-    name: 'planka.auth.status',
-    description: 'Check whether a Telegram user has linked Planka',
-    inputSchema: {
-      type: 'object',
-      required: ['telegramUserId'],
-      properties: {
-        telegramUserId: { type: 'string' },
-      },
-    },
-  },
-  {
-    name: 'planka.projects.list',
-    description: 'List projects available to the user',
-    inputSchema: {
-      type: 'object',
-      required: ['telegramUserId'],
-      properties: {
-        telegramUserId: { type: 'string' },
-      },
-    },
-  },
-  {
-    name: 'planka.boards.list',
-    description: 'List boards in a project',
-    inputSchema: {
-      type: 'object',
-      required: ['telegramUserId', 'projectId'],
-      properties: {
-        telegramUserId: { type: 'string' },
-        projectId: { type: 'string' },
-      },
-    },
-  },
-  {
-    name: 'planka.lists.list',
-    description: 'List lists (columns) in a board',
-    inputSchema: {
-      type: 'object',
-      required: ['telegramUserId', 'boardId'],
-      properties: {
-        telegramUserId: { type: 'string' },
-        boardId: { type: 'string' },
-      },
-    },
-  },
-  {
-    name: 'planka.cards.search',
-    description: 'Search cards by substring match in name/description within a board',
-    inputSchema: {
-      type: 'object',
-      required: ['telegramUserId', 'boardId', 'query'],
-      properties: {
-        telegramUserId: { type: 'string' },
-        boardId: { type: 'string' },
-        query: { type: 'string' },
-      },
-    },
-  },
-  {
-    name: 'planka.cards.move',
-    description: 'Move a card to another list (optionally set position)',
-    inputSchema: {
-      type: 'object',
-      required: ['telegramUserId', 'cardId', 'listId'],
-      properties: {
-        telegramUserId: { type: 'string' },
-        cardId: { type: 'string' },
-        listId: { type: 'string' },
-        position: { type: 'number' },
-      },
-    },
-  },
+  ...authTools,
+  ...projectTools,
+  ...boardTools,
+  ...listTools,
+  ...cardTools,
+  ...labelTools,
+  ...memberTools,
+  ...commentTools,
+  ...taskTools,
+  ...attachmentTools,
 ] as const;
 
 server.setRequestHandler(ListToolsRequestSchema, async () => {
@@ -167,6 +154,114 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
         return text(JSON.stringify(hits, null, 2));
       }
 
+      // ===== Board Operations =====
+      case 'planka.boards.create': {
+        const auth = await requireAuth(args);
+        const projectId = String((args as any)?.projectId ?? '');
+        const name = String((args as any)?.name ?? '');
+        const position = (args as any)?.position;
+        if (!projectId || !name) throw new Error('projectId and name are required');
+
+        const result = await createBoard(auth, projectId, name, position);
+        return text(JSON.stringify(result, null, 2));
+      }
+
+      case 'planka.boards.update': {
+        const auth = await requireAuth(args);
+        const boardId = String((args as any)?.boardId ?? '');
+        if (!boardId) throw new Error('boardId is required');
+
+        const updates: any = {};
+        if ((args as any)?.name) updates.name = String((args as any).name);
+        if (typeof (args as any)?.position === 'number') updates.position = (args as any).position;
+
+        const result = await updateBoard(auth, boardId, updates);
+        return text(JSON.stringify(result, null, 2));
+      }
+
+      case 'planka.boards.delete': {
+        const auth = await requireAuth(args);
+        const boardId = String((args as any)?.boardId ?? '');
+        if (!boardId) throw new Error('boardId is required');
+
+        await deleteBoard(auth, boardId);
+        return text('Board deleted successfully');
+      }
+
+      // ===== List Operations =====
+      case 'planka.lists.create': {
+        const auth = await requireAuth(args);
+        const boardId = String((args as any)?.boardId ?? '');
+        const name = String((args as any)?.name ?? '');
+        const position = (args as any)?.position;
+        const color = (args as any)?.color;
+        if (!boardId || !name) throw new Error('boardId and name are required');
+
+        const result = await createList(auth, boardId, name, position, color);
+        return text(JSON.stringify(result, null, 2));
+      }
+
+      case 'planka.lists.update': {
+        const auth = await requireAuth(args);
+        const listId = String((args as any)?.listId ?? '');
+        if (!listId) throw new Error('listId is required');
+
+        const updates: any = {};
+        if ((args as any)?.name) updates.name = String((args as any).name);
+        if (typeof (args as any)?.position === 'number') updates.position = (args as any).position;
+        if ((args as any)?.color) updates.color = String((args as any).color);
+
+        const result = await updateList(auth, listId, updates);
+        return text(JSON.stringify(result, null, 2));
+      }
+
+      case 'planka.lists.archive': {
+        const auth = await requireAuth(args);
+        const listId = String((args as any)?.listId ?? '');
+        if (!listId) throw new Error('listId is required');
+
+        const result = await archiveList(auth, listId);
+        return text(JSON.stringify(result, null, 2));
+      }
+
+      case 'planka.lists.delete': {
+        const auth = await requireAuth(args);
+        const listId = String((args as any)?.listId ?? '');
+        if (!listId) throw new Error('listId is required');
+
+        await deleteList(auth, listId);
+        return text('List deleted successfully');
+      }
+
+      // ===== Card Operations =====
+      case 'planka.cards.create': {
+        const auth = await requireAuth(args);
+        const listId = String((args as any)?.listId ?? '');
+        const name = String((args as any)?.name ?? '');
+        const description = (args as any)?.description;
+        const position = (args as any)?.position;
+        const dueDate = (args as any)?.dueDate;
+        if (!listId || !name) throw new Error('listId and name are required');
+
+        const result = await createCard(auth, listId, name, description, position, dueDate);
+        return text(JSON.stringify(result, null, 2));
+      }
+
+      case 'planka.cards.update': {
+        const auth = await requireAuth(args);
+        const cardId = String((args as any)?.cardId ?? '');
+        if (!cardId) throw new Error('cardId is required');
+
+        const updates: any = {};
+        if ((args as any)?.name) updates.name = String((args as any).name);
+        if ((args as any)?.description !== undefined) updates.description = String((args as any).description);
+        if ((args as any)?.dueDate) updates.dueDate = String((args as any).dueDate);
+        if (typeof (args as any)?.position === 'number') updates.position = (args as any).position;
+
+        const result = await updateCard(auth, cardId, updates);
+        return text(JSON.stringify(result, null, 2));
+      }
+
       case 'planka.cards.move': {
         const auth = await requireAuth(args);
         const cardId = String((args as any)?.cardId ?? '');
@@ -176,6 +271,237 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
 
         const result = await moveCard(auth, cardId, listId, typeof position === 'number' ? position : undefined);
         return text(JSON.stringify(result, null, 2));
+      }
+
+      case 'planka.cards.delete': {
+        const auth = await requireAuth(args);
+        const cardId = String((args as any)?.cardId ?? '');
+        if (!cardId) throw new Error('cardId is required');
+
+        await deleteCard(auth, cardId);
+        return text('Card deleted successfully');
+      }
+
+      // ===== Label Operations =====
+      case 'planka.labels.list': {
+        const auth = await requireAuth(args);
+        const boardId = String((args as any)?.boardId ?? '');
+        if (!boardId) throw new Error('boardId is required');
+
+        const labels = await getLabels(auth, boardId);
+        return text(JSON.stringify(labels, null, 2));
+      }
+
+      case 'planka.labels.create': {
+        const auth = await requireAuth(args);
+        const boardId = String((args as any)?.boardId ?? '');
+        const name = String((args as any)?.name ?? '');
+        const color = String((args as any)?.color ?? '');
+        const position = (args as any)?.position;
+        if (!boardId || !name || !color) throw new Error('boardId, name, and color are required');
+
+        const result = await createLabel(auth, boardId, name, color, position);
+        return text(JSON.stringify(result, null, 2));
+      }
+
+      case 'planka.labels.update': {
+        const auth = await requireAuth(args);
+        const labelId = String((args as any)?.labelId ?? '');
+        if (!labelId) throw new Error('labelId is required');
+
+        const updates: any = {};
+        if ((args as any)?.name) updates.name = String((args as any).name);
+        if ((args as any)?.color) updates.color = String((args as any).color);
+        if (typeof (args as any)?.position === 'number') updates.position = (args as any).position;
+
+        const result = await updateLabel(auth, labelId, updates);
+        return text(JSON.stringify(result, null, 2));
+      }
+
+      case 'planka.labels.delete': {
+        const auth = await requireAuth(args);
+        const labelId = String((args as any)?.labelId ?? '');
+        if (!labelId) throw new Error('labelId is required');
+
+        await deleteLabel(auth, labelId);
+        return text('Label deleted successfully');
+      }
+
+      case 'planka.labels.assignToCard': {
+        const auth = await requireAuth(args);
+        const cardId = String((args as any)?.cardId ?? '');
+        const labelId = String((args as any)?.labelId ?? '');
+        if (!cardId || !labelId) throw new Error('cardId and labelId are required');
+
+        const result = await assignLabelToCard(auth, cardId, labelId);
+        return text(JSON.stringify(result, null, 2));
+      }
+
+      case 'planka.labels.removeFromCard': {
+        const auth = await requireAuth(args);
+        const cardId = String((args as any)?.cardId ?? '');
+        const labelId = String((args as any)?.labelId ?? '');
+        if (!cardId || !labelId) throw new Error('cardId and labelId are required');
+
+        await removeLabelFromCard(auth, cardId, labelId);
+        return text('Label removed from card successfully');
+      }
+
+      // ===== Member Operations =====
+      case 'planka.members.list': {
+        const auth = await requireAuth(args);
+        const projectId = String((args as any)?.projectId ?? '');
+        if (!projectId) throw new Error('projectId is required');
+
+        const members = await getMembers(auth, projectId);
+        return text(JSON.stringify(members, null, 2));
+      }
+
+      case 'planka.members.assignToCard': {
+        const auth = await requireAuth(args);
+        const cardId = String((args as any)?.cardId ?? '');
+        const userId = String((args as any)?.userId ?? '');
+        if (!cardId || !userId) throw new Error('cardId and userId are required');
+
+        const result = await assignMemberToCard(auth, cardId, userId);
+        return text(JSON.stringify(result, null, 2));
+      }
+
+      case 'planka.members.removeFromCard': {
+        const auth = await requireAuth(args);
+        const cardId = String((args as any)?.cardId ?? '');
+        const userId = String((args as any)?.userId ?? '');
+        if (!cardId || !userId) throw new Error('cardId and userId are required');
+
+        await removeMemberFromCard(auth, cardId, userId);
+        return text('Member removed from card successfully');
+      }
+
+      // ===== Comment Operations =====
+      case 'planka.comments.list': {
+        const auth = await requireAuth(args);
+        const cardId = String((args as any)?.cardId ?? '');
+        if (!cardId) throw new Error('cardId is required');
+
+        const comments = await getComments(auth, cardId);
+        return text(JSON.stringify(comments, null, 2));
+      }
+
+      case 'planka.comments.create': {
+        const auth = await requireAuth(args);
+        const cardId = String((args as any)?.cardId ?? '');
+        const commentText = String((args as any)?.text ?? '');
+        if (!cardId || !commentText) throw new Error('cardId and text are required');
+
+        const result = await createComment(auth, cardId, commentText);
+        return text(JSON.stringify(result, null, 2));
+      }
+
+      case 'planka.comments.update': {
+        const auth = await requireAuth(args);
+        const commentId = String((args as any)?.commentId ?? '');
+        const commentText = String((args as any)?.text ?? '');
+        if (!commentId || !commentText) throw new Error('commentId and text are required');
+
+        const result = await updateComment(auth, commentId, commentText);
+        return text(JSON.stringify(result, null, 2));
+      }
+
+      case 'planka.comments.delete': {
+        const auth = await requireAuth(args);
+        const commentId = String((args as any)?.commentId ?? '');
+        if (!commentId) throw new Error('commentId is required');
+
+        await deleteComment(auth, commentId);
+        return text('Comment deleted successfully');
+      }
+
+      // ===== Task List Operations =====
+      case 'planka.taskLists.create': {
+        const auth = await requireAuth(args);
+        const cardId = String((args as any)?.cardId ?? '');
+        const name = String((args as any)?.name ?? '');
+        const position = (args as any)?.position;
+        if (!cardId || !name) throw new Error('cardId and name are required');
+
+        const result = await createTaskList(auth, cardId, name, position);
+        return text(JSON.stringify(result, null, 2));
+      }
+
+      case 'planka.taskLists.update': {
+        const auth = await requireAuth(args);
+        const taskListId = String((args as any)?.taskListId ?? '');
+        if (!taskListId) throw new Error('taskListId is required');
+
+        const updates: any = {};
+        if ((args as any)?.name) updates.name = String((args as any).name);
+        if (typeof (args as any)?.position === 'number') updates.position = (args as any).position;
+
+        const result = await updateTaskList(auth, taskListId, updates);
+        return text(JSON.stringify(result, null, 2));
+      }
+
+      case 'planka.taskLists.delete': {
+        const auth = await requireAuth(args);
+        const taskListId = String((args as any)?.taskListId ?? '');
+        if (!taskListId) throw new Error('taskListId is required');
+
+        await deleteTaskList(auth, taskListId);
+        return text('Task list deleted successfully');
+      }
+
+      // ===== Task Operations =====
+      case 'planka.tasks.create': {
+        const auth = await requireAuth(args);
+        const taskListId = String((args as any)?.taskListId ?? '');
+        const name = String((args as any)?.name ?? '');
+        const position = (args as any)?.position;
+        if (!taskListId || !name) throw new Error('taskListId and name are required');
+
+        const result = await createTask(auth, taskListId, name, position);
+        return text(JSON.stringify(result, null, 2));
+      }
+
+      case 'planka.tasks.update': {
+        const auth = await requireAuth(args);
+        const taskId = String((args as any)?.taskId ?? '');
+        if (!taskId) throw new Error('taskId is required');
+
+        const updates: any = {};
+        if ((args as any)?.name) updates.name = String((args as any).name);
+        if (typeof (args as any)?.isCompleted === 'boolean') updates.isCompleted = (args as any).isCompleted;
+        if (typeof (args as any)?.position === 'number') updates.position = (args as any).position;
+
+        const result = await updateTask(auth, taskId, updates);
+        return text(JSON.stringify(result, null, 2));
+      }
+
+      case 'planka.tasks.delete': {
+        const auth = await requireAuth(args);
+        const taskId = String((args as any)?.taskId ?? '');
+        if (!taskId) throw new Error('taskId is required');
+
+        await deleteTask(auth, taskId);
+        return text('Task deleted successfully');
+      }
+
+      // ===== Attachment Operations =====
+      case 'planka.attachments.list': {
+        const auth = await requireAuth(args);
+        const cardId = String((args as any)?.cardId ?? '');
+        if (!cardId) throw new Error('cardId is required');
+
+        const attachments = await getAttachments(auth, cardId);
+        return text(JSON.stringify(attachments, null, 2));
+      }
+
+      case 'planka.attachments.delete': {
+        const auth = await requireAuth(args);
+        const attachmentId = String((args as any)?.attachmentId ?? '');
+        if (!attachmentId) throw new Error('attachmentId is required');
+
+        await deleteAttachment(auth, attachmentId);
+        return text('Attachment deleted successfully');
       }
 
       default:
@@ -189,21 +515,3 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
 
 const transport = new StdioServerTransport();
 await server.connect(transport);
-
-async function requireAuth(args: unknown): Promise<{ plankaBaseUrl: string; accessToken: string }> {
-  const telegramUserId = String((args as any)?.telegramUserId ?? '');
-  if (!telegramUserId) {
-    throw new Error('telegramUserId is required');
-  }
-
-  const rec = await getPlankaToken(telegramUserId);
-  if (!rec) {
-    throw new Error('Planka not linked for this user. Run /link_planka in Telegram.');
-  }
-
-  return { plankaBaseUrl: rec.plankaBaseUrl, accessToken: rec.accessToken };
-}
-
-function text(t: string): ToolResponse {
-  return { content: [{ type: 'text', text: t }] };
-}
