@@ -42,7 +42,9 @@ export function buildExpandableSummary(
     
     for (let i = 0; i < reasoningSteps.length; i++) {
       const step = reasoningSteps[i];
-      summaryContent += `<b>Step ${i + 1}:</b> ${step.reasoning}\n`;
+      // Convert markdown to HTML for reasoning text
+      const reasoningHtml = markdownToTelegramHtml(step.reasoning);
+      summaryContent += `<b>Step ${i + 1}:</b> ${reasoningHtml}\n`;
       
       if (step.tools.length > 0) {
         summaryContent += '<b>Tools used:</b>\n';

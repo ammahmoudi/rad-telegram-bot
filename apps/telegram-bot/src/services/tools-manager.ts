@@ -39,14 +39,32 @@ export async function getAiTools(telegramUserId: string): Promise<ChatCompletion
   console.log('[getAiTools] Enabled tools after filtering:', filteredTools.length);
 
   // Convert MCP tools to OpenAI ChatCompletionTool format
-  const tools: ChatCompletionTool[] = filteredTools.map(tool => ({
-    type: 'function' as const,
-    function: {
-      name: tool.name.replace(/\./g, '_'), // Convert planka.cards.search -> planka_cards_search
-      description: tool.description || '',
-      parameters: tool.inputSchema || { type: 'object', properties: {} },
-    },
-  }));
+  const tools: ChatCompletionTool[] = filteredTools.map(tool => {
+    const inputSchema = tool.inputSchema || { type: 'object', properties: {} };
+    
+    // Remove internal parameters from schema (credentials + context)
+    if (inputSchema.properties) {
+      delete inputSchema.properties.plankaBaseUrl;
+      delete inputSchema.properties.plankaToken;
+      delete inputSchema.properties.telegramUserId;
+    }
+    
+    // Remove internal parameters from required array
+    if (inputSchema.required && Array.isArray(inputSchema.required)) {
+      inputSchema.required = inputSchema.required.filter(
+        (param: string) => param !== 'plankaBaseUrl' && param !== 'plankaToken' && param !== 'telegramUserId'
+      );
+    }
+    
+    return {
+      type: 'function' as const,
+      function: {
+        name: tool.name.replace(/\./g, '_'), // Convert planka.cards.search -> planka_cards_search
+        description: tool.description || '',
+        parameters: inputSchema,
+      },
+    };
+  });
 
   return tools;
 }

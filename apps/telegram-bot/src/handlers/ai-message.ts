@@ -390,6 +390,8 @@ export async function handleAiMessage(ctx: Context) {
     }
 
     // Save final response
+    const hadContentBeforeSummarization = !!finalResponse;
+    
     if (finalResponse) {
       await addMessage(session.id, 'assistant', finalResponse);
     } else {
@@ -414,42 +416,53 @@ export async function handleAiMessage(ctx: Context) {
           
           summaryPrompt = {
             role: 'user',
-            content: `IMPORTANT: All the searches and queries returned EMPTY results (no data found).\n\n` +
-                     `What I checked:\n${searchDetails}\n\n` +
-                     `Please tell the user that you searched these sources but found no results. ` +
-                     `Explain what was searched and that the data doesn't exist or isn't available.`
+            content: `I searched these places and found nothing:\n${searchDetails}\n\n` +
+                     `Tell the user (in their language) exactly what you searched: which projects, boards, queries you tried. ` +
+                     `List the specific search attempts. Then say nothing was found and the name might be spelled differently. ` +
+                     `Be specific about what you looked for. Write 3-4 sentences.`
           };
         } else {
           summaryPrompt = {
             role: 'user',
-            content: 'Based on the tool results above, please provide a summary of what you discovered. ' +
-                     'If all results were empty or no data was found, explicitly tell me that. ' +
-                     'The user is waiting for your response - you must provide text output.'
+            content: `Tell the user (in their language) what you found after searching. ` +
+                     `List the specific projects/boards/items you checked. ` +
+                     `Be specific about where you looked. Write 3-4 sentences.`
           };
         }
         
-        // Strip reasoning_details from history to prevent reasoning leaking into response
-        const cleanHistory = trimmedHistory.map(msg => {
-          if (msg.role === 'assistant' && (msg as any).reasoningDetails) {
-            const { reasoningDetails, toolCallReasoningDetails, ...cleanMsg } = msg as any;
+        // For forced summarization: Strip reasoning_details from assistant messages
+        // but preserve tool calls and tool responses
+        const historyForSummary = trimmedHistory.map(msg => {
+          if (msg.role === 'assistant' && 'reasoning_details' in msg) {
+            const { reasoning_details, ...cleanMsg } = msg as any;
             return cleanMsg;
           }
           return msg;
         });
         
-        const forcedResponse = await client.chat([...cleanHistory, summaryPrompt], { systemPrompt: SYSTEM_PROMPT }, tools);
+        // Don't pass tools to forced summarization - we just want a text response
+        const forcedResponse = await client.chat([...historyForSummary, summaryPrompt], { systemPrompt: SYSTEM_PROMPT });
         
         if (forcedResponse.content) {
           finalResponse = forcedResponse.content;
           await addMessage(session.id, 'user', summaryPrompt.content);
           await addMessage(session.id, 'assistant', forcedResponse.content);
+        } else {
+          // Fallback if forced summarization also returns no content
+          console.log('[telegram-bot] WARNING: Forced summarization returned no content!');
+          if (emptySearchNotification) {
+            finalResponse = '🔍 متأسفانه نتیجه‌ای پیدا نشد.\n\nممکن است املای نام متفاوت باشه یا این شخص در سیستم ثبت نشده باشد.';
+          } else {
+            finalResponse = 'ℹ️ اطلاعاتی که جستجو کردم در بخش خلاصه پایین قابل مشاهده است.';
+          }
         }
       }
     }
 
     // Build final display using response builder
+    // Use captured flag to determine if forced summarization was used
+    const forcedSummarizationUsed = !hadContentBeforeSummarization && totalToolCallsMade > 0;
     let finalContent: string;
-    const forcedSummarizationUsed = !finalResponse && totalToolCallsMade > 0;
     
     if (!finalResponse) {
       if (totalToolCallsMade === 0) {
