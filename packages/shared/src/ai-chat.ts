@@ -19,7 +19,7 @@ export interface ChatOptions {
 
 export class OpenRouterClient {
   private client: OpenAI;
-  private model: string;
+  public model: string; // Public so bot can check model type
 
   constructor(apiKey: string, model: string = 'anthropic/claude-3.5-sonnet') {
     this.client = new OpenAI({
@@ -189,15 +189,204 @@ export class OpenRouterClient {
   }
 
   /**
-   * Stream a chat completion (for future implementation)
+   * Stream a chat completion with live updates
    */
   async *streamChat(
     messages: ChatMessage[],
     options: ChatOptions = {},
-  ): AsyncGenerator<string, void, unknown> {
-    // TODO: Implement streaming for better UX
-    const result = await this.chat(messages, options);
-    yield result.content;
+    tools?: ChatCompletionTool[],
+  ): AsyncGenerator<{
+    type: 'reasoning' | 'content' | 'tool_call' | 'done';
+    content?: string;
+    toolCall?: { id: string; name: string; arguments: string };
+    finishReason?: string;
+    reasoningDetails?: unknown;
+  }, void, unknown> {
+    const model = options.model || this.model;
+    const systemPrompt = options.systemPrompt || 'You are a helpful AI assistant.';
+
+    // Build messages array with system prompt
+    const openaiMessages: ChatCompletionMessageParam[] = [
+      { role: 'system', content: systemPrompt },
+    ];
+
+    // Add conversation history
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i];
+      
+      if (msg.role === 'tool') {
+        openaiMessages.push({
+          role: 'tool',
+          content: msg.content,
+          tool_call_id: msg.toolCallId || '',
+        });
+      } else if (msg.role === 'assistant' && msg.toolName) {
+        // Assistant made tool call(s) - collect all tool calls in this turn
+        const toolCalls: any[] = [];
+        let j = i;
+        
+        while (j < messages.length && 
+               messages[j].role === 'assistant' && 
+               messages[j].toolName) {
+          toolCalls.push({
+            id: messages[j].toolCallId || '',
+            type: 'function',
+            function: {
+              name: messages[j].toolName,
+              arguments: messages[j].toolArgs || '{}',
+            },
+          });
+          j++;
+        }
+        
+        // Add single assistant message with all tool calls
+        const assistantMsg: any = {
+          role: 'assistant',
+          content: null,
+          tool_calls: toolCalls,
+        };
+        
+        // Preserve reasoning_details for Gemini models if present
+        if (msg.reasoningDetails !== undefined && msg.reasoningDetails !== null) {
+          assistantMsg.reasoning_details = msg.reasoningDetails;
+        }
+        
+        openaiMessages.push(assistantMsg);
+        
+        // Skip ahead past the tool calls we've processed
+        i = j - 1;
+      } else {
+        const regularMsg: any = {
+          role: msg.role as 'user' | 'assistant' | 'system',
+          content: msg.content,
+        };
+        
+        openaiMessages.push(regularMsg);
+      }
+    }
+
+    try {
+      const isGemini = model.includes('gemini') || model.includes('google');
+      
+      const requestBody: any = {
+        model,
+        messages: openaiMessages,
+        temperature: options.temperature ?? 0.7,
+        max_tokens: options.maxTokens ?? 2000,
+        tools: tools && tools.length > 0 ? tools : undefined,
+        stream: true,
+      };
+      
+      // Enable reasoning for Gemini models
+      if (isGemini) {
+        requestBody.reasoning = { enabled: true };
+      }
+
+      // Create stream - OpenAI SDK returns a Stream when stream:true is set
+      const response = await this.client.chat.completions.create(requestBody);
+      const stream = response as any; // The response IS the stream when stream:true
+
+      let accumulatedContent = '';
+      let toolCalls: Map<number, { id: string; name: string; arguments: string }> = new Map();
+      let reasoningDetailsAccumulated: any[] = [];
+      let finishReason = 'stop';
+
+      for await (const chunk of stream) {
+        const delta = chunk.choices[0]?.delta;
+        const message = chunk.choices[0]?.message;
+        const chunkWithError = chunk as any;
+        
+        // Check for mid-stream errors (OpenRouter specific)
+        if (chunkWithError.error) {
+          console.error('[ai-chat] Mid-stream error:', chunkWithError.error);
+          throw new Error(`Stream error: ${chunkWithError.error.message || 'Unknown error'}`);
+        }
+        
+        // Check for error finish reason
+        if (chunk.choices[0]?.finish_reason === 'error') {
+          console.error('[ai-chat] Stream terminated with error finish_reason');
+          throw new Error('Stream terminated due to error');
+        }
+        
+        if (!delta && !message) continue;
+
+        // Handle reasoning content (Gemini-specific)
+        const chunkWithReasoning = chunk as any;
+        if (chunkWithReasoning.reasoning_details) {
+          reasoningDetailsAccumulated.push(...chunkWithReasoning.reasoning_details);
+          yield {
+            type: 'reasoning',
+            reasoningDetails: chunkWithReasoning.reasoning_details,
+          };
+        }
+
+        // Handle content streaming from delta
+        if (delta?.content) {
+          accumulatedContent += delta.content;
+          yield {
+            type: 'content',
+            content: delta.content,
+          };
+        }
+        
+        // Handle content from message (final chunk for reasoning models)
+        if (message?.content && !accumulatedContent) {
+          accumulatedContent = message.content;
+          yield {
+            type: 'content',
+            content: message.content,
+          };
+        }
+
+        // Handle tool calls
+        if (delta?.tool_calls) {
+          for (const toolCallDelta of delta.tool_calls) {
+            const index = toolCallDelta.index;
+            
+            if (!toolCalls.has(index)) {
+              toolCalls.set(index, {
+                id: toolCallDelta.id || '',
+                name: toolCallDelta.function?.name || '',
+                arguments: '',
+              });
+            }
+            
+            const toolCall = toolCalls.get(index)!;
+            
+            if (toolCallDelta.id) {
+              toolCall.id = toolCallDelta.id;
+            }
+            if (toolCallDelta.function?.name) {
+              toolCall.name = toolCallDelta.function.name;
+              // Yield tool call as soon as we know its name
+              yield {
+                type: 'tool_call',
+                toolCall: { ...toolCall },
+              };
+            }
+            if (toolCallDelta.function?.arguments) {
+              toolCall.arguments += toolCallDelta.function.arguments;
+            }
+          }
+        }
+
+        // Check for finish reason
+        if (chunk.choices[0]?.finish_reason) {
+          finishReason = chunk.choices[0].finish_reason;
+        }
+      }
+
+      // Yield final done event
+      yield {
+        type: 'done',
+        finishReason,
+        reasoningDetails: reasoningDetailsAccumulated.length > 0 ? reasoningDetailsAccumulated : undefined,
+      };
+
+    } catch (error) {
+      console.error('[OpenRouterClient] Stream error:', error);
+      throw new Error(`AI stream error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 }
 

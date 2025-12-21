@@ -285,70 +285,48 @@ async function getAiToolsOld(telegramUserId: string): Promise<ChatCompletionTool
 }
 */
 
-const SYSTEM_PROMPT = `You are a helpful Planka project management assistant. This is a Telegram bot using HTML parse mode.
+const SYSTEM_PROMPT = `You are a friendly and helpful Planka project management assistant integrated with Telegram.
 
-🎯 CRITICAL RULES - READ CAREFULLY:
+🎯 YOUR ROLE:
+- Be conversational and friendly in casual chats
+- Help users manage their Planka tasks and projects
+- Always provide clear, helpful responses
+- CRITICAL: You MUST always generate a text response - never finish without saying something!
 
-1. ⚠️ **MANDATORY TEXT RESPONSES** ⚠️
-   - You MUST ALWAYS provide a text response after using tools
-   - NEVER finish a turn without text - the user is waiting!
-   - If tools return empty results (0 cards, no data): Tell the user "No results found"
-   - If tools return data: Summarize what you discovered
-   - If tools fail: Explain what went wrong
-   - NO EXCEPTIONS - Every response needs text content!
+💬 RESPONDING TO USERS:
+When user says "hi", "hello", "hey": Respond warmly like "Hi! 👋 I'm here to help you manage your Planka tasks. How can I assist you today?"
 
-2. 🎨 **HTML FORMATTING ONLY** (parse_mode='HTML'):
-   ✅ USE: <b>bold</b> <i>italic</i> <u>underline</u> <s>strikethrough</s> <code>code</code>
-   ❌ NEVER USE: **bold** __underline__ *italic* _italic_ (these will appear as literal characters!)
-   
-3. 🔤 **HTML Entity Escaping**:
-   - Use &amp; for &
-   - Use &lt; for <
-   - Use &gt; for >
-   - Use &quot; for " in attributes
+When asked "what can you do?": Explain you can help with Planka project management - viewing tasks, creating cards, searching projects, etc.
 
-4. 🚀 **EFFICIENT TASK SEARCHING**:
-   ⚡ ALWAYS use planka_cards_searchGlobal FIRST - it searches ALL projects at once
-   ⚡ Only use project/board listing if the user explicitly asks to see projects/boards
-   ⚡ If global search returns empty: Tell the user immediately, don't dig deeper
-   
-   Example:
-   User: "Show tasks for Sarah"
-   ✅ CORRECT: planka_cards_searchGlobal(query: "Sarah") → summarize results
-   ❌ WRONG: List all projects → list all boards → search each one
+For casual chat: Respond naturally and friendly, no tools needed.
 
-5. 📋 **RESPONSE FORMAT**:
-   - Use emojis to make responses scannable: 📅 🔴 🟡 ✅ 👤 📂
-   - Show dates in YYYY-MM-DD format
-   - Group tasks by urgency (urgent → this week → later)
-   - Always provide a summary count at the end
-   - Use proper HTML tags and entities
+For task questions: Use tools, then summarize findings in a friendly way.
 
-Example task list format:
+NEVER send empty responses - always include text!
 
-<b>📊 Tasks for John Smith</b>
+🎨 FORMATTING (HTML parse_mode):
+- Use: <b>bold</b> <i>italic</i> <u>underline</u> <code>code</code>
+- DON'T use: **bold** *italic* (these show as literal text!)
+- Emojis are great: 📅 🔴 🟡 ✅ 👤 📂
 
-🔴 <b>Urgent - Due Today</b>
-• <b>Deploy hotfix to production</b>
+📋 TASK DISPLAY FORMAT:
+<b>📊 Tasks for John</b>
+
+🔴 <b>Urgent</b>
+• <b>Deploy hotfix</b>
   📅 Due: 2025-12-20
-  📍 Status: In Progress
-  👤 Assigned: John Smith
-  📂 Project: <i>Backend Services</i>
+  👤 John Smith
+  📂 Backend Services
 
-🟡 <b>This Week</b>
-• <b>Code review for feature X</b>
-  📅 Due: 2025-12-22
-  📍 Status: To Do
-  📂 Project: <i>Frontend</i>
+<b>📈 Summary:</b> 1 task found
 
-✅ <b>Completed</b>
-• <b>Update documentation</b>
-  📅 Completed: 2025-12-18
-  📂 Project: <i>Docs</i>
+Examples:
+User: "hi"
+You: "Hi! 👋 I'm your Planka assistant. I can help you view tasks, create cards, search projects, and more. What would you like to do?"
 
-<b>📈 Summary:</b> 3 tasks total (1 urgent, 1 this week, 1 completed)
+User: "show me my tasks"  
+You: [use tools, then] "Here are your tasks: [list them]"`;
 
-Remember: Always respond with text after tool calls. Users are waiting for your analysis!`;
 
 
 const bot = new Bot(TELEGRAM_BOT_TOKEN);
@@ -613,6 +591,18 @@ bot.command('clear_chat', async (ctx) => {
 // AI Chat Handler (for regular messages)
 // ============================================================================
 
+// Helper function to get chat history as ChatMessage array
+async function getChatHistory(sessionId: string): Promise<ChatMessage[]> {
+  const messages = await getSessionMessages(sessionId, 50);
+  return messages.map((m: any) => ({
+    role: m.role as any,
+    content: m.content,
+    toolCallId: m.toolCallId || undefined,
+    toolName: m.toolName || undefined,
+    toolArgs: m.toolArgs || undefined,
+  }));
+}
+
 bot.on('message:text', async (ctx) => {
   const client = await getAiClient();
   if (!client) {
@@ -706,118 +696,199 @@ bot.on('message:text', async (ctx) => {
       return;
     }
 
-    // Get AI response with system prompt
     console.log('[telegram-bot] Conversation history length:', trimmedHistory.length);
     console.log('[telegram-bot] Last 3 messages:', JSON.stringify(trimmedHistory.slice(-3).map((m: any) => ({ role: m.role, content: m.content?.substring(0, 100) || '(tool call)', toolName: m.toolName })), null, 2));
-    console.log('[telegram-bot] Calling AI with', tools.length, 'tools');
-    let response = await client.chat(trimmedHistory, { systemPrompt: SYSTEM_PROMPT }, tools);
-    console.log('[telegram-bot] AI response:', { 
-      hasContent: !!response.content, 
-      contentLength: response.content?.length || 0,
-      toolCallsCount: response.toolCalls?.length || 0,
-      finishReason: response.finishReason 
-    });
-    if (response.content) {
-      console.log('[telegram-bot] AI response content:', response.content.substring(0, 200));
-    }
-
-    // Handle tool calls
-    // TODO: Make this configurable in admin settings
+    console.log('[telegram-bot] Calling AI with streaming and', tools.length, 'tools');
+    
+    // Create initial message for live updates
+    let displayContent = '💭 <i>Thinking...</i>';
+    let toolCallsDisplay: string[] = [];
+    let activeTools = new Set<string>();
+    const sentMessage = await ctx.reply(displayContent, { parse_mode: 'HTML' });
+    let lastUpdateTime = Date.now();
+    let reasoningActive = false;
+    
+    // Stream AI response with live updates
     const maxToolCallsConfig = await getSystemConfig('maxToolCalls');
-    let maxToolCalls = maxToolCallsConfig ? parseInt(maxToolCallsConfig) : 30; // Default: 5 rounds
+    let maxToolCalls = maxToolCallsConfig ? parseInt(maxToolCallsConfig) : 30;
     let totalToolCallsMade = 0;
-    while (response.toolCalls && response.toolCalls.length > 0 && maxToolCalls > 0) {
-      maxToolCalls--;
-      totalToolCallsMade += response.toolCalls.length;
-
-      // Add ONE assistant message with ALL tool calls (with reasoning_details if present)
-      // This must come BEFORE we process the tool calls
-      for (const toolCall of response.toolCalls) {
-        await addMessage(
-          session.id,
-          'assistant',
-          '',
-          toolCall.id,
-          toolCall.name,
-          toolCall.arguments,
-        );
+    let finalResponse = '';
+    let reasoningDetails: unknown = undefined;
+    
+    // Helper function to format tool name nicely
+    const formatToolName = (toolName: string): string => {
+      // Convert planka_cards_search -> 🔧 Cards Search
+      const parts = toolName.replace('planka_', '').split('_');
+      const formatted = parts.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+      return `🔧 ${formatted}`;
+    };
+    
+    // Helper to update message (with rate limiting)
+    const updateMessage = async (force: boolean = false) => {
+      const now = Date.now();
+      if (!force && now - lastUpdateTime < 500) return; // Rate limit: 2 updates per second
+      
+      lastUpdateTime = now;
+      
+      let content = '';
+      
+      // Show reasoning indicator if active
+      if (reasoningActive) {
+        content += '🧠 <i>Reasoning...</i>\n\n';
       }
       
-      // Add to history as a single group with reasoning_details
-      const assistantMessages: ChatMessage[] = response.toolCalls.map(tc => ({
-        role: 'assistant',
-        content: '',
-        toolCallId: tc.id,
-        toolName: tc.name,
-        toolArgs: tc.arguments,
-      }));
-      
-      // Only the FIRST assistant message in this batch gets reasoning_details
-      if (response.reasoningDetails) {
-        assistantMessages[0].reasoningDetails = response.reasoningDetails;
-        console.log('[telegram-bot] Preserving reasoning_details for tool call batch:', {
-          hasReasoningDetails: true,
-          isArray: Array.isArray(response.reasoningDetails),
-          length: Array.isArray(response.reasoningDetails) ? response.reasoningDetails.length : 'N/A',
-          toolCallsInBatch: response.toolCalls.length
-        });
+      // Show active tools
+      if (toolCallsDisplay.length > 0) {
+        content += '<b>🛠️ Tools in use:</b>\n';
+        content += toolCallsDisplay.map(t => `  ${t}`).join('\n');
+        content += '\n\n';
       }
       
-      trimmedHistory.push(...assistantMessages);
-
-      // Now execute each tool and add results
-      for (const toolCall of response.toolCalls) {
-        console.log('[telegram-bot] Tool call:', { id: toolCall.id, name: toolCall.name, args: toolCall.arguments });
-
-        // Execute tool
-        // Convert underscored name back to dots for MCP (e.g., planka_auth_status -> planka.auth.status)
-        const mcpToolName = toolCall.name.replace(/_/g, '.');
-        const toolResult = await executeMcpTool(
-          telegramUserId,
-          mcpToolName,
-          JSON.parse(toolCall.arguments),
-        );
-        console.log('[telegram-bot] Tool result:', { success: toolResult.success, contentLength: toolResult.content?.length || 0, error: toolResult.error });
-
-        const resultContent = toolResult.success
-          ? toolResult.content
-          : `Error: ${toolResult.error}`;
-
-        // Save tool result
-        await addMessage(session.id, 'tool', resultContent, toolCall.id);
-
-        // Add tool result to history
-        trimmedHistory.push({
-          role: 'tool',
-          content: resultContent,
-          toolCallId: toolCall.id,
-        });
-      }
-
-      // Get next response from AI
-      await ctx.replyWithChatAction('typing');
-      response = await client.chat(trimConversationHistory(trimmedHistory, 20), {}, tools);
-    }
-
-    // Log final response details
-    console.log('[telegram-bot] Final AI response after', totalToolCallsMade, 'tool calls:', {
-      hasContent: !!response.content,
-      contentLength: response.content?.length || 0,
-      toolCallsCount: response.toolCalls?.length || 0,
-      finishReason: response.finishReason
-    });
-
-    // Save assistant response
-    if (response.content) {
-      await addMessage(session.id, 'assistant', response.content);
-    } else {
-      console.log('[telegram-bot] WARNING: No content in final response!');
-      
-      // Force summarization with explicit prompt if tools were used
-      if (totalToolCallsMade > 0) {
-        console.log('[telegram-bot] Attempting forced summarization after', totalToolCallsMade, 'tool calls');
+      // Show accumulated response content
+      if (finalResponse) {
+        // Fix markdown to HTML
+        let formatted = finalResponse
+          .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+          .replace(/__(.*?)__/g, '<u>$1</u>')
+          .replace(/\*([^*]+)\*/g, '<i>$1</i>')
+          .replace(/_([^_]+)_/g, '<i>$1</i>');
         
-        try {
+        content += formatted;
+      } else if (!reasoningActive && toolCallsDisplay.length === 0) {
+        content += '💭 <i>Generating response...</i>';
+      }
+      
+      try {
+        await ctx.api.editMessageText(sentMessage.chat.id, sentMessage.message_id, content, { parse_mode: 'HTML' });
+      } catch (error) {
+        // Ignore errors from too frequent updates or identical content
+      }
+    };
+    
+    try {
+      const stream = client.streamChat(trimmedHistory, { systemPrompt: SYSTEM_PROMPT }, tools);
+      
+      for await (const chunk of stream) {
+        if (chunk.type === 'reasoning') {
+          reasoningActive = true;
+          console.log('[telegram-bot] 🧠 Reasoning chunk received');
+          await updateMessage();
+        } else if (chunk.type === 'tool_call' && chunk.toolCall) {
+          reasoningActive = false;
+          const toolName = chunk.toolCall.name;
+          
+          if (!activeTools.has(toolName)) {
+            activeTools.add(toolName);
+            toolCallsDisplay.push(formatToolName(toolName));
+            totalToolCallsMade++;
+            console.log('[telegram-bot] 🔧 Tool call:', toolName);
+            await updateMessage();
+          }
+        } else if (chunk.type === 'content' && chunk.content) {
+          reasoningActive = false;
+          finalResponse += chunk.content;
+          console.log('[telegram-bot] 💬 Content chunk:', chunk.content.substring(0, 50));
+          await updateMessage();
+        } else if (chunk.type === 'done') {
+          reasoningDetails = chunk.reasoningDetails;
+          reasoningActive = false;
+          console.log('[telegram-bot] ✅ Streaming complete');
+        }
+      }
+      
+      console.log('[telegram-bot] Stream finished, total response length:', finalResponse.length);
+      
+      console.log('[telegram-bot] Stream finished, total response length:', finalResponse.length);
+      
+      // Force final update only if we have content to show
+      if (finalResponse || toolCallsDisplay.length > 0) {
+        await updateMessage(true);
+      }
+      
+      // Now handle tool execution if tools were called
+      // We need to re-run the AI to get the actual tool call objects with IDs and arguments
+      // For now, fall back to non-streaming for tool execution rounds
+      
+      if (totalToolCallsMade > 0 && maxToolCalls > 0) {
+        console.log('[telegram-bot] Tools were called, executing them...');
+        
+        // Get full response with tool calls
+        let response = await client.chat(trimmedHistory, { systemPrompt: SYSTEM_PROMPT }, tools);
+        
+        // Handle tool calls (same logic as before)
+        while (response.toolCalls && response.toolCalls.length > 0 && maxToolCalls > 0) {
+          maxToolCalls--;
+
+          // Add tool calls to history and database
+          for (const toolCall of response.toolCalls) {
+            await addMessage(
+              session.id,
+              'assistant',
+              '',
+              toolCall.id,
+              toolCall.name,
+              toolCall.arguments,
+            );
+          }
+          
+          const assistantMessages: ChatMessage[] = response.toolCalls.map(tc => ({
+            role: 'assistant',
+            content: '',
+            toolCallId: tc.id,
+            toolName: tc.name,
+            toolArgs: tc.arguments,
+          }));
+          
+          if (response.reasoningDetails) {
+            assistantMessages[0].reasoningDetails = response.reasoningDetails;
+          }
+          
+          trimmedHistory.push(...assistantMessages);
+
+          // Execute tools
+          for (const toolCall of response.toolCalls) {
+            const mcpToolName = toolCall.name.replace(/_/g, '.');
+            const toolResult = await executeMcpTool(
+              telegramUserId,
+              mcpToolName,
+              JSON.parse(toolCall.arguments),
+            );
+
+            const resultContent = toolResult.success
+              ? toolResult.content
+              : `Error: ${toolResult.error}`;
+
+            await addMessage(session.id, 'tool', resultContent, toolCall.id);
+            trimmedHistory.push({
+              role: 'tool',
+              content: resultContent,
+              toolCallId: toolCall.id,
+            });
+          }
+
+          // Update display to show we're processing results
+          displayContent = '<b>🛠️ Tools completed</b>\n\n💭 <i>Analyzing results...</i>';
+          await ctx.api.editMessageText(sentMessage.chat.id, sentMessage.message_id, displayContent, { parse_mode: 'HTML' });
+
+          // Get next response
+          response = await client.chat(trimConversationHistory(trimmedHistory, 20), { systemPrompt: SYSTEM_PROMPT }, tools);
+          
+          if (response.content) {
+            finalResponse = response.content;
+          }
+        }
+      }
+
+      // Save final response
+      if (finalResponse) {
+        await addMessage(session.id, 'assistant', finalResponse);
+      } else {
+        console.log('[telegram-bot] WARNING: No content in final response!');
+        
+        // Force summarization if needed
+        if (totalToolCallsMade > 0) {
+          console.log('[telegram-bot] Attempting forced summarization after', totalToolCallsMade, 'tool calls');
+          
           const summaryPrompt: ChatMessage = {
             role: 'user',
             content: 'Based on the tool results above, please provide a summary of what you discovered. ' +
@@ -825,70 +896,108 @@ bot.on('message:text', async (ctx) => {
                      'The user is waiting for your response - you must provide text output.'
           };
           
-          // Get fresh history and add summary prompt
           const currentHistory = await getChatHistory(session.id);
-          const forcedResponse = await client.chat([...currentHistory, summaryPrompt], {}, tools);
-          
-          console.log('[telegram-bot] Forced summarization result:', {
-            hasContent: !!forcedResponse.content,
-            contentLength: forcedResponse.content?.length || 0
-          });
+          const forcedResponse = await client.chat([...currentHistory, summaryPrompt], { systemPrompt: SYSTEM_PROMPT }, tools);
           
           if (forcedResponse.content) {
-            response.content = forcedResponse.content;
+            finalResponse = forcedResponse.content;
             await addMessage(session.id, 'user', summaryPrompt.content);
             await addMessage(session.id, 'assistant', forcedResponse.content);
           }
-        } catch (error) {
-          console.error('[telegram-bot] Forced summarization failed:', error);
         }
       }
-    }
 
-    // Send response to user
-    let finalContent: string;
-    
-    if (!response.content) {
-      // Generate a better fallback based on what happened
-      if (totalToolCallsMade === 0) {
-        finalContent = '🤔 I didn\'t know how to respond. Could you try rephrasing your question?';
+      // Final display
+      let finalContent: string;
+      
+      if (!finalResponse) {
+        if (totalToolCallsMade === 0) {
+          finalContent = '🤔 I didn\'t know how to respond. Could you try rephrasing your question?';
+        } else {
+          finalContent = [
+            '⚠️ <b>Response Generation Issue</b>',
+            '',
+            `I successfully made ${totalToolCallsMade} tool ${totalToolCallsMade === 1 ? 'call' : 'calls'}, but failed to generate a summary.`,
+            '',
+            '💡 <b>What you can do:</b>',
+            '• Ask me to "summarize what you found"',
+            '• Try rephrasing your question',
+            '',
+            '<i>This is a known limitation with the AI model.</i>'
+          ].join('\n');
+        }
       } else {
-        // We made tool calls but got no response text
-        finalContent = [
-          '⚠️ <b>Response Generation Issue</b>',
-          '',
-          `I successfully made ${totalToolCallsMade} tool ${totalToolCallsMade === 1 ? 'call' : 'calls'}, but failed to generate a summary.`,
-          '',
-          '💡 <b>What you can do:</b>',
-          '• Ask me to "summarize what you found"',
-          '• Try rephrasing your question',
-          '• Ask for specific details about the data',
-          '',
-          '<i>This is a known limitation with the AI model.</i>'
-        ].join('\n');
+        finalContent = finalResponse
+          .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+          .replace(/__(.*?)__/g, '<u>$1</u>')
+          .replace(/\*([^*]+)\*/g, '<i>$1</i>')
+          .replace(/_([^_]+)_/g, '<i>$1</i>');
       }
-    } else {
-      finalContent = response.content;
+      
+      console.log('[telegram-bot] Sending final response, length:', finalContent.length);
+      console.log('[telegram-bot] Final response content:', finalContent.substring(0, 500));
+      
+      // Update with final content or send new messages for long content
+      if (finalContent.length > 4000) {
+        // Delete the streaming message and send chunks
+        try {
+          await ctx.api.deleteMessage(sentMessage.chat.id, sentMessage.message_id);
+        } catch (delError) {
+          console.log('[telegram-bot] Could not delete message, continuing...');
+        }
+        const chunks = finalContent.match(/.{1,4000}/gs) || [];
+        for (const chunk of chunks) {
+          await ctx.reply(chunk, { parse_mode: 'HTML' });
+        }
+      } else {
+        try {
+          await ctx.api.editMessageText(sentMessage.chat.id, sentMessage.message_id, finalContent, { parse_mode: 'HTML' });
+        } catch (editError) {
+          // If edit fails (e.g., message deleted or network error), send as new message
+          console.log('[telegram-bot] Could not edit message, sending new message instead');
+          await ctx.reply(finalContent, { parse_mode: 'HTML' });
+        }
+      }
+      
+    } catch (streamError) {
+      console.error('[telegram-bot] Streaming error:', streamError);
+      
+      // Try to clean up the "Thinking..." message
+      try {
+        await ctx.api.deleteMessage(sentMessage.chat.id, sentMessage.message_id);
+      } catch (delError) {
+        // Ignore if delete fails
+      }
+      
+      // Check if it's a network/connection error
+      if (streamError instanceof Error) {
+        const errMsg = streamError.message.toLowerCase();
+        if (errMsg.includes('terminated') || errMsg.includes('socket') || errMsg.includes('closed') || errMsg.includes('econnreset')) {
+          // Network error - provide helpful message
+          const isGemini = client.model.includes('gemini') || client.model.includes('google');
+          
+          let message = '⚠️ <b>Connection Issue</b>\n\n' +
+            'The AI service connection was interrupted.\n\n';
+          
+          if (isGemini) {
+            message += '💡 <b>Note:</b> Gemini reasoning models occasionally have connection issues when generating responses.\n\n' +
+              '<b>What you can do:</b>\n' +
+              '• Send your message again - it usually works on retry\n' +
+              '• Ask an admin to switch to Claude (more stable)\n';
+          } else {
+            message += '💡 <b>Try:</b>\n' +
+              '• Send your message again\n' +
+              '• Simplify your query\n';
+          }
+          
+          await ctx.reply(message, { parse_mode: 'HTML' });
+          return; // Don't throw, we handled it
+        }
+      }
+      
+      throw streamError;
     }
     
-    // Fix markdown formatting to HTML (fallback if AI ignores instructions)
-    finalContent = finalContent
-      .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')  // **text** → <b>text</b>
-      .replace(/__(.*?)__/g, '<u>$1</u>')      // __text__ → <u>text</u>
-      .replace(/\*([^*]+)\*/g, '<i>$1</i>')    // *text* → <i>text</i>
-      .replace(/_([^_]+)_/g, '<i>$1</i>');     // _text_ → <i>text</i>
-    
-    console.log('[telegram-bot] Sending final response, length:', finalContent.length);
-    
-    // Split long messages
-    if (finalContent.length > 4000) {
-      const chunks = finalContent.match(/.{1,4000}/gs) || [];
-      for (const chunk of chunks) {
-        await ctx.reply(chunk, { parse_mode: 'HTML' });
-      }
-    } else {
-      await ctx.reply(finalContent, { parse_mode: 'HTML' });
-    }
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('[telegram-bot] AI chat error', error);
