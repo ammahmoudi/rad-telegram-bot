@@ -770,6 +770,14 @@ bot.on('message:text', async (ctx) => {
     let allReasoningTexts: string[] = [];
     let allToolCallsMade: Array<{ name: string, args?: any }> = [];
     
+    // Track reasoning steps with their associated tools
+    interface ReasoningStep {
+      reasoning: string;
+      tools: string[];
+    }
+    let reasoningSteps: ReasoningStep[] = [];
+    let currentStepTools: string[] = [];
+    
     // Loading animation
     const loadingFrames = ['⏳', '⌛'];
     let loadingFrameIndex = 0;
@@ -848,6 +856,7 @@ bot.on('message:text', async (ctx) => {
             activeTools.add(toolName);
             toolCallsDisplay.push(formatToolName(toolName));
             allToolCallsMade.push({ name: toolName, args: chunk.toolCall.arguments });
+            currentStepTools.push(toolName); // Track tool for current reasoning step
             totalToolCallsMade++;
             console.log('[telegram-bot] 🔧 Tool call:', toolName);
             await updateMessage();
@@ -858,6 +867,15 @@ bot.on('message:text', async (ctx) => {
           console.log('[telegram-bot] 💬 Content chunk:', chunk.content.substring(0, 50));
           await updateMessage();
         } else if (chunk.type === 'done') {
+          // Save final reasoning step with its tools
+          if (reasoningText && currentStepTools.length > 0) {
+            reasoningSteps.push({
+              reasoning: reasoningText,
+              tools: [...currentStepTools]
+            });
+            currentStepTools = [];
+          }
+          
           reasoningDetails = chunk.reasoningDetails;
           reasoningActive = false;
           reasoningText = '';
@@ -1012,7 +1030,25 @@ bot.on('message:text', async (ctx) => {
               .map((detail: any) => detail.text)
               .join('\n\n');
             if (textDetails) {
+              // Save previous reasoning step with tools before starting new one
+              if (reasoningText && currentStepTools.length > 0) {
+                reasoningSteps.push({
+                  reasoning: reasoningText,
+                  tools: [...currentStepTools]
+                });
+                currentStepTools = [];
+              }
+              
               allReasoningTexts.push(textDetails);
+              reasoningText = textDetails;
+              
+              // Track tools from this execution phase
+              for (const tc of response.toolCalls) {
+                if (!currentStepTools.includes(tc.name)) {
+                  currentStepTools.push(tc.name);
+                }
+              }
+              
               const formattedReasoning = markdownToTelegramHtml(textDetails);
               reasoningDisplay = '🧠 <b>Reasoning...</b>\n\n<blockquote>' + 
                 formattedReasoning.substring(0, 500) + 
@@ -1088,18 +1124,24 @@ bot.on('message:text', async (ctx) => {
           let detailedSummary = '⚠️ <b>Response Generation Issue</b>\n\n';
           detailedSummary += `I executed ${totalToolCallsMade} tool ${totalToolCallsMade === 1 ? 'call' : 'calls'}, but couldn't generate a final summary.\n\n`;
           
-          // Show reasoning steps if available
-          if (allReasoningTexts.length > 0) {
-            detailedSummary += '🧠 <b>Reasoning Steps:</b>\n\n';
-            allReasoningTexts.forEach((text, i) => {
-              const cleanText = markdownToTelegramHtml(text.substring(0, 300));
-              detailedSummary += `<b>Step ${i + 1}:</b>\n${cleanText}\n\n`;
+          // Show reasoning steps with their associated tools
+          if (reasoningSteps.length > 0) {
+            detailedSummary += '🧠 <b>What I Did:</b>\n\n';
+            reasoningSteps.forEach((step, i) => {
+              const cleanText = markdownToTelegramHtml(step.reasoning.substring(0, 250));
+              detailedSummary += `<b>Step ${i + 1}:</b>\n${cleanText}${step.reasoning.length > 250 ? '...' : ''}\n\n`;
+              
+              if (step.tools.length > 0) {
+                detailedSummary += '<i>↳ Tools used:</i>\n';
+                step.tools.forEach(toolName => {
+                  const toolDisplayName = formatToolName(toolName).replace('🔧 ', '');
+                  detailedSummary += `  • ${toolDisplayName}\n`;
+                });
+                detailedSummary += '\n';
+              }
             });
-            detailedSummary += '\n';
-          }
-          
-          // Show tools that were called
-          if (allToolCallsMade.length > 0) {
+          } else if (allToolCallsMade.length > 0) {
+            // Fallback: show tools if no reasoning steps were captured
             detailedSummary += '🔧 <b>Tools Called:</b>\n';
             allToolCallsMade.forEach((tool, i) => {
               const toolDisplayName = formatToolName(tool.name).replace('🔧 ', '');
@@ -1120,34 +1162,47 @@ bot.on('message:text', async (ctx) => {
         finalContent = markdownToTelegramHtml(finalResponse);
         
         // Add expandable summary if there was reasoning or tool calls
-        if (allReasoningTexts.length > 0 || allToolCallsMade.length > 0) {
+        if (reasoningSteps.length > 0 || allToolCallsMade.length > 0) {
           let summaryContent = '';
           
-          if (allReasoningTexts.length > 0) {
-            summaryContent += '🧠 <b>Reasoning Steps:</b>\n\n';
-            allReasoningTexts.forEach((text, i) => {
-              // Clean up the text - remove markdown and escape HTML
-              const cleanText = text
-                .replace(/\*\*/g, '') // Remove bold markers
+          if (reasoningSteps.length > 0) {
+            summaryContent += '🧠 <b>What I Did:</b>\n\n';
+            reasoningSteps.forEach((step, i) => {
+              // Clean and truncate text properly
+              const cleanText = step.reasoning
+                .replace(/\*\*/g, '') // Remove bold
+                .replace(/`/g, '') // Remove code markers
                 .replace(/</g, '&lt;')
                 .replace(/>/g, '&gt;')
+                .substring(0, 200) // Limit to 200 chars per step
                 .trim();
               
-              summaryContent += `<b>Step ${i + 1}:</b>\n${cleanText}\n\n`;
+              summaryContent += `<b>Step ${i + 1}:</b>\n${cleanText}${step.reasoning.length > 200 ? '...' : ''}\n`;
+              
+              // Show tools used in this step
+              if (step.tools.length > 0) {
+                summaryContent += '<i>↳ Tools:</i> ';
+                summaryContent += step.tools.map(t => formatToolName(t).replace('🔧 ', '')).join(', ');
+                summaryContent += '\n';
+              }
+              summaryContent += '\n';
             });
-          }
-          
-          if (allToolCallsMade.length > 0) {
-            if (summaryContent) summaryContent += '\n';
-            summaryContent += '🔧 <b>Tools Used:</b>\n\n';
+          } else if (allToolCallsMade.length > 0) {
+            // Fallback if no reasoning steps
+            summaryContent += '🔧 <b>Tools Used:</b>\n';
             allToolCallsMade.forEach((tool, i) => {
               const toolDisplayName = formatToolName(tool.name).replace('🔧 ', '');
               summaryContent += `${i + 1}. ${toolDisplayName}\n`;
             });
           }
           
-          finalContent += '\n\n<blockquote expandable>💡 <b>Process Summary</b> (tap to expand)\n\n' + 
+          // Only add summary if finalContent + summary won't exceed Telegram's limit
+          const summaryBlock = '\n\n<blockquote expandable>💡 <b>Process Summary</b>\n\n' + 
             summaryContent + '</blockquote>';
+          
+          if ((finalContent.length + summaryBlock.length) < 3800) {
+            finalContent += summaryBlock;
+          }
         }
       }
       
