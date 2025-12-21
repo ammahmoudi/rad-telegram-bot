@@ -773,12 +773,10 @@ bot.on('message:text', async (ctx) => {
     // Track reasoning steps with their associated tools
     interface ReasoningStep {
       reasoning: string;
-      tools: string[];
-    }
-    let reasoningSteps: ReasoningStep[] = [];
-    let currentStepTools: string[] = [];
-    
-    // Loading animation
+          tools: Array<{name: string; args: any}>;
+        }
+        let reasoningSteps: ReasoningStep[] = [];
+        let currentStepTools: Array<{name: string; args: any}> = [];
     const loadingFrames = ['⏳', '⌛'];
     let loadingFrameIndex = 0;
     
@@ -795,6 +793,54 @@ bot.on('message:text', async (ctx) => {
       const parts = toolName.replace('planka_', '').split('_');
       const formatted = parts.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
       return `🔧 ${formatted}`;
+    };
+    
+    // Helper function to format tool arguments nicely
+    const formatToolArgs = (args: any, maxLength: number = 60): string => {
+      if (!args) return '';
+      
+      // Handle if args is a string (parse it)
+      let argsObj: any;
+      if (typeof args === 'string') {
+        try {
+          argsObj = JSON.parse(args);
+        } catch {
+          return ''; // Invalid JSON, skip
+        }
+      } else {
+        argsObj = args;
+      }
+      
+      // Check if it's an object with properties
+      if (typeof argsObj !== 'object' || Array.isArray(argsObj)) return '';
+      
+      const keys = Object.keys(argsObj);
+      if (keys.length === 0) return '';
+      
+      const pairs: string[] = [];
+      for (const key of keys) {
+        const value = argsObj[key];
+        let formattedValue: string;
+        
+        if (typeof value === 'string') {
+          formattedValue = value.length > 30 ? `"${value.substring(0, 27)}..."` : `"${value}"`;
+        } else if (value === null || value === undefined) {
+          continue; // Skip null/undefined
+        } else if (typeof value === 'object') {
+          formattedValue = '[...]'; // Don't expand nested objects
+        } else {
+          formattedValue = String(value);
+        }
+        pairs.push(`${key}: ${formattedValue}`);
+      }
+      
+      if (pairs.length === 0) return '';
+      
+      const result = ` (${pairs.join(', ')})`;
+      if (result.length > maxLength) {
+        return result.substring(0, maxLength - 4) + '...)';
+      }
+      return result;
     };
     
     // Helper to update message (with rate limiting)
@@ -856,7 +902,7 @@ bot.on('message:text', async (ctx) => {
             activeTools.add(toolName);
             toolCallsDisplay.push(formatToolName(toolName));
             allToolCallsMade.push({ name: toolName, args: chunk.toolCall.arguments });
-            currentStepTools.push(toolName); // Track tool for current reasoning step
+            currentStepTools.push({ name: toolName, args: chunk.toolCall.arguments }); // Track tool for current reasoning step
             totalToolCallsMade++;
             console.log('[telegram-bot] 🔧 Tool call:', toolName);
             await updateMessage();
@@ -963,10 +1009,13 @@ bot.on('message:text', async (ctx) => {
               activeTools.add(toolCall.name);
               allToolCallsMade.push({ name: toolCall.name, args: toolCall.arguments });
               
-              // Add to display list so user sees it
+              // Add to display list so user sees it with arguments
               const toolDisplayName = formatToolName(toolCall.name);
-              if (!toolCallsDisplay.includes(toolDisplayName)) {
-                toolCallsDisplay.push(toolDisplayName);
+              const formattedArgsForList = formatToolArgs(toolCall.arguments, 50);
+              const toolDisplayWithArgs = `${toolDisplayName}${formattedArgsForList}`;
+              
+              if (!toolCallsDisplay.includes(toolDisplayWithArgs)) {
+                toolCallsDisplay.push(toolDisplayWithArgs);
                 
                 // Update message immediately to show new tool
                 loadingFrameIndex = (loadingFrameIndex + 1) % loadingFrames.length;
@@ -988,6 +1037,8 @@ bot.on('message:text', async (ctx) => {
                 
                 let tempToolsDisplay = `<b>🛠️ Tools ${loadingEmoji}</b>\n`;
                 tempToolsDisplay += toolCallsDisplay.map(t => `  ${t}`).join('\n') + '\n';
+                
+                // Show which tool is currently executing
                 tempToolsDisplay += `\n💭 <i>Executing ${toolDisplayName.replace('🔧 ', '')}...</i> ${loadingEmoji}`;
                 
                 try {
@@ -1044,11 +1095,10 @@ bot.on('message:text', async (ctx) => {
               
               // Track tools from this execution phase
               for (const tc of response.toolCalls) {
-                if (!currentStepTools.includes(tc.name)) {
-                  currentStepTools.push(tc.name);
+                if (!currentStepTools.find(t => t.name === tc.name)) {
+                  currentStepTools.push({ name: tc.name, args: tc.arguments });
                 }
               }
-              
               const formattedReasoning = markdownToTelegramHtml(textDetails);
               reasoningDisplay = '🧠 <b>Reasoning...</b>\n\n<blockquote>' + 
                 formattedReasoning.substring(0, 500) + 
@@ -1120,43 +1170,78 @@ bot.on('message:text', async (ctx) => {
         if (totalToolCallsMade === 0) {
           finalContent = '🤔 I didn\'t know how to respond. Could you try rephrasing your question?';
         } else {
-          // Build a detailed summary even when final response fails
-          let detailedSummary = '⚠️ <b>Response Generation Issue</b>\n\n';
-          detailedSummary += `I executed ${totalToolCallsMade} tool ${totalToolCallsMade === 1 ? 'call' : 'calls'}, but couldn't generate a final summary.\n\n`;
+          // Check if searches were made - provide appropriate "no results" message
+          const hasSearchTools = allToolCallsMade.some(t => 
+            t.name.includes('search') || t.name.includes('list') || t.name.includes('get')
+          );
           
-          // Show reasoning steps with their associated tools
-          if (reasoningSteps.length > 0) {
-            detailedSummary += '🧠 <b>What I Did:</b>\n\n';
-            reasoningSteps.forEach((step, i) => {
-              const cleanText = markdownToTelegramHtml(step.reasoning.substring(0, 250));
-              detailedSummary += `<b>Step ${i + 1}:</b>\n${cleanText}${step.reasoning.length > 250 ? '...' : ''}\n\n`;
-              
-              if (step.tools.length > 0) {
-                detailedSummary += '<i>↳ Tools used:</i>\n';
-                step.tools.forEach(toolName => {
-                  const toolDisplayName = formatToolName(toolName).replace('🔧 ', '');
-                  detailedSummary += `  • ${toolDisplayName}\n`;
-                });
-                detailedSummary += '\n';
-              }
-            });
-          } else if (allToolCallsMade.length > 0) {
-            // Fallback: show tools if no reasoning steps were captured
-            detailedSummary += '🔧 <b>Tools Called:</b>\n';
-            allToolCallsMade.forEach((tool, i) => {
-              const toolDisplayName = formatToolName(tool.name).replace('🔧 ', '');
-              detailedSummary += `${i + 1}. ${toolDisplayName}\n`;
-            });
-            detailedSummary += '\n';
+          if (hasSearchTools && allToolCallsMade.length >= 3) {
+            // Likely searched extensively but found nothing
+            let detailedSummary = '🔍 <b>Search Complete</b>\n\n';
+            detailedSummary += `I searched through ${totalToolCallsMade} different ${totalToolCallsMade === 1 ? 'source' : 'sources'}, but couldn't find the information you're looking for.\n\n`;
+            
+            // Show what was searched
+            if (reasoningSteps.length > 0) {
+              detailedSummary += '📋 <b>What I Checked:</b>\n\n';
+              reasoningSteps.forEach((step, i) => {
+                if (step.tools.length > 0) {
+                  step.tools.forEach(tool => {
+                    const toolDisplayName = formatToolName(tool.name).replace('🔧 ', '');
+                    const formattedArgs = formatToolArgs(tool.args, 60);
+                    detailedSummary += `  • ${toolDisplayName}${formattedArgs}\n`;
+                  });
+                }
+              });
+              detailedSummary += '\n';
+            }
+            
+            detailedSummary += '💡 <b>This might mean:</b>\n';
+            detailedSummary += '• The data doesn\'t exist yet\n';
+            detailedSummary += '• It\'s in a different location\n';
+            detailedSummary += '• The search terms need to be adjusted\n\n';
+            detailedSummary += 'Try asking about something else or providing more details.';
+            
+            finalContent = detailedSummary;
+          } else {
+            // Build a detailed summary for other failure cases
+            let detailedSummary = '⚠️ <b>Response Generation Issue</b>\n\n';
+            detailedSummary += `I executed ${totalToolCallsMade} tool ${totalToolCallsMade === 1 ? 'call' : 'calls'}, but couldn't generate a final summary.\n\n`;
+            
+            // Show reasoning steps with their associated tools
+            if (reasoningSteps.length > 0) {
+              detailedSummary += '🧠 <b>What I Did:</b>\n\n';
+              reasoningSteps.forEach((step, i) => {
+                const cleanText = markdownToTelegramHtml(step.reasoning.substring(0, 250));
+                detailedSummary += `<b>Step ${i + 1}:</b>\n${cleanText}${step.reasoning.length > 250 ? '...' : ''}\n\n`;
+                
+                if (step.tools.length > 0) {
+                  detailedSummary += '<i>↳ Tools used:</i>\n';
+                  step.tools.forEach(tool => {
+                    const toolDisplayName = formatToolName(tool.name).replace('🔧 ', '');
+                    const formattedArgs = formatToolArgs(tool.args, 60);
+                    detailedSummary += `  • ${toolDisplayName}${formattedArgs}\n`;
+                  });
+                  detailedSummary += '\n';
+                }
+              });
+            } else if (allToolCallsMade.length > 0) {
+              // Fallback: show tools if no reasoning steps were captured
+              detailedSummary += '🔧 <b>Tools Called:</b>\n';
+              allToolCallsMade.forEach((tool, i) => {
+                const toolDisplayName = formatToolName(tool.name).replace('🔧 ', '');
+                detailedSummary += `${i + 1}. ${toolDisplayName}\n`;
+              });
+              detailedSummary += '\n';
+            }
+            
+            detailedSummary += '💡 <b>What you can do:</b>\n';
+            detailedSummary += '• Ask me to "summarize what you found"\n';
+            detailedSummary += '• Try rephrasing your question\n';
+            detailedSummary += '• Be more specific about what you need\n\n';
+            detailedSummary += '<i>This is a known limitation with the AI model.</i>';
+            
+            finalContent = detailedSummary;
           }
-          
-          detailedSummary += '💡 <b>What you can do:</b>\n';
-          detailedSummary += '• Ask me to "summarize what you found"\n';
-          detailedSummary += '• Try rephrasing your question\n';
-          detailedSummary += '• Be more specific about what you need\n\n';
-          detailedSummary += '<i>This is a known limitation with the AI model.</i>';
-          
-          finalContent = detailedSummary;
         }
       } else {
         finalContent = markdownToTelegramHtml(finalResponse);
@@ -1182,7 +1267,11 @@ bot.on('message:text', async (ctx) => {
               // Show tools used in this step
               if (step.tools.length > 0) {
                 summaryContent += '<i>↳ Tools:</i> ';
-                summaryContent += step.tools.map(t => formatToolName(t).replace('🔧 ', '')).join(', ');
+                summaryContent += step.tools.map(t => {
+                  const toolName = formatToolName(t.name).replace('🔧 ', '');
+                  const formattedArgs = formatToolArgs(t.args, 40);
+                  return `${toolName}${formattedArgs}`;
+                }).join(', ');
                 summaryContent += '\n';
               }
               summaryContent += '\n';
