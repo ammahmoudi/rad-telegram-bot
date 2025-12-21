@@ -1145,12 +1145,52 @@ bot.on('message:text', async (ctx) => {
         if (totalToolCallsMade > 0) {
           console.log('[telegram-bot] Attempting forced summarization after', totalToolCallsMade, 'tool calls');
           
-          const summaryPrompt: ChatMessage = {
-            role: 'user',
-            content: 'Based on the tool results above, please provide a summary of what you discovered. ' +
-                     'If all results were empty or no data was found, explicitly tell me that. ' +
-                     'The user is waiting for your response - you must provide text output.'
-          };
+          // Check if all search results were empty
+          const hasSearchTools = allToolCallsMade.some(t => 
+            t.name.includes('search') || t.name.includes('list') || t.name.includes('get')
+          );
+          
+          // Check tool results in history for empty responses
+          const toolResponses = trimmedHistory.filter(msg => msg.role === 'tool');
+          const allSearchesEmpty = hasSearchTools && toolResponses.every(msg => {
+            try {
+              const result = JSON.parse(msg.content || '{}');
+              // Check various empty indicators
+              return (
+                result.totalFound === 0 || 
+                (Array.isArray(result.cards) && result.cards.length === 0) ||
+                (Array.isArray(result) && result.length === 0)
+              );
+            } catch {
+              return false;
+            }
+          });
+          
+          let summaryPrompt: ChatMessage;
+          
+          if (allSearchesEmpty && toolResponses.length > 0) {
+            // Tell AI explicitly that searches were empty - let it respond naturally
+            const searchDetails = allToolCallsMade.map(t => {
+              const toolName = formatToolName(t.name).replace('🔧 ', '');
+              const formattedArgs = formatToolArgs(t.args, 100);
+              return `  • ${toolName}${formattedArgs}`;
+            }).join('\n');
+            
+            summaryPrompt = {
+              role: 'user',
+              content: `IMPORTANT: All the searches and queries returned EMPTY results (no data found).\n\n` +
+                       `What I checked:\n${searchDetails}\n\n` +
+                       `Please tell the user that you searched these sources but found no results. ` +
+                       `Explain what was searched and that the data doesn't exist or isn't available.`
+            };
+          } else {
+            summaryPrompt = {
+              role: 'user',
+              content: 'Based on the tool results above, please provide a summary of what you discovered. ' +
+                       'If all results were empty or no data was found, explicitly tell me that. ' +
+                       'The user is waiting for your response - you must provide text output.'
+            };
+          }
           
           // Use trimmedHistory which preserves reasoning_details, not database history
           const forcedResponse = await client.chat([...trimmedHistory, summaryPrompt], { systemPrompt: SYSTEM_PROMPT }, tools);
@@ -1266,13 +1306,12 @@ bot.on('message:text', async (ctx) => {
               
               // Show tools used in this step
               if (step.tools.length > 0) {
-                summaryContent += '<i>↳ Tools:</i> ';
-                summaryContent += step.tools.map(t => {
+                summaryContent += '<i>↳ Tools:</i>\n';
+                step.tools.forEach(t => {
                   const toolName = formatToolName(t.name).replace('🔧 ', '');
-                  const formattedArgs = formatToolArgs(t.args, 40);
-                  return `${toolName}${formattedArgs}`;
-                }).join(', ');
-                summaryContent += '\n';
+                  const formattedArgs = formatToolArgs(t.args, 200); // Allow longer args
+                  summaryContent += `  • ${toolName}${formattedArgs}\n`;
+                });
               }
               summaryContent += '\n';
             });
