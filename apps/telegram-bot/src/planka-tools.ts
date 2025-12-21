@@ -1,4 +1,5 @@
 import { getMcpManager } from './mcp-client.js';
+import { getPlankaToken } from '@rastar/shared';
 
 export interface ToolExecutionResult {
   success: boolean;
@@ -18,10 +19,21 @@ export async function executeMcpTool(
   try {
     const manager = getMcpManager();
     
-    // Add telegramUserId to args so MCP server can authenticate
+    // Look up Planka credentials from database
+    const plankaAuth = await getPlankaToken(telegramUserId);
+    if (!plankaAuth) {
+      return {
+        success: false,
+        content: '',
+        error: 'Planka not linked. Use /link_planka to connect your account.',
+      };
+    }
+
+    // Pass Planka credentials to MCP server (not telegramUserId)
     const toolArgs = {
       ...args,
-      telegramUserId,
+      plankaBaseUrl: plankaAuth.plankaBaseUrl,
+      plankaToken: plankaAuth.accessToken,
     };
 
     // Call the MCP server (Planka tools all start with 'planka.')

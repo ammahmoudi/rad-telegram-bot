@@ -8,3 +8,6 @@ export { memberTools } from './member.tools.js';
 export { commentTools } from './comment.tools.js';
 export { taskTools } from './task.tools.js';
 export { attachmentTools } from './attachment.tools.js';
+export { userTools } from './user.tools.js';
+
+export { handleToolCall } from './tool-handlers.js';

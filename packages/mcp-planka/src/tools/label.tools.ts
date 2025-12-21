@@ -6,7 +6,8 @@ export const labelTools = [
       type: 'object',
       required: ['telegramUserId', 'boardId'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         boardId: { type: 'string' },
       },
     },
@@ -18,7 +19,8 @@ export const labelTools = [
       type: 'object',
       required: ['telegramUserId', 'boardId', 'name', 'color'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         boardId: { type: 'string' },
         name: { type: 'string' },
         color: { type: 'string' },
@@ -33,7 +35,8 @@ export const labelTools = [
       type: 'object',
       required: ['telegramUserId', 'labelId'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         labelId: { type: 'string' },
         name: { type: 'string' },
         color: { type: 'string' },
@@ -48,7 +51,8 @@ export const labelTools = [
       type: 'object',
       required: ['telegramUserId', 'labelId'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         labelId: { type: 'string' },
       },
     },
@@ -60,7 +64,8 @@ export const labelTools = [
       type: 'object',
       required: ['telegramUserId', 'cardId', 'labelId'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         cardId: { type: 'string' },
         labelId: { type: 'string' },
       },
@@ -73,7 +78,8 @@ export const labelTools = [
       type: 'object',
       required: ['telegramUserId', 'cardId', 'labelId'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         cardId: { type: 'string' },
         labelId: { type: 'string' },
       },

@@ -9,6 +9,9 @@ export async function POST(request: Request) {
     const plankaBaseUrl = formData.get('plankaBaseUrl');
     const openRouterKey = formData.get('openRouterKey');
     const defaultModel = formData.get('defaultModel');
+    const maxToolCalls = formData.get('maxToolCalls');
+    const mcpProjectScanLimit = formData.get('mcpProjectScanLimit');
+    const mcpProjectScanDelay = formData.get('mcpProjectScanDelay');
 
     if (!plankaBaseUrl || typeof plankaBaseUrl !== 'string') {
       return NextResponse.json({ error: 'Invalid URL' }, { status: 400 });
@@ -28,6 +31,36 @@ export async function POST(request: Request) {
 
     if (defaultModel && typeof defaultModel === 'string') {
       await setSystemConfig('DEFAULT_AI_MODEL', defaultModel);
+    }
+
+    if (maxToolCalls && typeof maxToolCalls === 'string') {
+      const num = parseInt(maxToolCalls);
+      if (num >= 1 && num <= 10) {
+        await setSystemConfig('maxToolCalls', maxToolCalls);
+      }
+    }
+
+    if (mcpProjectScanLimit !== null && typeof mcpProjectScanLimit === 'string') {
+      const trimmed = mcpProjectScanLimit.trim();
+      if (trimmed === '') {
+        // Empty means unlimited - store empty string
+        await setSystemConfig('mcpProjectScanLimit', '');
+      } else {
+        const num = parseInt(trimmed);
+        if (!isNaN(num) && num >= 0) {
+          await setSystemConfig('mcpProjectScanLimit', trimmed);
+        }
+      }
+    }
+
+    if (mcpProjectScanDelay !== null && typeof mcpProjectScanDelay === 'string') {
+      const trimmed = mcpProjectScanDelay.trim();
+      if (trimmed !== '') {
+        const num = parseInt(trimmed);
+        if (!isNaN(num) && num >= 0) {
+          await setSystemConfig('mcpProjectScanDelay', trimmed);
+        }
+      }
     }
 
     // Redirect back to home page

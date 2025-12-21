@@ -6,7 +6,8 @@ export const taskTools = [
       type: 'object',
       required: ['telegramUserId', 'cardId', 'name'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         cardId: { type: 'string' },
         name: { type: 'string' },
         position: { type: 'number' },
@@ -20,7 +21,8 @@ export const taskTools = [
       type: 'object',
       required: ['telegramUserId', 'taskListId'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         taskListId: { type: 'string' },
         name: { type: 'string' },
         position: { type: 'number' },
@@ -34,7 +36,8 @@ export const taskTools = [
       type: 'object',
       required: ['telegramUserId', 'taskListId'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         taskListId: { type: 'string' },
       },
     },
@@ -46,7 +49,8 @@ export const taskTools = [
       type: 'object',
       required: ['telegramUserId', 'taskListId', 'name'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         taskListId: { type: 'string' },
         name: { type: 'string' },
         position: { type: 'number' },
@@ -60,7 +64,8 @@ export const taskTools = [
       type: 'object',
       required: ['telegramUserId', 'taskId'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         taskId: { type: 'string' },
         name: { type: 'string' },
         isCompleted: { type: 'boolean' },
@@ -75,7 +80,8 @@ export const taskTools = [
       type: 'object',
       required: ['telegramUserId', 'taskId'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         taskId: { type: 'string' },
       },
     },

@@ -7,6 +7,7 @@ export interface ChatMessage {
   toolCallId?: string;
   toolName?: string;
   toolArgs?: string;
+  reasoningDetails?: unknown; // For Gemini reasoning preservation
 }
 
 export interface ChatOptions {
@@ -37,12 +38,9 @@ export class OpenRouterClient {
     tools?: ChatCompletionTool[],
   ): Promise<{
     content: string;
-    toolCalls?: Array<{
-      id: string;
-      name: string;
-      arguments: string;
-    }>;
+    toolCalls?: { id: string; name: string; arguments: string }[];
     finishReason: string;
+    reasoningDetails?: unknown; // For Gemini reasoning preservation
   }> {
     const model = options.model || this.model;
     const systemPrompt = options.systemPrompt || 'You are a helpful AI assistant.';
@@ -82,33 +80,84 @@ export class OpenRouterClient {
         }
         
         // Add single assistant message with all tool calls
-        openaiMessages.push({
+        const assistantMsg: any = {
           role: 'assistant',
           content: null,
           tool_calls: toolCalls,
-        });
+        };
+        
+        // Preserve reasoning_details for Gemini models if present
+        // Only add reasoning_details if it exists and is not undefined
+        if (msg.reasoningDetails !== undefined && msg.reasoningDetails !== null) {
+          assistantMsg.reasoning_details = msg.reasoningDetails;
+          console.log('[ai-chat] Attaching reasoning_details to assistant message:', {
+            isArray: Array.isArray(msg.reasoningDetails),
+            length: Array.isArray(msg.reasoningDetails) ? msg.reasoningDetails.length : 'N/A'
+          });
+        }
+        
+        openaiMessages.push(assistantMsg);
         
         // Skip ahead past the tool calls we've processed
         i = j - 1;
       } else {
-        openaiMessages.push({
+        const regularMsg: any = {
           role: msg.role as 'user' | 'assistant' | 'system',
           content: msg.content,
-        });
+        };
+        
+        // Don't preserve reasoning_details for regular assistant messages
+        // (only for tool call messages as per OpenRouter docs)
+        
+        openaiMessages.push(regularMsg);
       }
     }
 
     try {
-      const completion = await this.client.chat.completions.create({
+      const isGemini = model.includes('gemini') || model.includes('google');
+      
+      const requestBody: any = {
         model,
         messages: openaiMessages,
         temperature: options.temperature ?? 0.7,
         max_tokens: options.maxTokens ?? 2000,
         tools: tools && tools.length > 0 ? tools : undefined,
-      });
+      };
+      
+      // Enable reasoning for Gemini models
+      if (isGemini) {
+        requestBody.reasoning = { enabled: true };
+        
+        // Debug: Log request details for Gemini
+        console.log('[ai-chat] Sending Gemini request:', {
+          model,
+          messageCount: openaiMessages.length,
+          messagesWithReasoning: openaiMessages.filter((m: any) => m.reasoning_details).length,
+          toolsCount: requestBody.tools?.length || 0
+        });
+        
+        // Log last few messages to see structure
+        const lastMessages = openaiMessages.slice(-3);
+        console.log('[ai-chat] Last 3 messages:', JSON.stringify(lastMessages, null, 2));
+      }
+
+      const completion = await this.client.chat.completions.create(requestBody);
 
       const choice = completion.choices[0];
       const message = choice.message;
+      
+      // Extract reasoning_details for Gemini models (OpenRouter extension)
+      const messageWithReasoning = message as any;
+      const reasoningDetails = messageWithReasoning.reasoning_details;
+      
+      // Debug: Log reasoning_details capture
+      if (reasoningDetails) {
+        console.log('[ai-chat] Captured reasoning_details from API:', {
+          isArray: Array.isArray(reasoningDetails),
+          length: Array.isArray(reasoningDetails) ? reasoningDetails.length : 'N/A',
+          types: Array.isArray(reasoningDetails) ? reasoningDetails.map((r: any) => r.type) : 'N/A'
+        });
+      }
 
       // Handle tool calls
       if (message.tool_calls && message.tool_calls.length > 0) {
@@ -124,12 +173,14 @@ export class OpenRouterClient {
             };
           }),
           finishReason: choice.finish_reason || 'stop',
+          reasoningDetails, // Include reasoning for preservation in next turn
         };
       }
 
       return {
         content: message.content || '',
         finishReason: choice.finish_reason || 'stop',
+        reasoningDetails, // Include reasoning for preservation in next turn
       };
     } catch (error) {
       console.error('[OpenRouterClient] Error:', error);
@@ -164,7 +215,9 @@ export function validateMessageHistory(messages: ChatMessage[]): ChatMessage[] {
     // Group consecutive assistant tool call messages together
     if (msg.role === 'assistant' && msg.toolName && msg.toolCallId) {
       const toolCalls: ChatMessage[] = [msg];
-      toolCallIds.add(msg.toolCallId);
+      if (msg.toolCallId) {
+        toolCallIds.add(msg.toolCallId);
+      }
       
       // Look ahead for more tool calls in the same turn
       while (i + 1 < messages.length && 
@@ -172,8 +225,11 @@ export function validateMessageHistory(messages: ChatMessage[]): ChatMessage[] {
              messages[i + 1].toolName && 
              messages[i + 1].toolCallId) {
         i++;
-        toolCalls.push(messages[i]);
-        toolCallIds.add(messages[i].toolCallId);
+        const nextMsg = messages[i];
+        toolCalls.push(nextMsg);
+        if (nextMsg.toolCallId) {
+          toolCallIds.add(nextMsg.toolCallId);
+        }
       }
       
       // Add all tool calls
@@ -223,8 +279,25 @@ export function trimConversationHistory(
     return removeOrphanedToolMessages(messages);
   }
 
-  // Simple strategy: take last N messages and clean orphans
-  const trimmed = messages.slice(-maxMessages);
+  // Take last N messages, but ensure we don't break in the middle of tool calls
+  let trimmed = messages.slice(-maxMessages);
+  
+  // If first message is a tool response, we need to include its assistant call
+  if (trimmed.length > 0 && trimmed[0].role === 'tool') {
+    // Find the assistant call for this tool response
+    const toolCallId = trimmed[0].toolCallId;
+    let startIdx = messages.length - maxMessages - 1;
+    while (startIdx >= 0) {
+      const msg = messages[startIdx];
+      if (msg.role === 'assistant' && msg.toolCallId === toolCallId) {
+        // Include this assistant message and all messages after it
+        trimmed = messages.slice(startIdx);
+        break;
+      }
+      startIdx--;
+    }
+  }
+  
   return removeOrphanedToolMessages(trimmed);
 }
 
@@ -232,6 +305,7 @@ export function trimConversationHistory(
  * Remove orphaned tool calls and tool responses
  * - Remove tool responses without their assistant call
  * - Remove assistant tool calls without their responses
+ * - Remove duplicate consecutive user messages
  */
 function removeOrphanedToolMessages(messages: ChatMessage[]): ChatMessage[] {
   const result: ChatMessage[] = [];
@@ -241,10 +315,14 @@ function removeOrphanedToolMessages(messages: ChatMessage[]): ChatMessage[] {
   // First pass: collect tool call IDs and response IDs
   for (const msg of messages) {
     if (msg.role === 'assistant' && msg.toolName && msg.toolCallId) {
-      validToolCallIds.add(msg.toolCallId);
+      if (msg.toolCallId) {
+        validToolCallIds.add(msg.toolCallId);
+      }
     }
     if (msg.role === 'tool' && msg.toolCallId) {
-      toolResponseIds.add(msg.toolCallId);
+      if (msg.toolCallId) {
+        toolResponseIds.add(msg.toolCallId);
+      }
     }
   }
   
@@ -266,5 +344,19 @@ function removeOrphanedToolMessages(messages: ChatMessage[]): ChatMessage[] {
     }
   }
   
-  return result;
+  // Third pass: remove duplicate consecutive user messages
+  const deduplicated: ChatMessage[] = [];
+  for (let i = 0; i < result.length; i++) {
+    const msg = result[i];
+    const prevMsg = deduplicated[deduplicated.length - 1];
+    
+    // Skip if this is a user message and previous is also a user message with same content
+    if (msg.role === 'user' && prevMsg && prevMsg.role === 'user' && prevMsg.content === msg.content) {
+      continue;
+    }
+    
+    deduplicated.push(msg);
+  }
+  
+  return deduplicated;
 }

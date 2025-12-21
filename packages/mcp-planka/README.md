@@ -1,10 +1,12 @@
 # Planka MCP Server
 
-A comprehensive Model Context Protocol (MCP) server for [Planka](https://planka.app/) kanban boards, enabling full management of projects, boards, lists, cards, labels, members, comments, tasks, and attachments.
+A comprehensive Model Context Protocol (MCP) server for [Planka](https://planka.app/) kanban boards, providing **Tools**, **Prompts**, and **Resources** for complete project management automation.
 
 ## 🚀 Features
 
-- **Complete CRUD Operations** for all Planka entities
+- **40+ Tools** - Complete CRUD operations for all Planka entities
+- **5 Prompts** - Pre-built templates for common workflows
+- **5 Resources** - URI-based access to Planka data
 - **Project Management** - List and view projects
 - **Board Management** - Create, update, delete, and list boards
 - **List Management** - Create, update, archive, delete lists (columns)
@@ -15,6 +17,27 @@ A comprehensive Model Context Protocol (MCP) server for [Planka](https://planka.
 - **Task Lists & Tasks** - Manage checklists within cards
 - **Attachments** - List and delete attachments
 - **User Authentication** - Link Telegram users to Planka accounts
+
+## 🎯 MCP Capabilities
+
+### Tools (40+)
+Direct function calls to interact with Planka
+
+### Prompts (5)
+Pre-built workflow templates:
+- `daily-standup` - Generate standup reports
+- `create-sprint-card` - Structured card creation template
+- `weekly-report` - User or project status reports
+- `project-overview` - Comprehensive project analysis
+- `board-health-check` - Identify issues and risks
+
+### Resources (5)
+URI-based data access:
+- `planka://projects` - All projects
+- `planka://projects/{projectId}` - Project details
+- `planka://boards/{boardId}` - Board with cards
+- `planka://users/{telegramUserId}/assigned-cards` - User's tasks
+- `planka://projects/{projectId}/cards` - All project cards
 
 ## 📋 Available Tools
 
@@ -203,7 +226,42 @@ await createTask(auth, taskList.id, "Step 3: Test");
 await moveCard(auth, card.id, doneList.id);
 ```
 
-## 🔗 Integration
+## � Debugging with MCP Inspector
+
+The MCP Inspector provides a web UI for testing and debugging MCP tools:
+
+### Setup
+```bash
+# Set required environment variable
+$env:TOKEN_ENCRYPTION_KEY = 'your_key_from_.env'
+
+# Start Inspector
+npx @modelcontextprotocol/inspector npx tsx packages/mcp-planka/src/index.ts
+```
+
+### Access
+Open the URL shown in terminal (includes auth token):
+```
+http://localhost:6274/?MCP_PROXY_AUTH_TOKEN=...
+```
+
+### Testing Tools
+1. **Connect** - Auto-connects to your MCP server
+2. **Browse Tools** - View all 39 available Planka tools
+3. **Test Calls** - Execute tools with test data
+4. **View Responses** - See raw JSON responses
+
+Example test for global search:
+```json
+{
+  "telegramUserId": "263324534",
+  "query": "card name or user name"
+}
+```
+
+The Inspector shows exact MCP communication, perfect for debugging tool responses and testing queries before deploying.
+
+## �🔗 Integration
 
 This MCP server integrates with:
 - **Telegram Bot** - Link Planka accounts to Telegram users

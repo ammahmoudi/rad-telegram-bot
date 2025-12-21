@@ -42,6 +42,7 @@ export class McpClientManager {
       command: config.command,
       args: config.args,
       env: envVars,
+      stderr: 'inherit', // Show MCP server console output
     });
 
     const client = new Client(

@@ -6,7 +6,8 @@ export const commentTools = [
       type: 'object',
       required: ['telegramUserId', 'cardId'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         cardId: { type: 'string' },
       },
     },
@@ -18,7 +19,8 @@ export const commentTools = [
       type: 'object',
       required: ['telegramUserId', 'cardId', 'text'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         cardId: { type: 'string' },
         text: { type: 'string' },
       },
@@ -31,7 +33,8 @@ export const commentTools = [
       type: 'object',
       required: ['telegramUserId', 'commentId', 'text'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         commentId: { type: 'string' },
         text: { type: 'string' },
       },
@@ -44,7 +47,8 @@ export const commentTools = [
       type: 'object',
       required: ['telegramUserId', 'commentId'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         commentId: { type: 'string' },
       },
     },

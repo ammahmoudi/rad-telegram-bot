@@ -78,6 +78,7 @@ async function getAiClient(): Promise<OpenRouterClient | null> {
 /**
  * Get available AI tools for the user
  * Returns MCP tools if user has access
+ * Throws error if Planka authentication fails
  */
 async function getAiTools(telegramUserId: string): Promise<ChatCompletionTool[]> {
   const token = await getPlankaToken(telegramUserId);
@@ -93,16 +94,56 @@ async function getAiTools(telegramUserId: string): Promise<ChatCompletionTool[]>
     const mcpTools = await manager.listTools('planka');
     console.log('[getAiTools] Found', mcpTools.length, 'MCP tools');
     
+    // Temporarily disabled tools (causing issues with Gemini)
+    const disabledTools = [
+      'planka.users.listAll',
+      'planka.cards.searchGlobal'
+    ];
+    
+    // Filter out disabled tools
+    const enabledTools = mcpTools.filter(tool => !disabledTools.includes(tool.name));
+    console.log('[getAiTools] Enabled tools after filtering:', enabledTools.length);
+    
     // Convert MCP tools to OpenAI function calling format
     // Replace dots with underscores in tool names (OpenAI requires ^[a-zA-Z0-9_-]+$)
-    const aiTools: ChatCompletionTool[] = mcpTools.map((tool) => ({
-      type: 'function' as const,
-      function: {
-        name: tool.name.replace(/\./g, '_'),
-        description: tool.description || '',
-        parameters: tool.inputSchema as any,
-      },
-    }));
+    const aiTools: ChatCompletionTool[] = enabledTools.map((tool) => {
+      // Clone the input schema to avoid modifying the original
+      const inputSchema = JSON.parse(JSON.stringify(tool.inputSchema || {}));
+      
+      // Remove credential parameters since bot will inject them automatically
+      if (inputSchema.properties) {
+        delete inputSchema.properties.plankaBaseUrl;
+        delete inputSchema.properties.plankaToken;
+      }
+      
+      // Remove credentials from required array and clean up
+      if (inputSchema.required && Array.isArray(inputSchema.required)) {
+        inputSchema.required = inputSchema.required.filter(
+          (param: string) => param !== 'plankaBaseUrl' && param !== 'plankaToken'
+        );
+        
+        // Validate that all required properties exist in properties
+        if (inputSchema.properties) {
+          inputSchema.required = inputSchema.required.filter(
+            (param: string) => param in inputSchema.properties
+          );
+        }
+        
+        // Remove required array if empty (some AI providers don't like empty required arrays)
+        if (inputSchema.required.length === 0) {
+          delete inputSchema.required;
+        }
+      }
+      
+      return {
+        type: 'function' as const,
+        function: {
+          name: tool.name.replace(/\./g, '_'),
+          description: tool.description || '',
+          parameters: inputSchema,
+        },
+      };
+    });
     
     return aiTools;
   } catch (error) {
@@ -244,33 +285,71 @@ async function getAiToolsOld(telegramUserId: string): Promise<ChatCompletionTool
 }
 */
 
-const SYSTEM_PROMPT = `You are a Planka assistant. BE EXTREMELY EFFICIENT with API calls.
+const SYSTEM_PROMPT = `You are a helpful Planka project management assistant. This is a Telegram bot using HTML parse mode.
 
-🚨 CRITICAL RULES:
-1. Maximum 5 tool calls TOTAL per request
-2. After making ANY tool calls, you MUST provide a text response
-3. NEVER make tool calls without responding after
+🎯 CRITICAL RULES - READ CAREFULLY:
 
-📋 FINDING TASKS FOR A PERSON:
-User: "Show me [Name]'s tasks"
+1. ⚠️ **MANDATORY TEXT RESPONSES** ⚠️
+   - You MUST ALWAYS provide a text response after using tools
+   - NEVER finish a turn without text - the user is waiting!
+   - If tools return empty results (0 cards, no data): Tell the user "No results found"
+   - If tools return data: Summarize what you discovered
+   - If tools fail: Explain what went wrong
+   - NO EXCEPTIONS - Every response needs text content!
 
-Strategy:
-1. planka_projects_list (1 call)
-2. planka_boards_list for ONE likely project (1 call) 
-3. planka_cards_search with person's name in that board (1 call)
-4. RESPOND immediately with results
+2. 🎨 **HTML FORMATTING ONLY** (parse_mode='HTML'):
+   ✅ USE: <b>bold</b> <i>italic</i> <u>underline</u> <s>strikethrough</s> <code>code</code>
+   ❌ NEVER USE: **bold** __underline__ *italic* _italic_ (these will appear as literal characters!)
+   
+3. 🔤 **HTML Entity Escaping**:
+   - Use &amp; for &
+   - Use &lt; for <
+   - Use &gt; for >
+   - Use &quot; for " in attributes
 
-❌ NEVER EVER:
-- List members from multiple projects
-- Search through 10+ boards
-- Make calls without responding
+4. 🚀 **EFFICIENT TASK SEARCHING**:
+   ⚡ ALWAYS use planka_cards_searchGlobal FIRST - it searches ALL projects at once
+   ⚡ Only use project/board listing if the user explicitly asks to see projects/boards
+   ⚡ If global search returns empty: Tell the user immediately, don't dig deeper
+   
+   Example:
+   User: "Show tasks for Sarah"
+   ✅ CORRECT: planka_cards_searchGlobal(query: "Sarah") → summarize results
+   ❌ WRONG: List all projects → list all boards → search each one
 
-✅ ALWAYS:
-- Respond after tool calls with findings
-- Use <b>bold</b> formatting
-- Keep responses concise
+5. 📋 **RESPONSE FORMAT**:
+   - Use emojis to make responses scannable: 📅 🔴 🟡 ✅ 👤 📂
+   - Show dates in YYYY-MM-DD format
+   - Group tasks by urgency (urgent → this week → later)
+   - Always provide a summary count at the end
+   - Use proper HTML tags and entities
 
-If you don't find results in first search, tell user and ask if they want to search more projects.`;
+Example task list format:
+
+<b>📊 Tasks for John Smith</b>
+
+🔴 <b>Urgent - Due Today</b>
+• <b>Deploy hotfix to production</b>
+  📅 Due: 2025-12-20
+  📍 Status: In Progress
+  👤 Assigned: John Smith
+  📂 Project: <i>Backend Services</i>
+
+🟡 <b>This Week</b>
+• <b>Code review for feature X</b>
+  📅 Due: 2025-12-22
+  📍 Status: To Do
+  📂 Project: <i>Frontend</i>
+
+✅ <b>Completed</b>
+• <b>Update documentation</b>
+  📅 Completed: 2025-12-18
+  📂 Project: <i>Docs</i>
+
+<b>📈 Summary:</b> 3 tasks total (1 urgent, 1 this week, 1 completed)
+
+Remember: Always respond with text after tool calls. Users are waiting for your analysis!`;
+
 
 const bot = new Bot(TELEGRAM_BOT_TOKEN);
 
@@ -342,20 +421,30 @@ bot.command('link_planka', async (ctx) => {
   const state = await createLinkState(telegramUserId);
   const linkUrl = `${stripTrailingSlash(LINK_PORTAL_BASE_URL)}/link/planka?state=${encodeURIComponent(state)}`;
 
+  console.log('[telegram-bot] /planka_link - generated URL:', linkUrl);
+
   await ctx.reply(
     [
       '🔗 <b>Link Your Planka Account</b>',
       '',
-      '1️⃣ Click the secure link below',
+      '1️⃣ Click the link below (or copy and paste in browser):',
+      `<a href="${linkUrl}">Open Secure Link Portal</a>`,
+      '',
+      '📋 Or copy this URL:',
+      `<code>${linkUrl}</code>`,
+      '',
       '2️⃣ Enter your Planka credentials',
       '3️⃣ Return here after successful linking',
       '',
-      `👉 <a href="${linkUrl}">Open Secure Link Portal</a>`,
-      '',
       '⏱️ This link expires in 10 minutes',
       '🔒 Your password is never stored - only used to get an access token',
+      '',
+      '💡 <i>Note: Localhost links may not be clickable - use the URL above</i>',
     ].join('\n'),
-    { parse_mode: 'HTML' },
+    { 
+      parse_mode: 'HTML',
+      link_preview_options: { is_disabled: true }
+    },
   );
 });
 
@@ -452,10 +541,17 @@ bot.command('new_chat', async (ctx) => {
     return;
   }
 
-  const session = await createNewChatSession(telegramUserId);
-  await ctx.reply('✨ <b>New conversation started!</b>\n\nSend me a message to begin.', {
-    parse_mode: 'HTML',
-  });
+  // Create new session
+  await createNewChatSession(telegramUserId);
+  await ctx.reply(
+    [
+      '✨ <b>New Chat Started</b>',
+      '',
+      '🧹 Previous conversation history has been cleared.',
+      '💬 Send me a message to start a fresh conversation!',
+    ].join('\n'),
+    { parse_mode: 'HTML' },
+  );
 });
 
 bot.command('history', async (ctx) => {
@@ -480,7 +576,7 @@ bot.command('history', async (ctx) => {
 
   const sessionList = sessions
     .slice(0, 5)
-    .map((s, idx) => {
+    .map((s: any, idx: number) => {
       const date = new Date(s.updatedAt).toLocaleDateString();
       const time = new Date(s.updatedAt).toLocaleTimeString();
       const msgCount = s.messageCount || 0;
@@ -547,7 +643,7 @@ bot.on('message:text', async (ctx) => {
 
     // Get conversation history
     const messages = await getSessionMessages(session.id, 50);
-    const chatHistory: ChatMessage[] = messages.map((m) => ({
+    const chatHistory: ChatMessage[] = messages.map((m: any) => ({
       role: m.role as any,
       content: m.content,
       toolCallId: m.toolCallId || undefined,
@@ -555,8 +651,19 @@ bot.on('message:text', async (ctx) => {
       toolArgs: m.toolArgs || undefined,
     }));
 
+    // For Gemini models, strip out tool call history since we don't store reasoning_details
+    // This prevents "missing thought_signature" errors on follow-up questions
+    const isGemini = client.model.includes('gemini') || client.model.includes('google');
+    const cleanedHistory = isGemini 
+      ? chatHistory.filter(msg => 
+          // Keep user messages and assistant text responses, remove tool calls and results
+          msg.role === 'user' || 
+          (msg.role === 'assistant' && !msg.toolName && msg.content)
+        )
+      : chatHistory;
+
     // Validate and clean message history (remove orphaned tool messages)
-    const validatedHistory = validateMessageHistory(chatHistory);
+    const validatedHistory = validateMessageHistory(cleanedHistory);
 
     // Add user message
     await addMessage(session.id, 'user', text);
@@ -566,15 +673,42 @@ bot.on('message:text', async (ctx) => {
     const trimmedHistory = trimConversationHistory(validatedHistory, 20);
 
     // Get Planka tools if user has linked account
-    const tools = await getAiTools(telegramUserId);
-    console.log('[telegram-bot] Tools available:', tools.length);
-    if (tools.length > 0) {
-      console.log('[telegram-bot] Tool names:', tools.map(t => (t as any).function?.name).filter(Boolean));
+    let tools: ChatCompletionTool[] = [];
+    let plankaAuthFailed = false;
+    try {
+      tools = await getAiTools(telegramUserId);
+      console.log('[telegram-bot] Tools available:', tools.length);
+      if (tools.length > 0) {
+        console.log('[telegram-bot] Tool names:', tools.map(t => (t as any).function?.name).filter(Boolean));
+      }
+    } catch (error) {
+      plankaAuthFailed = true;
+      console.log('[telegram-bot] Failed to get Planka tools:', error instanceof Error ? error.message : error);
+      
+      // Check if user has a token that's invalid (needs re-auth)
+      const hasInvalidToken = error instanceof Error && error.message.includes('authenticate');
+      
+      if (hasInvalidToken) {
+        await ctx.reply(
+          '⚠️ <b>Planka Authentication Error</b>\n\n' +
+          'Your Planka credentials have expired or are invalid.\n\n' +
+          '🔄 <b>To fix this:</b>\n' +
+          '1. Run /planka_unlink to disconnect\n' +
+          '2. Run /link_planka to reconnect with fresh credentials\n\n' +
+          '<i>Your previous tasks and data are safe - you just need to re-authenticate.</i>',
+          { parse_mode: 'HTML' }
+        );
+      }
+    }
+    
+    // If user asked for Planka-specific task and auth failed, stop here
+    if (plankaAuthFailed && (text.toLowerCase().includes('task') || text.toLowerCase().includes('تسک') || text.toLowerCase().includes('planka'))) {
+      return;
     }
 
     // Get AI response with system prompt
     console.log('[telegram-bot] Conversation history length:', trimmedHistory.length);
-    console.log('[telegram-bot] Last 3 messages:', JSON.stringify(trimmedHistory.slice(-3).map(m => ({ role: m.role, content: m.content?.substring(0, 100) || '(tool call)', toolName: m.toolName })), null, 2));
+    console.log('[telegram-bot] Last 3 messages:', JSON.stringify(trimmedHistory.slice(-3).map((m: any) => ({ role: m.role, content: m.content?.substring(0, 100) || '(tool call)', toolName: m.toolName })), null, 2));
     console.log('[telegram-bot] Calling AI with', tools.length, 'tools');
     let response = await client.chat(trimmedHistory, { systemPrompt: SYSTEM_PROMPT }, tools);
     console.log('[telegram-bot] AI response:', { 
@@ -588,16 +722,17 @@ bot.on('message:text', async (ctx) => {
     }
 
     // Handle tool calls
-    let maxToolCalls = 4; // Limit to 4 rounds of tool calls
+    // TODO: Make this configurable in admin settings
+    const maxToolCallsConfig = await getSystemConfig('maxToolCalls');
+    let maxToolCalls = maxToolCallsConfig ? parseInt(maxToolCallsConfig) : 30; // Default: 5 rounds
     let totalToolCallsMade = 0;
     while (response.toolCalls && response.toolCalls.length > 0 && maxToolCalls > 0) {
       maxToolCalls--;
       totalToolCallsMade += response.toolCalls.length;
 
+      // Add ONE assistant message with ALL tool calls (with reasoning_details if present)
+      // This must come BEFORE we process the tool calls
       for (const toolCall of response.toolCalls) {
-        console.log('[telegram-bot] Tool call:', { id: toolCall.id, name: toolCall.name, args: toolCall.arguments });
-        
-        // Save assistant's tool call
         await addMessage(
           session.id,
           'assistant',
@@ -606,6 +741,33 @@ bot.on('message:text', async (ctx) => {
           toolCall.name,
           toolCall.arguments,
         );
+      }
+      
+      // Add to history as a single group with reasoning_details
+      const assistantMessages: ChatMessage[] = response.toolCalls.map(tc => ({
+        role: 'assistant',
+        content: '',
+        toolCallId: tc.id,
+        toolName: tc.name,
+        toolArgs: tc.arguments,
+      }));
+      
+      // Only the FIRST assistant message in this batch gets reasoning_details
+      if (response.reasoningDetails) {
+        assistantMessages[0].reasoningDetails = response.reasoningDetails;
+        console.log('[telegram-bot] Preserving reasoning_details for tool call batch:', {
+          hasReasoningDetails: true,
+          isArray: Array.isArray(response.reasoningDetails),
+          length: Array.isArray(response.reasoningDetails) ? response.reasoningDetails.length : 'N/A',
+          toolCallsInBatch: response.toolCalls.length
+        });
+      }
+      
+      trimmedHistory.push(...assistantMessages);
+
+      // Now execute each tool and add results
+      for (const toolCall of response.toolCalls) {
+        console.log('[telegram-bot] Tool call:', { id: toolCall.id, name: toolCall.name, args: toolCall.arguments });
 
         // Execute tool
         // Convert underscored name back to dots for MCP (e.g., planka_auth_status -> planka.auth.status)
@@ -624,14 +786,7 @@ bot.on('message:text', async (ctx) => {
         // Save tool result
         await addMessage(session.id, 'tool', resultContent, toolCall.id);
 
-        // Add to history
-        trimmedHistory.push({
-          role: 'assistant',
-          content: '',
-          toolCallId: toolCall.id,
-          toolName: toolCall.name,
-          toolArgs: toolCall.arguments,
-        });
+        // Add tool result to history
         trimmedHistory.push({
           role: 'tool',
           content: resultContent,
@@ -657,10 +812,72 @@ bot.on('message:text', async (ctx) => {
       await addMessage(session.id, 'assistant', response.content);
     } else {
       console.log('[telegram-bot] WARNING: No content in final response!');
+      
+      // Force summarization with explicit prompt if tools were used
+      if (totalToolCallsMade > 0) {
+        console.log('[telegram-bot] Attempting forced summarization after', totalToolCallsMade, 'tool calls');
+        
+        try {
+          const summaryPrompt: ChatMessage = {
+            role: 'user',
+            content: 'Based on the tool results above, please provide a summary of what you discovered. ' +
+                     'If all results were empty or no data was found, explicitly tell me that. ' +
+                     'The user is waiting for your response - you must provide text output.'
+          };
+          
+          // Get fresh history and add summary prompt
+          const currentHistory = await getChatHistory(session.id);
+          const forcedResponse = await client.chat([...currentHistory, summaryPrompt], {}, tools);
+          
+          console.log('[telegram-bot] Forced summarization result:', {
+            hasContent: !!forcedResponse.content,
+            contentLength: forcedResponse.content?.length || 0
+          });
+          
+          if (forcedResponse.content) {
+            response.content = forcedResponse.content;
+            await addMessage(session.id, 'user', summaryPrompt.content);
+            await addMessage(session.id, 'assistant', forcedResponse.content);
+          }
+        } catch (error) {
+          console.error('[telegram-bot] Forced summarization failed:', error);
+        }
+      }
     }
 
     // Send response to user
-    const finalContent = response.content || '🤔 Something went wrong - I made tool calls but couldn\'t generate a response. Please try asking in a different way.';
+    let finalContent: string;
+    
+    if (!response.content) {
+      // Generate a better fallback based on what happened
+      if (totalToolCallsMade === 0) {
+        finalContent = '🤔 I didn\'t know how to respond. Could you try rephrasing your question?';
+      } else {
+        // We made tool calls but got no response text
+        finalContent = [
+          '⚠️ <b>Response Generation Issue</b>',
+          '',
+          `I successfully made ${totalToolCallsMade} tool ${totalToolCallsMade === 1 ? 'call' : 'calls'}, but failed to generate a summary.`,
+          '',
+          '💡 <b>What you can do:</b>',
+          '• Ask me to "summarize what you found"',
+          '• Try rephrasing your question',
+          '• Ask for specific details about the data',
+          '',
+          '<i>This is a known limitation with the AI model.</i>'
+        ].join('\n');
+      }
+    } else {
+      finalContent = response.content;
+    }
+    
+    // Fix markdown formatting to HTML (fallback if AI ignores instructions)
+    finalContent = finalContent
+      .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')  // **text** → <b>text</b>
+      .replace(/__(.*?)__/g, '<u>$1</u>')      // __text__ → <u>text</u>
+      .replace(/\*([^*]+)\*/g, '<i>$1</i>')    // *text* → <i>text</i>
+      .replace(/_([^_]+)_/g, '<i>$1</i>');     // _text_ → <i>text</i>
+    
     console.log('[telegram-bot] Sending final response, length:', finalContent.length);
     
     // Split long messages

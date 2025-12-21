@@ -6,7 +6,8 @@ export const listTools = [
       type: 'object',
       required: ['telegramUserId', 'boardId'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         boardId: { type: 'string' },
       },
     },
@@ -18,7 +19,8 @@ export const listTools = [
       type: 'object',
       required: ['telegramUserId', 'boardId', 'name'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         boardId: { type: 'string' },
         name: { type: 'string' },
         position: { type: 'number' },
@@ -33,7 +35,8 @@ export const listTools = [
       type: 'object',
       required: ['telegramUserId', 'listId'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         listId: { type: 'string' },
         name: { type: 'string' },
         position: { type: 'number' },
@@ -48,7 +51,8 @@ export const listTools = [
       type: 'object',
       required: ['telegramUserId', 'listId'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         listId: { type: 'string' },
       },
     },
@@ -60,7 +64,8 @@ export const listTools = [
       type: 'object',
       required: ['telegramUserId', 'listId'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         listId: { type: 'string' },
       },
     },

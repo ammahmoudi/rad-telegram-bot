@@ -6,7 +6,8 @@ export const memberTools = [
       type: 'object',
       required: ['telegramUserId', 'projectId'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         projectId: { type: 'string' },
       },
     },
@@ -18,7 +19,8 @@ export const memberTools = [
       type: 'object',
       required: ['telegramUserId', 'cardId', 'userId'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         cardId: { type: 'string' },
         userId: { type: 'string' },
       },
@@ -31,7 +33,8 @@ export const memberTools = [
       type: 'object',
       required: ['telegramUserId', 'cardId', 'userId'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         cardId: { type: 'string' },
         userId: { type: 'string' },
       },

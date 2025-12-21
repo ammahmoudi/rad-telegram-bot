@@ -1,7 +1,7 @@
-export const projectTools = [
+export const userTools = [
   {
-    name: 'planka.projects.list',
-    description: 'List projects available to the user',
+    name: 'planka.users.listAll',
+    description: 'List all unique users across all accessible projects and boards. Returns user ID, name, username, and email. Useful for debugging search queries - shows exact user names in Planka.',
     inputSchema: {
       type: 'object',
       required: ['plankaBaseUrl', 'plankaToken'],

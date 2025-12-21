@@ -6,7 +6,8 @@ export const attachmentTools = [
       type: 'object',
       required: ['telegramUserId', 'cardId'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         cardId: { type: 'string' },
       },
     },
@@ -18,7 +19,8 @@ export const attachmentTools = [
       type: 'object',
       required: ['telegramUserId', 'attachmentId'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         attachmentId: { type: 'string' },
       },
     },

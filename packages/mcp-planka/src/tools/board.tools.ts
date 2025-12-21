@@ -6,7 +6,8 @@ export const boardTools = [
       type: 'object',
       required: ['telegramUserId', 'projectId'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         projectId: { type: 'string' },
       },
     },
@@ -18,7 +19,8 @@ export const boardTools = [
       type: 'object',
       required: ['telegramUserId', 'projectId', 'name'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         projectId: { type: 'string' },
         name: { type: 'string' },
         position: { type: 'number' },
@@ -32,7 +34,8 @@ export const boardTools = [
       type: 'object',
       required: ['telegramUserId', 'boardId'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         boardId: { type: 'string' },
         name: { type: 'string' },
         position: { type: 'number' },
@@ -46,7 +49,8 @@ export const boardTools = [
       type: 'object',
       required: ['telegramUserId', 'boardId'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         boardId: { type: 'string' },
       },
     },

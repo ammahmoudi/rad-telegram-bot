@@ -9,6 +9,9 @@ export default async function HomePage() {
   const plankaBaseUrl = (await getSystemConfig('PLANKA_BASE_URL')) || 'Not set';
   const openRouterKey = (await getSystemConfig('OPENROUTER_API_KEY')) || '';
   const defaultModel = (await getSystemConfig('DEFAULT_AI_MODEL')) || 'anthropic/claude-3.5-sonnet';
+  const maxToolCalls = (await getSystemConfig('maxToolCalls')) || '5';
+  const mcpProjectScanLimit = (await getSystemConfig('mcpProjectScanLimit')) || '';
+  const mcpProjectScanDelay = (await getSystemConfig('mcpProjectScanDelay')) || '100';
   
   const hasApiKey = openRouterKey.length > 0;
 
@@ -121,6 +124,60 @@ export default async function HomePage() {
                     </div>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
                       Browse all models at <a href="https://openrouter.ai/models" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">openrouter.ai/models</a>
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="maxToolCalls" className="text-sm font-medium text-slate-900 dark:text-slate-50 block">
+                      Max Tool Call Rounds
+                    </label>
+                    <input
+                      id="maxToolCalls"
+                      type="number"
+                      name="maxToolCalls"
+                      defaultValue={maxToolCalls}
+                      min="1"
+                      max="10"
+                      className="w-full h-10 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-slate-950"
+                    />
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Maximum rounds of tool calls the AI can make before responding (default: 5). Higher values allow more complex operations but may increase response time.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="mcpProjectScanLimit" className="text-sm font-medium text-slate-900 dark:text-slate-50 block">
+                      MCP Project Scan Limit
+                    </label>
+                    <input
+                      id="mcpProjectScanLimit"
+                      type="number"
+                      name="mcpProjectScanLimit"
+                      defaultValue={mcpProjectScanLimit}
+                      min="0"
+                      placeholder="5 (leave empty for default)"
+                      className="w-full h-10 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-slate-950"
+                    />
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Limit number of projects scanned when listing all users (default: 5). Leave empty to use default. Set to 0 for unlimited (may timeout).
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="mcpProjectScanDelay" className="text-sm font-medium text-slate-900 dark:text-slate-50 block">
+                      MCP Project Scan Delay (ms)
+                    </label>
+                    <input
+                      id="mcpProjectScanDelay"
+                      type="number"
+                      name="mcpProjectScanDelay"
+                      defaultValue={mcpProjectScanDelay}
+                      min="0"
+                      step="50"
+                      className="w-full h-10 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-slate-950"
+                    />
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Delay in milliseconds between processing each project (default: 100ms). Prevents timeouts when scanning many projects. Set to 0 for no delay.
                     </p>
                   </div>
 

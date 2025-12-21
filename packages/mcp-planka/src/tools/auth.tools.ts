@@ -1,12 +1,13 @@
 export const authTools = [
   {
     name: 'planka.auth.status',
-    description: 'Check whether a Telegram user has linked Planka',
+    description: 'Check Planka authentication status with provided credentials',
     inputSchema: {
       type: 'object',
-      required: ['telegramUserId'],
+      required: ['plankaBaseUrl', 'plankaToken'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
       },
     },
   },

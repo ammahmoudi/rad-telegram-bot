@@ -1,12 +1,13 @@
 export const cardTools = [
   {
     name: 'planka.cards.searchGlobal',
-    description: 'Search for cards across ALL projects and boards accessible to the user. Very efficient for finding a person\'s tasks or cards mentioning specific keywords. Returns cards with project/board context.',
+    description: 'Search for cards across ALL projects and boards. Finds cards by: 1) text match in title/description, 2) cards assigned to a member whose name matches the query. Perfect for finding a person\'s tasks. Returns cards with project/board context and assignee names.',
     inputSchema: {
       type: 'object',
       required: ['telegramUserId', 'query'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         query: { type: 'string', description: 'Search term (person name, keyword, etc.)' },
       },
     },
@@ -18,7 +19,8 @@ export const cardTools = [
       type: 'object',
       required: ['telegramUserId', 'boardId'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         boardId: { type: 'string' },
         listId: { type: 'string', description: 'Optional: filter cards by list ID' },
       },
@@ -31,7 +33,8 @@ export const cardTools = [
       type: 'object',
       required: ['telegramUserId', 'boardId', 'query'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         boardId: { type: 'string' },
         query: { type: 'string' },
       },
@@ -44,7 +47,8 @@ export const cardTools = [
       type: 'object',
       required: ['telegramUserId', 'listId', 'name'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         listId: { type: 'string' },
         name: { type: 'string' },
         description: { type: 'string' },
@@ -60,7 +64,8 @@ export const cardTools = [
       type: 'object',
       required: ['telegramUserId', 'cardId'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         cardId: { type: 'string' },
         name: { type: 'string' },
         description: { type: 'string' },
@@ -76,7 +81,8 @@ export const cardTools = [
       type: 'object',
       required: ['telegramUserId', 'cardId', 'listId'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         cardId: { type: 'string' },
         listId: { type: 'string' },
         position: { type: 'number' },
@@ -90,7 +96,8 @@ export const cardTools = [
       type: 'object',
       required: ['telegramUserId', 'cardId'],
       properties: {
-        telegramUserId: { type: 'string' },
+        plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
+        plankaToken: { type: 'string', description: 'Planka access token' },
         cardId: { type: 'string' },
       },
     },
