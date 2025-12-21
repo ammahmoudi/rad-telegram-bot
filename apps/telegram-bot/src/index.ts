@@ -1192,8 +1192,16 @@ bot.on('message:text', async (ctx) => {
             };
           }
           
-          // Use trimmedHistory which preserves reasoning_details, not database history
-          const forcedResponse = await client.chat([...trimmedHistory, summaryPrompt], { systemPrompt: SYSTEM_PROMPT }, tools);
+          // Strip reasoning_details from history to prevent reasoning leaking into response
+          const cleanHistory = trimmedHistory.map(msg => {
+            if (msg.role === 'assistant' && msg.reasoningDetails) {
+              const { reasoningDetails, toolCallReasoningDetails, ...cleanMsg } = msg;
+              return cleanMsg;
+            }
+            return msg;
+          });
+          
+          const forcedResponse = await client.chat([...cleanHistory, summaryPrompt], { systemPrompt: SYSTEM_PROMPT }, tools);
           
           if (forcedResponse.content) {
             finalResponse = forcedResponse.content;
@@ -1285,52 +1293,52 @@ bot.on('message:text', async (ctx) => {
         }
       } else {
         finalContent = markdownToTelegramHtml(finalResponse);
+      }
+      
+      // Add expandable summary if there was reasoning or tool calls (for ALL responses)
+      if (reasoningSteps.length > 0 || allToolCallsMade.length > 0) {
+        let summaryContent = '';
         
-        // Add expandable summary if there was reasoning or tool calls
-        if (reasoningSteps.length > 0 || allToolCallsMade.length > 0) {
-          let summaryContent = '';
-          
-          if (reasoningSteps.length > 0) {
-            summaryContent += '🧠 <b>What I Did:</b>\n\n';
-            reasoningSteps.forEach((step, i) => {
-              // Clean and truncate text properly
-              const cleanText = step.reasoning
-                .replace(/\*\*/g, '') // Remove bold
-                .replace(/`/g, '') // Remove code markers
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .substring(0, 200) // Limit to 200 chars per step
-                .trim();
-              
-              summaryContent += `<b>Step ${i + 1}:</b>\n${cleanText}${step.reasoning.length > 200 ? '...' : ''}\n`;
-              
-              // Show tools used in this step
-              if (step.tools.length > 0) {
-                summaryContent += '<i>↳ Tools:</i>\n';
-                step.tools.forEach(t => {
-                  const toolName = formatToolName(t.name).replace('🔧 ', '');
-                  const formattedArgs = formatToolArgs(t.args, 200); // Allow longer args
-                  summaryContent += `  • ${toolName}${formattedArgs}\n`;
-                });
-              }
-              summaryContent += '\n';
-            });
-          } else if (allToolCallsMade.length > 0) {
-            // Fallback if no reasoning steps
-            summaryContent += '🔧 <b>Tools Used:</b>\n';
-            allToolCallsMade.forEach((tool, i) => {
-              const toolDisplayName = formatToolName(tool.name).replace('🔧 ', '');
-              summaryContent += `${i + 1}. ${toolDisplayName}\n`;
-            });
-          }
-          
-          // Only add summary if finalContent + summary won't exceed Telegram's limit
-          const summaryBlock = '\n\n<blockquote expandable>💡 <b>Process Summary</b>\n\n' + 
-            summaryContent + '</blockquote>';
-          
-          if ((finalContent.length + summaryBlock.length) < 3800) {
-            finalContent += summaryBlock;
-          }
+        if (reasoningSteps.length > 0) {
+          summaryContent += '🧠 <b>What I Did:</b>\n\n';
+          reasoningSteps.forEach((step, i) => {
+            // Clean and truncate text properly
+            const cleanText = step.reasoning
+              .replace(/\*\*/g, '') // Remove bold
+              .replace(/`/g, '') // Remove code markers
+              .replace(/</g, '&lt;')
+              .replace(/>/g, '&gt;')
+              .substring(0, 200) // Limit to 200 chars per step
+              .trim();
+            
+            summaryContent += `<b>Step ${i + 1}:</b>\n${cleanText}${step.reasoning.length > 200 ? '...' : ''}\n`;
+            
+            // Show tools used in this step
+            if (step.tools.length > 0) {
+              summaryContent += '<i>↳ Tools:</i>\n';
+              step.tools.forEach(t => {
+                const toolName = formatToolName(t.name).replace('🔧 ', '');
+                const formattedArgs = formatToolArgs(t.args, 200); // Allow longer args
+                summaryContent += `  • ${toolName}${formattedArgs}\n`;
+              });
+            }
+            summaryContent += '\n';
+          });
+        } else if (allToolCallsMade.length > 0) {
+          // Fallback if no reasoning steps
+          summaryContent += '🔧 <b>Tools Used:</b>\n';
+          allToolCallsMade.forEach((tool, i) => {
+            const toolDisplayName = formatToolName(tool.name).replace('🔧 ', '');
+            summaryContent += `${i + 1}. ${toolDisplayName}\n`;
+          });
+        }
+        
+        // Only add summary if finalContent + summary won't exceed Telegram's limit
+        const summaryBlock = '\n\n<blockquote expandable>💡 <b>Process Summary</b>\n\n' + 
+          summaryContent + '</blockquote>';
+        
+        if ((finalContent.length + summaryBlock.length) < 3800) {
+          finalContent += summaryBlock;
         }
       }
       
