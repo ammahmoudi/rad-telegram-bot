@@ -1,6 +1,7 @@
 console.log('[telegram-bot] Starting bot initialization...');
 
 import dotenv from 'dotenv';
+import { marked } from 'marked';
 
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -32,6 +33,40 @@ import type { ChatCompletionTool } from 'openai/resources/chat/completions';
 
 import { executeMcpTool } from './planka-tools.js';
 import { initializeMcpServers, getMcpManager } from './mcp-client.js';
+
+/**
+ * Convert markdown to Telegram HTML format
+ * Handles: **bold**, __underline__, *italic*, _italic_
+ * Also escapes HTML entities for safety
+ */
+function markdownToTelegramHtml(text: string): string {
+  // Use marked to parse markdown, then convert to Telegram-safe HTML
+  const html = marked.parse(text, { async: false }) as string;
+  
+  return html
+    // Convert standard HTML tags to Telegram-supported ones
+    .replace(/<p>/g, '')
+    .replace(/<\/p>/g, '\n')
+    .replace(/<strong>/g, '<b>')
+    .replace(/<\/strong>/g, '</b>')
+    .replace(/<em>/g, '<i>')
+    .replace(/<\/em>/g, '</i>')
+    .replace(/<h[1-6]>/g, '<b>')
+    .replace(/<\/h[1-6]>/g, '</b>\n')
+    .replace(/<ul>/g, '\n')
+    .replace(/<\/ul>/g, '\n')
+    .replace(/<ol>/g, '\n')
+    .replace(/<\/ol>/g, '\n')
+    .replace(/<li>/g, '• ')
+    .replace(/<\/li>/g, '\n')
+    .replace(/<code>/g, '<code>')
+    .replace(/<\/code>/g, '</code>')
+    .replace(/<pre><code>/g, '<pre>')
+    .replace(/<\/code><\/pre>/g, '</pre>')
+    // Remove any other unsupported HTML tags
+    .replace(/<[^>]+>/g, '')
+    .trim();
+}
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 if (!TELEGRAM_BOT_TOKEN) {
@@ -625,8 +660,13 @@ bot.on('message:text', async (ctx) => {
   console.log('[telegram-bot] AI chat message', { telegramUserId, text: text.slice(0, 50) });
 
   try {
-    // Show typing indicator
-    await ctx.replyWithChatAction('typing');
+    // Show typing indicator (ignore network errors)
+    try {
+      await ctx.replyWithChatAction('typing');
+    } catch (typingError) {
+      // Ignore typing indicator errors - they're not critical
+      console.log('[telegram-bot] Could not send typing indicator (network issue)');
+    }
 
     // Get or create session
     const session = await getOrCreateChatSession(telegramUserId);
@@ -704,9 +744,35 @@ bot.on('message:text', async (ctx) => {
     let displayContent = '💭 <i>Thinking...</i>';
     let toolCallsDisplay: string[] = [];
     let activeTools = new Set<string>();
-    const sentMessage = await ctx.reply(displayContent, { parse_mode: 'HTML' });
+    
+    // Send initial message, retry once if network fails
+    let sentMessage;
+    try {
+      sentMessage = await ctx.reply(displayContent, { parse_mode: 'HTML' });
+    } catch (replyError) {
+      console.error('[telegram-bot] Failed to send initial message, retrying...', replyError);
+      // Wait 1 second and retry
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      try {
+        sentMessage = await ctx.reply(displayContent, { parse_mode: 'HTML' });
+      } catch (retryError) {
+        // If both attempts fail, inform user and exit
+        console.error('[telegram-bot] Failed to send message after retry', retryError);
+        throw new Error('Network connection failed. Please check your internet connection and try again.');
+      }
+    }
+    
     let lastUpdateTime = Date.now();
     let reasoningActive = false;
+    let reasoningText = '';
+    
+    // Track all reasoning and tool calls for final summary
+    let allReasoningTexts: string[] = [];
+    let allToolCallsMade: Array<{ name: string, args?: any }> = [];
+    
+    // Loading animation
+    const loadingFrames = ['⏳', '⌛'];
+    let loadingFrameIndex = 0;
     
     // Stream AI response with live updates
     const maxToolCallsConfig = await getSystemConfig('maxToolCalls');
@@ -733,7 +799,11 @@ bot.on('message:text', async (ctx) => {
       let content = '';
       
       // Show reasoning indicator if active
-      if (reasoningActive) {
+      if (reasoningActive && reasoningText) {
+        content += '🧠 <b>Reasoning...</b>\n\n';
+        const formattedReasoning = markdownToTelegramHtml(reasoningText);
+        content += '<blockquote>' + formattedReasoning.substring(0, 500) + '</blockquote>\n\n';
+      } else if (reasoningActive) {
         content += '🧠 <i>Reasoning...</i>\n\n';
       }
       
@@ -746,14 +816,7 @@ bot.on('message:text', async (ctx) => {
       
       // Show accumulated response content
       if (finalResponse) {
-        // Fix markdown to HTML
-        let formatted = finalResponse
-          .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
-          .replace(/__(.*?)__/g, '<u>$1</u>')
-          .replace(/\*([^*]+)\*/g, '<i>$1</i>')
-          .replace(/_([^_]+)_/g, '<i>$1</i>');
-        
-        content += formatted;
+        content += markdownToTelegramHtml(finalResponse);
       } else if (!reasoningActive && toolCallsDisplay.length === 0) {
         content += '💭 <i>Generating response...</i>';
       }
@@ -771,6 +834,10 @@ bot.on('message:text', async (ctx) => {
       for await (const chunk of stream) {
         if (chunk.type === 'reasoning') {
           reasoningActive = true;
+          if (chunk.content) {
+            reasoningText = chunk.content;
+            allReasoningTexts.push(chunk.content);
+          }
           console.log('[telegram-bot] 🧠 Reasoning chunk received');
           await updateMessage();
         } else if (chunk.type === 'tool_call' && chunk.toolCall) {
@@ -780,6 +847,7 @@ bot.on('message:text', async (ctx) => {
           if (!activeTools.has(toolName)) {
             activeTools.add(toolName);
             toolCallsDisplay.push(formatToolName(toolName));
+            allToolCallsMade.push({ name: toolName, args: chunk.toolCall.arguments });
             totalToolCallsMade++;
             console.log('[telegram-bot] 🔧 Tool call:', toolName);
             await updateMessage();
@@ -792,7 +860,18 @@ bot.on('message:text', async (ctx) => {
         } else if (chunk.type === 'done') {
           reasoningDetails = chunk.reasoningDetails;
           reasoningActive = false;
+          reasoningText = '';
           console.log('[telegram-bot] ✅ Streaming complete');
+          console.log('[telegram-bot] Done event:', {
+            finishReason: chunk.finishReason,
+            contentLength: chunk.content?.length || 0
+          });
+          
+          // If the done event has content we haven't seen yet, add it
+          if (chunk.content && !finalResponse) {
+            finalResponse = chunk.content;
+            console.log('[telegram-bot] Using content from done event');
+          }
         }
       }
       
@@ -831,23 +910,81 @@ bot.on('message:text', async (ctx) => {
             );
           }
           
+          // Map reasoning details to tool calls by ID
+          const reasoningByToolCallId = new Map<string, any>();
+          if (response.reasoningDetails && Array.isArray(response.reasoningDetails)) {
+            for (const detail of response.reasoningDetails) {
+              if (detail.id) {
+                // Store reasoning details for this specific tool call
+                if (!reasoningByToolCallId.has(detail.id)) {
+                  reasoningByToolCallId.set(detail.id, []);
+                }
+                reasoningByToolCallId.get(detail.id)!.push(detail);
+              }
+            }
+          }
+          
           const assistantMessages: ChatMessage[] = response.toolCalls.map(tc => ({
             role: 'assistant',
             content: '',
             toolCallId: tc.id,
             toolName: tc.name,
             toolArgs: tc.arguments,
+            reasoningDetails: response.reasoningDetails, // All reasoning for this turn
+            toolCallReasoningDetails: reasoningByToolCallId.get(tc.id), // Reasoning specific to this tool call
           }));
-          
-          if (response.reasoningDetails) {
-            assistantMessages[0].reasoningDetails = response.reasoningDetails;
-          }
           
           trimmedHistory.push(...assistantMessages);
 
           // Execute tools
           for (const toolCall of response.toolCalls) {
             const mcpToolName = toolCall.name.replace(/_/g, '.');
+            
+            // Track tool for summary AND display
+            if (!activeTools.has(toolCall.name)) {
+              activeTools.add(toolCall.name);
+              allToolCallsMade.push({ name: toolCall.name, args: toolCall.arguments });
+              
+              // Add to display list so user sees it
+              const toolDisplayName = formatToolName(toolCall.name);
+              if (!toolCallsDisplay.includes(toolDisplayName)) {
+                toolCallsDisplay.push(toolDisplayName);
+                
+                // Update message immediately to show new tool
+                loadingFrameIndex = (loadingFrameIndex + 1) % loadingFrames.length;
+                const loadingEmoji = loadingFrames[loadingFrameIndex];
+                
+                let tempReasoningDisplay = '';
+                if (response.reasoningDetails && Array.isArray(response.reasoningDetails)) {
+                  const textDetails = response.reasoningDetails
+                    .filter((detail: any) => detail.type === 'reasoning.text')
+                    .map((detail: any) => detail.text)
+                    .join('\n\n');
+                  if (textDetails) {
+                    tempReasoningDisplay = '🧠 <b>Reasoning...</b>\n\n<blockquote>' + 
+                      markdownToTelegramHtml(textDetails).substring(0, 500) + 
+                      (textDetails.length > 500 ? '...' : '') + 
+                      '</blockquote>\n\n';
+                  }
+                }
+                
+                let tempToolsDisplay = `<b>🛠️ Tools ${loadingEmoji}</b>\n`;
+                tempToolsDisplay += toolCallsDisplay.map(t => `  ${t}`).join('\n') + '\n';
+                tempToolsDisplay += `\n💭 <i>Executing ${toolDisplayName.replace('🔧 ', '')}...</i> ${loadingEmoji}`;
+                
+                try {
+                  await ctx.api.editMessageText(
+                    sentMessage.chat.id,
+                    sentMessage.message_id,
+                    tempReasoningDisplay + tempToolsDisplay,
+                    { parse_mode: 'HTML' }
+                  );
+                } catch (editError: any) {
+                  // Ignore errors
+                }
+              }
+            }
+            
             const toolResult = await executeMcpTool(
               telegramUserId,
               mcpToolName,
@@ -867,8 +1004,41 @@ bot.on('message:text', async (ctx) => {
           }
 
           // Update display to show we're processing results
-          displayContent = '<b>🛠️ Tools completed</b>\n\n💭 <i>Analyzing results...</i>';
-          await ctx.api.editMessageText(sentMessage.chat.id, sentMessage.message_id, displayContent, { parse_mode: 'HTML' });
+          // Extract reasoning if available to show user
+          let reasoningDisplay = '';
+          if (response.reasoningDetails && Array.isArray(response.reasoningDetails)) {
+            const textDetails = response.reasoningDetails
+              .filter((detail: any) => detail.type === 'reasoning.text')
+              .map((detail: any) => detail.text)
+              .join('\n\n');
+            if (textDetails) {
+              allReasoningTexts.push(textDetails);
+              const formattedReasoning = markdownToTelegramHtml(textDetails);
+              reasoningDisplay = '🧠 <b>Reasoning...</b>\n\n<blockquote>' + 
+                formattedReasoning.substring(0, 500) + 
+                (textDetails.length > 500 ? '...' : '') + 
+                '</blockquote>\n\n';
+            }
+          }
+          
+          // Build tools list with animation
+          loadingFrameIndex = (loadingFrameIndex + 1) % loadingFrames.length;
+          const loadingEmoji = loadingFrames[loadingFrameIndex];
+          
+          let toolsDisplay = `<b>🛠️ Tools ${loadingEmoji}</b>\n`;
+          if (toolCallsDisplay.length > 0) {
+            toolsDisplay += toolCallsDisplay.map(t => `  ${t}`).join('\n') + '\n';
+          }
+          
+          displayContent = reasoningDisplay + toolsDisplay + `\n💭 <i>Analyzing results...</i> ${loadingEmoji}`;
+          try {
+            await ctx.api.editMessageText(sentMessage.chat.id, sentMessage.message_id, displayContent, { parse_mode: 'HTML' });
+          } catch (error: any) {
+            // Ignore message not modified errors
+            if (!error?.description?.includes('message is not modified')) {
+              console.error('[telegram-bot] Failed to update message:', error.message);
+            }
+          }
 
           // Get next response
           response = await client.chat(trimConversationHistory(trimmedHistory, 20), { systemPrompt: SYSTEM_PROMPT }, tools);
@@ -896,8 +1066,8 @@ bot.on('message:text', async (ctx) => {
                      'The user is waiting for your response - you must provide text output.'
           };
           
-          const currentHistory = await getChatHistory(session.id);
-          const forcedResponse = await client.chat([...currentHistory, summaryPrompt], { systemPrompt: SYSTEM_PROMPT }, tools);
+          // Use trimmedHistory which preserves reasoning_details, not database history
+          const forcedResponse = await client.chat([...trimmedHistory, summaryPrompt], { systemPrompt: SYSTEM_PROMPT }, tools);
           
           if (forcedResponse.content) {
             finalResponse = forcedResponse.content;
@@ -914,24 +1084,71 @@ bot.on('message:text', async (ctx) => {
         if (totalToolCallsMade === 0) {
           finalContent = '🤔 I didn\'t know how to respond. Could you try rephrasing your question?';
         } else {
-          finalContent = [
-            '⚠️ <b>Response Generation Issue</b>',
-            '',
-            `I successfully made ${totalToolCallsMade} tool ${totalToolCallsMade === 1 ? 'call' : 'calls'}, but failed to generate a summary.`,
-            '',
-            '💡 <b>What you can do:</b>',
-            '• Ask me to "summarize what you found"',
-            '• Try rephrasing your question',
-            '',
-            '<i>This is a known limitation with the AI model.</i>'
-          ].join('\n');
+          // Build a detailed summary even when final response fails
+          let detailedSummary = '⚠️ <b>Response Generation Issue</b>\n\n';
+          detailedSummary += `I executed ${totalToolCallsMade} tool ${totalToolCallsMade === 1 ? 'call' : 'calls'}, but couldn't generate a final summary.\n\n`;
+          
+          // Show reasoning steps if available
+          if (allReasoningTexts.length > 0) {
+            detailedSummary += '🧠 <b>Reasoning Steps:</b>\n\n';
+            allReasoningTexts.forEach((text, i) => {
+              const cleanText = markdownToTelegramHtml(text.substring(0, 300));
+              detailedSummary += `<b>Step ${i + 1}:</b>\n${cleanText}\n\n`;
+            });
+            detailedSummary += '\n';
+          }
+          
+          // Show tools that were called
+          if (allToolCallsMade.length > 0) {
+            detailedSummary += '🔧 <b>Tools Called:</b>\n';
+            allToolCallsMade.forEach((tool, i) => {
+              const toolDisplayName = formatToolName(tool.name).replace('🔧 ', '');
+              detailedSummary += `${i + 1}. ${toolDisplayName}\n`;
+            });
+            detailedSummary += '\n';
+          }
+          
+          detailedSummary += '💡 <b>What you can do:</b>\n';
+          detailedSummary += '• Ask me to "summarize what you found"\n';
+          detailedSummary += '• Try rephrasing your question\n';
+          detailedSummary += '• Be more specific about what you need\n\n';
+          detailedSummary += '<i>This is a known limitation with the AI model.</i>';
+          
+          finalContent = detailedSummary;
         }
       } else {
-        finalContent = finalResponse
-          .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
-          .replace(/__(.*?)__/g, '<u>$1</u>')
-          .replace(/\*([^*]+)\*/g, '<i>$1</i>')
-          .replace(/_([^_]+)_/g, '<i>$1</i>');
+        finalContent = markdownToTelegramHtml(finalResponse);
+        
+        // Add expandable summary if there was reasoning or tool calls
+        if (allReasoningTexts.length > 0 || allToolCallsMade.length > 0) {
+          let summaryContent = '';
+          
+          if (allReasoningTexts.length > 0) {
+            summaryContent += '🧠 <b>Reasoning Steps:</b>\n\n';
+            allReasoningTexts.forEach((text, i) => {
+              // Clean up the text - remove markdown and escape HTML
+              const cleanText = text
+                .replace(/\*\*/g, '') // Remove bold markers
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .trim();
+              
+              summaryContent += `<b>Step ${i + 1}:</b>\n${cleanText}\n\n`;
+            });
+          }
+          
+          if (allToolCallsMade.length > 0) {
+            if (summaryContent) summaryContent += '\n';
+            summaryContent += '🔧 <b>Tools Used:</b>\n\n';
+            allToolCallsMade.forEach((tool, i) => {
+              const toolDisplayName = formatToolName(tool.name).replace('🔧 ', '');
+              summaryContent += `${i + 1}. ${toolDisplayName}\n`;
+            });
+          }
+          
+          finalContent += '\n\n<blockquote expandable>💡 <b>Process Summary</b> (tap to expand)\n\n' + 
+            summaryContent + '</blockquote>';
+        }
       }
       
       console.log('[telegram-bot] Sending final response, length:', finalContent.length);
@@ -1008,7 +1225,14 @@ bot.on('message:text', async (ctx) => {
     if (error instanceof Error) {
       const errorStr = error.message.toLowerCase();
       
-      if (errorStr.includes('tool use') || errorStr.includes('endpoints found')) {
+      if (errorStr.includes('network connection failed') || errorStr.includes('socket hang up') || errorStr.includes('econnreset')) {
+        errorMessage = '⚠️ <b>Network Connection Issue</b>\n\n' +
+          'Could not connect to Telegram servers. This is usually temporary.\n\n' +
+          '💡 <b>Try:</b>\n' +
+          '• Wait a moment and send your message again\n' +
+          '• Check your internet connection\n' +
+          '• If the problem persists, it may be a Telegram server issue';
+      } else if (errorStr.includes('tool use') || errorStr.includes('endpoints found')) {
         errorMessage = '❌ The current AI model doesn\'t support tool use (function calling). Please ask an admin to select a different model that supports tools, such as:\n\n' +
           '• anthropic/claude-3.5-sonnet\n' +
           '• openai/gpt-4-turbo\n' +
@@ -1023,7 +1247,19 @@ bot.on('message:text', async (ctx) => {
       }
     }
     
-    await ctx.reply(errorMessage);
+    // Try to send error message, with retry logic
+    try {
+      await ctx.reply(errorMessage, { parse_mode: 'HTML' });
+    } catch (replyError) {
+      console.error('[telegram-bot] Failed to send error message, retrying without HTML...', replyError);
+      try {
+        // Retry without HTML formatting
+        await ctx.reply('❌ Sorry, I encountered an error. Please try again.');
+      } catch (finalError) {
+        console.error('[telegram-bot] Could not send any error message to user', finalError);
+        // Nothing more we can do - user will see nothing :(
+      }
+    }
   }
 });
 

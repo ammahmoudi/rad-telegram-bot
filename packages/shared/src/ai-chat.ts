@@ -7,7 +7,8 @@ export interface ChatMessage {
   toolCallId?: string;
   toolName?: string;
   toolArgs?: string;
-  reasoningDetails?: unknown; // For Gemini reasoning preservation
+  reasoningDetails?: unknown; // For Gemini reasoning preservation (array of all reasoning)
+  toolCallReasoningDetails?: unknown; // Reasoning specific to this tool call
 }
 
 export interface ChatOptions {
@@ -64,18 +65,28 @@ export class OpenRouterClient {
         // Assistant made tool call(s) - collect all tool calls in this turn
         const toolCalls: any[] = [];
         let j = i;
+        let allReasoningDetails: any[] = [];
         
         while (j < messages.length && 
                messages[j].role === 'assistant' && 
                messages[j].toolName) {
-          toolCalls.push({
+          const toolCall: any = {
             id: messages[j].toolCallId || '',
             type: 'function',
             function: {
               name: messages[j].toolName,
               arguments: messages[j].toolArgs || '{}',
             },
-          });
+          };
+          
+          // Don't attach reasoning to individual tool calls - it goes at message level
+          toolCalls.push(toolCall);
+          
+          // Collect all reasoning details (they reference tool calls by ID)
+          if (messages[j].reasoningDetails && Array.isArray(messages[j].reasoningDetails)) {
+            allReasoningDetails.push(...(messages[j].reasoningDetails as any[]));
+          }
+          
           j++;
         }
         
@@ -86,13 +97,13 @@ export class OpenRouterClient {
           tool_calls: toolCalls,
         };
         
-        // Preserve reasoning_details for Gemini models if present
-        // Only add reasoning_details if it exists and is not undefined
-        if (msg.reasoningDetails !== undefined && msg.reasoningDetails !== null) {
-          assistantMsg.reasoning_details = msg.reasoningDetails;
+        // Preserve all reasoning_details for Gemini models if present
+        // reasoning_details is an array at message level, with each item having an id that matches a tool call
+        if (allReasoningDetails.length > 0) {
+          assistantMsg.reasoning_details = allReasoningDetails;
           console.log('[ai-chat] Attaching reasoning_details to assistant message:', {
-            isArray: Array.isArray(msg.reasoningDetails),
-            length: Array.isArray(msg.reasoningDetails) ? msg.reasoningDetails.length : 'N/A'
+            isArray: true,
+            length: allReasoningDetails.length
           });
         }
         
@@ -314,9 +325,17 @@ export class OpenRouterClient {
         const chunkWithReasoning = chunk as any;
         if (chunkWithReasoning.reasoning_details) {
           reasoningDetailsAccumulated.push(...chunkWithReasoning.reasoning_details);
+          
+          // Extract reasoning text if available
+          const reasoningText = chunkWithReasoning.reasoning_details
+            .filter((detail: any) => detail.type === 'reasoning.text')
+            .map((detail: any) => detail.text)
+            .join('\n');
+          
           yield {
             type: 'reasoning',
             reasoningDetails: chunkWithReasoning.reasoning_details,
+            content: reasoningText || undefined,
           };
         }
 
@@ -380,6 +399,7 @@ export class OpenRouterClient {
       yield {
         type: 'done',
         finishReason,
+        content: accumulatedContent,
         reasoningDetails: reasoningDetailsAccumulated.length > 0 ? reasoningDetailsAccumulated : undefined,
       };
 
