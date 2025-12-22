@@ -569,10 +569,11 @@ export async function handleAiMessage(ctx: Context) {
     } else {
       try {
         await ctx.api.editMessageText(sentMessage.chat.id, sentMessage.message_id, finalContent, { parse_mode: 'HTML' });
-      } catch (editError) {
-        // If edit fails (e.g., message deleted or network error), send as new message
-        console.log('[telegram-bot] Could not edit message, sending new message instead');
-        await ctx.reply(finalContent, { parse_mode: 'HTML' });
+      } catch (editError: any) {
+        // If edit fails, the streamed message is already visible - no need to send duplicate
+        // Common reasons: message content identical, message too old, or already deleted
+        console.log('[telegram-bot] Could not edit message:', editError?.description || editError?.message);
+        console.log('[telegram-bot] Streamed message is already visible, skipping duplicate');
       }
     }
     
