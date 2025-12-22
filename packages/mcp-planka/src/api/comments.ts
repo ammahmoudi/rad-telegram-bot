@@ -24,7 +24,7 @@ export async function updateComment(auth: PlankaAuth, commentId: string, text: s
   });
 }
 
-export async function deleteComment(auth: PlankaAuth, commentId: string): Promise<any> {
+export async function deleteComment(auth: PlankaAuth, commentId: string): Promise<PlankaComment> {
   return await plankaFetch(auth, `/api/actions/${encodeURIComponent(commentId)}`, {
     method: 'DELETE',
   });

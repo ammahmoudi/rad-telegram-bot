@@ -1,0 +1,4462 @@
+{
+  "generatedAt": "2025-12-22T13:36:40.116Z",
+  "plankaInstance": "https://pm-dev.rastar.dev",
+  "totalAPIs": 206,
+  "modules": [
+    "access-tokens",
+    "actions",
+    "attachments",
+    "background-images",
+    "base-custom-field-groups",
+    "board-links",
+    "board-memberships",
+    "board-releases",
+    "board-teams",
+    "board-templates",
+    "board-versions",
+    "boards",
+    "card-dependencies",
+    "cards",
+    "comments",
+    "config",
+    "custom-field-groups",
+    "custom-field-values",
+    "custom-fields",
+    "document-activities",
+    "files",
+    "folders",
+    "labels",
+    "lists",
+    "notification-services",
+    "notifications",
+    "permissions",
+    "project-categories",
+    "project-managers",
+    "project-profiles",
+    "project-releases",
+    "project-teams",
+    "project-versions",
+    "projects",
+    "public-access",
+    "releases",
+    "reports",
+    "share-links",
+    "spaces",
+    "tasks",
+    "teams",
+    "terms",
+    "users",
+    "webhooks"
+  ],
+  "schemas": [
+    {
+      "name": "createBaseCustomFieldGroup",
+      "module": "base-custom-field-groups",
+      "category": "create",
+      "parameters": [
+        {
+          "name": "projectId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167411270714931",
+          {
+            "name": "[SCHEMA_TEST] Data",
+            "description": "Test data object",
+            "isPublic": false,
+            "type": "standard",
+            "position": 999999,
+            "url": "https://webhook.test/endpoint",
+            "format": "markdown",
+            "version": "v1.0.0"
+          }
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "item"
+        ],
+        "sample": "{\"item\":{\"id\":\"1671167419046954560\",\"createdAt\":\"2025-12-22T13:31:20.743Z\",\"updatedAt\":null,\"name\":\"[SCHEMA_TEST] Data\",\"projectId\":\"1671167411270714931\"}}..."
+      }
+    },
+    {
+      "name": "createBoardRelease",
+      "module": "board-releases",
+      "category": "create",
+      "parameters": [
+        {
+          "name": "boardId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167412445120053",
+          {
+            "name": "[SCHEMA_TEST] Data",
+            "description": "Test data object",
+            "isPublic": false,
+            "type": "standard",
+            "position": 999999,
+            "url": "https://webhook.test/endpoint",
+            "format": "markdown",
+            "version": "v1.0.0"
+          }
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "item",
+          "releaseCards"
+        ],
+        "sample": "{\"item\":{\"id\":\"1671167419634157121\",\"createdAt\":\"2025-12-22T13:31:20.813Z\",\"updatedAt\":null,\"version\":\"v1.0.0\",\"name\":\"[SCHEMA_TEST] Data\",\"target\":\"\",\"reviewResult\":\"\",\"status\":\"planning\",\"startDate\"..."
+      }
+    },
+    {
+      "name": "createBoardTemplate",
+      "module": "board-templates",
+      "category": "create",
+      "parameters": [
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Planka API error (404): {\"code\":\"E_NOT_FOUND\"}",
+      "responseSample": null
+    },
+    {
+      "name": "createBoardVersion",
+      "module": "board-versions",
+      "category": "create",
+      "parameters": [
+        {
+          "name": "boardId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167412445120053"
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "item"
+        ],
+        "sample": "{\"item\":{\"id\":\"1671167420951168578\",\"createdAt\":\"2025-12-22T13:31:20.969Z\",\"updatedAt\":null,\"name\":\"Version 2025-12-22T13:31:20.967Z\",\"description\":null,\"snapshotData\":\"{\\\"board\\\":{\\\"id\\\":\\\"1671167412..."
+      }
+    },
+    {
+      "name": "createBoard",
+      "module": "boards",
+      "category": "create",
+      "parameters": [
+        {
+          "name": "projectId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "position",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167411270714931",
+          "[SCHEMA_TEST] Name",
+          999999
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "item",
+          "included"
+        ],
+        "sample": "{\"item\":{\"version_count\":0,\"last_version_created_at\":null,\"id\":\"1671167422066853443\",\"createdAt\":\"2025-12-22T13:31:21.103Z\",\"updatedAt\":null,\"position\":999999,\"name\":\"[SCHEMA_TEST] Name\",\"defaultView\"..."
+      }
+    },
+    {
+      "name": "createCard",
+      "module": "cards",
+      "category": "create",
+      "parameters": [
+        {
+          "name": "listId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "position",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "dueDate",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167413720188473",
+          "[SCHEMA_TEST] Name",
+          "Test description",
+          999999,
+          "2025-12-29T13:31:21.503Z"
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "item"
+        ],
+        "sample": "{\"item\":{\"id\":\"1671167422863771207\",\"createdAt\":\"2025-12-22T13:31:21.198Z\",\"updatedAt\":null,\"type\":\"project\",\"position\":999999,\"name\":\"[SCHEMA_TEST] Name\",\"description\":\"Test description\",\"color\":null..."
+      }
+    },
+    {
+      "name": "createComment",
+      "module": "comments",
+      "category": "create",
+      "parameters": [
+        {
+          "name": "cardId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "text",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Planka API error (404): {\"code\":\"E_NOT_FOUND\"}",
+      "responseSample": null
+    },
+    {
+      "name": "createBoardCustomFieldGroup",
+      "module": "custom-field-groups",
+      "category": "create",
+      "parameters": [
+        {
+          "name": "boardId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167422066853443",
+          {
+            "name": "[SCHEMA_TEST] Data",
+            "description": "Test data object",
+            "isPublic": false,
+            "type": "standard",
+            "position": 999999,
+            "url": "https://webhook.test/endpoint",
+            "format": "markdown",
+            "version": "v1.0.0"
+          }
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "item"
+        ],
+        "sample": "{\"item\":{\"id\":\"1671167424122062410\",\"createdAt\":\"2025-12-22T13:31:21.348Z\",\"updatedAt\":null,\"position\":999999,\"name\":\"[SCHEMA_TEST] Data\",\"boardId\":\"1671167422066853443\",\"cardId\":null,\"baseCustomField..."
+      }
+    },
+    {
+      "name": "createCardCustomFieldGroup",
+      "module": "custom-field-groups",
+      "category": "create",
+      "parameters": [
+        {
+          "name": "cardId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167422863771207",
+          {
+            "name": "[SCHEMA_TEST] Data",
+            "description": "Test data object",
+            "isPublic": false,
+            "type": "standard",
+            "position": 999999,
+            "url": "https://webhook.test/endpoint",
+            "format": "markdown",
+            "version": "v1.0.0"
+          }
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "item"
+        ],
+        "sample": "{\"item\":{\"id\":\"1671167424818316875\",\"createdAt\":\"2025-12-22T13:31:21.431Z\",\"updatedAt\":null,\"position\":999999,\"name\":\"[SCHEMA_TEST] Data\",\"boardId\":null,\"cardId\":\"1671167422863771207\",\"baseCustomField..."
+      }
+    },
+    {
+      "name": "createCustomFieldInBaseGroup",
+      "module": "custom-fields",
+      "category": "create",
+      "parameters": [
+        {
+          "name": "baseCustomFieldGroupId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167419046954560",
+          {
+            "name": "[SCHEMA_TEST] Data",
+            "description": "Test data object",
+            "isPublic": false,
+            "type": "standard",
+            "position": 999999,
+            "url": "https://webhook.test/endpoint",
+            "format": "markdown",
+            "version": "v1.0.0"
+          }
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "item"
+        ],
+        "sample": "{\"item\":{\"id\":\"1671167425262913100\",\"createdAt\":\"2025-12-22T13:31:21.484Z\",\"updatedAt\":null,\"position\":999999,\"name\":\"[SCHEMA_TEST] Data\",\"showOnFrontOfCard\":false,\"baseCustomFieldGroupId\":\"1671167419..."
+      }
+    },
+    {
+      "name": "createCustomFieldInGroup",
+      "module": "custom-fields",
+      "category": "create",
+      "parameters": [
+        {
+          "name": "customFieldGroupId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167424818316875",
+          {
+            "name": "[SCHEMA_TEST] Data",
+            "description": "Test data object",
+            "isPublic": false,
+            "type": "standard",
+            "position": 999999,
+            "url": "https://webhook.test/endpoint",
+            "format": "markdown",
+            "version": "v1.0.0"
+          }
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "item"
+        ],
+        "sample": "{\"item\":{\"id\":\"1671167425715897933\",\"createdAt\":\"2025-12-22T13:31:21.538Z\",\"updatedAt\":null,\"position\":999999,\"name\":\"[SCHEMA_TEST] Data\",\"showOnFrontOfCard\":false,\"baseCustomFieldGroupId\":null,\"custo..."
+      }
+    },
+    {
+      "name": "createFolder",
+      "module": "folders",
+      "category": "create",
+      "parameters": [
+        {
+          "name": "spaceId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: spaceId",
+      "responseSample": null
+    },
+    {
+      "name": "createLabel",
+      "module": "labels",
+      "category": "create",
+      "parameters": [
+        {
+          "name": "boardId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "color",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "position",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167422066853443",
+          "[SCHEMA_TEST] Name",
+          "berry-red",
+          999999
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "item"
+        ],
+        "sample": "{\"item\":{\"id\":\"1671167426336654926\",\"createdAt\":\"2025-12-22T13:31:21.612Z\",\"updatedAt\":null,\"position\":999999,\"name\":\"[SCHEMA_TEST] Name\",\"color\":\"berry-red\",\"isGlobal\":false,\"boardId\":\"16711674220668..."
+      }
+    },
+    {
+      "name": "createList",
+      "module": "lists",
+      "category": "create",
+      "parameters": [
+        {
+          "name": "boardId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "position",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "color",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167422066853443",
+          "[SCHEMA_TEST] Name",
+          999999,
+          "berry-red"
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "item"
+        ],
+        "sample": "{\"item\":{\"id\":\"1671167426739308111\",\"createdAt\":\"2025-12-22T13:31:21.660Z\",\"updatedAt\":null,\"type\":\"active\",\"position\":999999,\"name\":\"[SCHEMA_TEST] Name\",\"color\":null,\"boardId\":\"1671167422066853443\"}}..."
+      }
+    },
+    {
+      "name": "createBoardNotificationService",
+      "module": "notification-services",
+      "category": "create",
+      "parameters": [
+        {
+          "name": "boardId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167422066853443",
+          {
+            "name": "[SCHEMA_TEST] Data",
+            "description": "Test data object",
+            "isPublic": false,
+            "type": "standard",
+            "position": 999999,
+            "url": "https://webhook.test/endpoint",
+            "format": "markdown",
+            "version": "v1.0.0"
+          }
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "item"
+        ],
+        "sample": "{\"item\":{\"id\":\"1671167427100018256\",\"createdAt\":\"2025-12-22T13:31:21.703Z\",\"updatedAt\":null,\"url\":\"https://webhook.test/endpoint\",\"format\":\"markdown\",\"userId\":null,\"boardId\":\"1671167422066853443\"}}..."
+      }
+    },
+    {
+      "name": "createUserNotificationService",
+      "module": "notification-services",
+      "category": "create",
+      "parameters": [
+        {
+          "name": "userId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: userId",
+      "responseSample": null
+    },
+    {
+      "name": "createProjectCategory",
+      "module": "project-categories",
+      "category": "create",
+      "parameters": [
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Planka API error (404): {\"code\":\"E_NOT_FOUND\"}",
+      "responseSample": null
+    },
+    {
+      "name": "createProjectManager",
+      "module": "project-managers",
+      "category": "create",
+      "parameters": [
+        {
+          "name": "projectId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "userId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: userId",
+      "responseSample": null
+    },
+    {
+      "name": "createProjectProfile",
+      "module": "project-profiles",
+      "category": "create",
+      "parameters": [
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Planka API error (404): {\"code\":\"E_NOT_FOUND\"}",
+      "responseSample": null
+    },
+    {
+      "name": "createProjectProfileField",
+      "module": "project-profiles",
+      "category": "create",
+      "parameters": [
+        {
+          "name": "sectionId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: sectionId",
+      "responseSample": null
+    },
+    {
+      "name": "createProjectProfileSection",
+      "module": "project-profiles",
+      "category": "create",
+      "parameters": [
+        {
+          "name": "profileId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: profileId",
+      "responseSample": null
+    },
+    {
+      "name": "createProjectRelease",
+      "module": "project-releases",
+      "category": "create",
+      "parameters": [
+        {
+          "name": "projectId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Planka API error (404): {\"code\":\"E_NOT_FOUND\"}",
+      "responseSample": null
+    },
+    {
+      "name": "createProjectVersion",
+      "module": "project-versions",
+      "category": "create",
+      "parameters": [
+        {
+          "name": "projectId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "name = 'Version'",
+          "type": "string",
+          "required": false
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167411270714931"
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "item"
+        ],
+        "sample": "{\"item\":{\"id\":\"1671167428551247441\",\"createdAt\":\"2025-12-22T13:31:21.875Z\",\"updatedAt\":null,\"name\":\"Version\",\"description\":null,\"snapshotData\":\"{\\\"project\\\":{\\\"id\\\":\\\"1671167411270714931\\\",\\\"createdAt..."
+      }
+    },
+    {
+      "name": "createProject",
+      "module": "projects",
+      "category": "create",
+      "parameters": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "type = 'private'",
+          "type": "string",
+          "required": false
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "[SCHEMA_TEST] Name",
+          "Test description"
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "item",
+          "included"
+        ],
+        "sample": "{\"item\":{\"version_count\":0,\"last_version_created_at\":null,\"id\":\"1671167428811294290\",\"createdAt\":\"2025-12-22T13:31:21.907Z\",\"updatedAt\":\"2025-12-22T13:31:21.914Z\",\"name\":\"[SCHEMA_TEST] Name\",\"descript..."
+      }
+    },
+    {
+      "name": "createReport",
+      "module": "reports",
+      "category": "create",
+      "parameters": [
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Planka API error (404): {\"code\":\"E_NOT_FOUND\"}",
+      "responseSample": null
+    },
+    {
+      "name": "createReportPhase",
+      "module": "reports",
+      "category": "create",
+      "parameters": [
+        {
+          "name": "reportId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: reportId",
+      "responseSample": null
+    },
+    {
+      "name": "createShareLink",
+      "module": "share-links",
+      "category": "create",
+      "parameters": [
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Planka API error (404): {\"code\":\"E_NOT_FOUND\"}",
+      "responseSample": null
+    },
+    {
+      "name": "createSpace",
+      "module": "spaces",
+      "category": "create",
+      "parameters": [
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Planka API error (404): {\"code\":\"E_NOT_FOUND\"}",
+      "responseSample": null
+    },
+    {
+      "name": "createTask",
+      "module": "tasks",
+      "category": "create",
+      "parameters": [
+        {
+          "name": "taskListId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "position",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167417880938046",
+          "[SCHEMA_TEST] Name",
+          999999
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "item"
+        ],
+        "sample": "{\"item\":{\"id\":\"1671167429943756372\",\"createdAt\":\"2025-12-22T13:31:22.042Z\",\"updatedAt\":null,\"position\":1016383,\"name\":\"[SCHEMA_TEST] Name\",\"isCompleted\":false,\"taskListId\":\"1671167417880938046\",\"linke..."
+      }
+    },
+    {
+      "name": "createTaskList",
+      "module": "tasks",
+      "category": "create",
+      "parameters": [
+        {
+          "name": "cardId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "position",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167422863771207",
+          "[SCHEMA_TEST] Name",
+          999999
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "item"
+        ],
+        "sample": "{\"item\":{\"id\":\"1671167430329632341\",\"createdAt\":\"2025-12-22T13:31:22.089Z\",\"updatedAt\":null,\"position\":999999,\"name\":\"[SCHEMA_TEST] Name\",\"showOnFrontOfCard\":true,\"hideCompletedTasks\":false,\"cardId\":\"..."
+      }
+    },
+    {
+      "name": "createTeam",
+      "module": "teams",
+      "category": "create",
+      "parameters": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "[SCHEMA_TEST] Name",
+          "Test description"
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "item"
+        ],
+        "sample": "{\"item\":{\"id\":\"1671167430598067798\",\"createdAt\":\"2025-12-22T13:31:22.119Z\",\"updatedAt\":null,\"name\":\"[SCHEMA_TEST] Name\",\"description\":null,\"creatorUserId\":\"1581133624428725343\"}}..."
+      }
+    },
+    {
+      "name": "createUser",
+      "module": "users",
+      "category": "create",
+      "parameters": [
+        {
+          "name": "email",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "password",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "username",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Planka API error (404): {\"code\":\"E_NOT_FOUND\"}",
+      "responseSample": null
+    },
+    {
+      "name": "createWebhook",
+      "module": "webhooks",
+      "category": "create",
+      "parameters": [
+        {
+          "name": "url",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "events",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "active",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Planka API error (404): {\"code\":\"E_NOT_FOUND\"}",
+      "responseSample": null
+    },
+    {
+      "name": "getBoardActions",
+      "module": "actions",
+      "category": "read",
+      "parameters": [
+        {
+          "name": "boardId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167422066853443"
+        ]
+      },
+      "responseSample": {
+        "keys": [],
+        "sample": "[]..."
+      }
+    },
+    {
+      "name": "getCardActions",
+      "module": "actions",
+      "category": "read",
+      "parameters": [
+        {
+          "name": "cardId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167422863771207"
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "0"
+        ],
+        "sample": "[{\"id\":\"1671167422981211721\",\"createdAt\":\"2025-12-22T13:31:21.212Z\",\"updatedAt\":null,\"type\":\"createCard\",\"data\":{\"card\":{\"name\":\"[SCHEMA_TEST] Name\"},\"list\":{\"id\":\"1671167413720188473\",\"name\":\"[SCHEMA..."
+      }
+    },
+    {
+      "name": "getAttachments",
+      "module": "attachments",
+      "category": "read",
+      "parameters": [
+        {
+          "name": "cardId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167422863771207"
+        ]
+      },
+      "responseSample": {
+        "keys": [],
+        "sample": "[]..."
+      }
+    },
+    {
+      "name": "getBoardLinks",
+      "module": "board-links",
+      "category": "read",
+      "parameters": [
+        {
+          "name": "boardId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Planka API error (500): Internal Server Error",
+      "responseSample": null
+    },
+    {
+      "name": "getBoardReleaseSnapshot",
+      "module": "board-releases",
+      "category": "read",
+      "parameters": [
+        {
+          "name": "boardId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "getBoardReleases",
+      "module": "board-releases",
+      "category": "read",
+      "parameters": [
+        {
+          "name": "boardId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167422066853443"
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "items"
+        ],
+        "sample": "{\"items\":[]}..."
+      }
+    },
+    {
+      "name": "getBoardTeams",
+      "module": "board-teams",
+      "category": "read",
+      "parameters": [
+        {
+          "name": "boardId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167422066853443"
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "items"
+        ],
+        "sample": "{\"items\":[]}..."
+      }
+    },
+    {
+      "name": "getBoardTemplate",
+      "module": "board-templates",
+      "category": "read",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "listBoardTemplates",
+      "module": "board-templates",
+      "category": "read",
+      "parameters": [],
+      "hasResponse": false,
+      "error": "Planka API error (404): {\"code\":\"E_NOT_FOUND\"}",
+      "responseSample": null
+    },
+    {
+      "name": "listBoardVersions",
+      "module": "board-versions",
+      "category": "read",
+      "parameters": [
+        {
+          "name": "boardId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167422066853443"
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "items",
+          "total"
+        ],
+        "sample": "{\"items\":[],\"total\":0}..."
+      }
+    },
+    {
+      "name": "getBoard",
+      "module": "boards",
+      "category": "read",
+      "parameters": [
+        {
+          "name": "boardId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167422066853443"
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "item",
+          "included"
+        ],
+        "sample": "{\"item\":{\"id\":\"1671167422066853443\",\"createdAt\":\"2025-12-22T13:31:21.103Z\",\"updatedAt\":null,\"position\":999999,\"name\":\"[SCHEMA_TEST] Name\",\"defaultView\":\"kanban\",\"defaultCardType\":\"project\",\"limitCardT..."
+      }
+    },
+    {
+      "name": "getCard",
+      "module": "cards",
+      "category": "read",
+      "parameters": [
+        {
+          "name": "cardId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167422863771207"
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "item",
+          "included"
+        ],
+        "sample": "{\"item\":{\"id\":\"1671167422863771207\",\"createdAt\":\"2025-12-22T13:31:21.198Z\",\"updatedAt\":null,\"type\":\"project\",\"position\":999999,\"name\":\"[SCHEMA_TEST] Name\",\"description\":\"Test description\",\"color\":null..."
+      }
+    },
+    {
+      "name": "getCardChildren",
+      "module": "cards",
+      "category": "read",
+      "parameters": [
+        {
+          "name": "cardId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Planka API error (500): Internal Server Error",
+      "responseSample": null
+    },
+    {
+      "name": "getComments",
+      "module": "comments",
+      "category": "read",
+      "parameters": [
+        {
+          "name": "cardId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167422863771207"
+        ]
+      },
+      "responseSample": {
+        "keys": [],
+        "sample": "[]..."
+      }
+    },
+    {
+      "name": "getConfig",
+      "module": "config",
+      "category": "read",
+      "parameters": [],
+      "hasResponse": true,
+      "requestExample": {
+        "args": []
+      },
+      "responseSample": {
+        "keys": [
+          "item"
+        ],
+        "sample": "{\"item\":{\"oidc\":null,\"version\":\"2.0.0-rc.3\"}}..."
+      }
+    },
+    {
+      "name": "getCustomFieldGroup",
+      "module": "custom-field-groups",
+      "category": "read",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "getDocumentActivities",
+      "module": "document-activities",
+      "category": "read",
+      "parameters": [],
+      "hasResponse": false,
+      "error": "Planka API error (403): {\"code\":\"E_FORBIDDEN\"}",
+      "responseSample": null
+    },
+    {
+      "name": "getFile",
+      "module": "files",
+      "category": "read",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "getFolder",
+      "module": "folders",
+      "category": "read",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "listFolders",
+      "module": "folders",
+      "category": "read",
+      "parameters": [
+        {
+          "name": "spaceId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: spaceId",
+      "responseSample": null
+    },
+    {
+      "name": "getLabels",
+      "module": "labels",
+      "category": "read",
+      "parameters": [
+        {
+          "name": "boardId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167422066853443"
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4"
+        ],
+        "sample": "[{\"id\":\"1659455641908938426\",\"createdAt\":\"2025-12-06T09:42:08.103Z\",\"updatedAt\":null,\"position\":65536,\"name\":\"ToDo\",\"color\":\"egg-yellow\",\"isGlobal\":true,\"boardId\":null},{\"id\":\"1659455739585889979\",\"cr..."
+      }
+    },
+    {
+      "name": "getList",
+      "module": "lists",
+      "category": "read",
+      "parameters": [
+        {
+          "name": "listId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167426739308111"
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "item",
+          "included"
+        ],
+        "sample": "{\"item\":{\"id\":\"1671167426739308111\",\"createdAt\":\"2025-12-22T13:31:21.660Z\",\"updatedAt\":null,\"type\":\"active\",\"position\":999999,\"name\":\"[SCHEMA_TEST] Name\",\"color\":null,\"boardId\":\"1671167422066853443\"},..."
+      }
+    },
+    {
+      "name": "getNotification",
+      "module": "notifications",
+      "category": "read",
+      "parameters": [
+        {
+          "name": "notificationId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: notificationId",
+      "responseSample": null
+    },
+    {
+      "name": "getNotifications",
+      "module": "notifications",
+      "category": "read",
+      "parameters": [],
+      "hasResponse": true,
+      "requestExample": {
+        "args": []
+      },
+      "responseSample": {
+        "keys": [
+          "0",
+          "1"
+        ],
+        "sample": "[{\"id\":\"1671008966865323576\",\"createdAt\":\"2025-12-22T08:16:31.770Z\",\"updatedAt\":null,\"type\":\"commentCard\",\"data\":{\"card\":{\"name\":\"Integrating Zarinpal gateway\"},\"text\":\"من درگاه پرداخت زیرین پال رو به..."
+      }
+    },
+    {
+      "name": "getMyPermissions",
+      "module": "permissions",
+      "category": "read",
+      "parameters": [],
+      "hasResponse": true,
+      "requestExample": {
+        "args": []
+      },
+      "responseSample": {
+        "keys": [],
+        "sample": "[]..."
+      }
+    },
+    {
+      "name": "getPermissions",
+      "module": "permissions",
+      "category": "read",
+      "parameters": [
+        {
+          "name": "resourceType",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "resourceId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: resourceType",
+      "responseSample": null
+    },
+    {
+      "name": "getProjectCategory",
+      "module": "project-categories",
+      "category": "read",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "listProjectCategories",
+      "module": "project-categories",
+      "category": "read",
+      "parameters": [],
+      "hasResponse": true,
+      "requestExample": {
+        "args": []
+      },
+      "responseSample": {
+        "keys": [
+          "items"
+        ],
+        "sample": "{\"items\":[{\"id\":\"1631310019997730368\",\"createdAt\":\"2025-10-28T13:41:48.515Z\",\"updatedAt\":null,\"name\":\"AI Projects\",\"description\":null,\"color\":null},{\"id\":\"1631307113806431796\",\"createdAt\":\"2025-10-28T..."
+      }
+    },
+    {
+      "name": "getProfileFieldPeople",
+      "module": "project-profiles",
+      "category": "read",
+      "parameters": [
+        {
+          "name": "projectId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "fieldId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: fieldId",
+      "responseSample": null
+    },
+    {
+      "name": "getProjectProfile",
+      "module": "project-profiles",
+      "category": "read",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "listProjectProfiles",
+      "module": "project-profiles",
+      "category": "read",
+      "parameters": [],
+      "hasResponse": false,
+      "error": "Planka API error (404): {\"code\":\"E_NOT_FOUND\"}",
+      "responseSample": null
+    },
+    {
+      "name": "getProjectReleases",
+      "module": "project-releases",
+      "category": "read",
+      "parameters": [
+        {
+          "name": "projectId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Unexpected token '<', \"<!doctype \"... is not valid JSON",
+      "responseSample": null
+    },
+    {
+      "name": "listProjectVersions",
+      "module": "project-versions",
+      "category": "read",
+      "parameters": [
+        {
+          "name": "projectId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167428811294290"
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "items",
+          "total"
+        ],
+        "sample": "{\"items\":[],\"total\":0}..."
+      }
+    },
+    {
+      "name": "getProject",
+      "module": "projects",
+      "category": "read",
+      "parameters": [
+        {
+          "name": "projectId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167428811294290"
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "item",
+          "included"
+        ],
+        "sample": "{\"item\":{\"id\":\"1671167428811294290\",\"createdAt\":\"2025-12-22T13:31:21.907Z\",\"updatedAt\":\"2025-12-22T13:31:21.914Z\",\"name\":\"[SCHEMA_TEST] Name\",\"description\":\"Test description\",\"backgroundType\":null,\"ba..."
+      }
+    },
+    {
+      "name": "listProjects",
+      "module": "projects",
+      "category": "read",
+      "parameters": [],
+      "hasResponse": true,
+      "requestExample": {
+        "args": []
+      },
+      "responseSample": {
+        "keys": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9",
+          "10",
+          "11",
+          "12",
+          "13",
+          "14",
+          "15",
+          "16",
+          "17",
+          "18",
+          "19",
+          "20",
+          "21",
+          "22",
+          "23",
+          "24",
+          "25",
+          "26",
+          "27"
+        ],
+        "sample": "[{\"id\":\"1581093332837205001\",\"createdAt\":\"2025-08-20T06:50:12.913Z\",\"updatedAt\":\"2025-12-13T07:01:59.248Z\",\"name\":\"Technical Team\",\"description\":null,\"backgroundType\":\"gradient\",\"backgroundGradient\":\"..."
+      }
+    },
+    {
+      "name": "getReport",
+      "module": "reports",
+      "category": "read",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "listReports",
+      "module": "reports",
+      "category": "read",
+      "parameters": [],
+      "hasResponse": false,
+      "error": "Planka API error (404): {\"code\":\"E_NOT_FOUND\"}",
+      "responseSample": null
+    },
+    {
+      "name": "getSpace",
+      "module": "spaces",
+      "category": "read",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "listSpaces",
+      "module": "spaces",
+      "category": "read",
+      "parameters": [],
+      "hasResponse": true,
+      "requestExample": {
+        "args": []
+      },
+      "responseSample": {
+        "keys": [
+          "items"
+        ],
+        "sample": "{\"items\":[]}..."
+      }
+    },
+    {
+      "name": "getTeam",
+      "module": "teams",
+      "category": "read",
+      "parameters": [
+        {
+          "name": "teamId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Planka API error (404): {\"code\":\"E_NOT_FOUND\",\"message\":\"Team not found\"}",
+      "responseSample": null
+    },
+    {
+      "name": "listTeams",
+      "module": "teams",
+      "category": "read",
+      "parameters": [],
+      "hasResponse": true,
+      "requestExample": {
+        "args": []
+      },
+      "responseSample": {
+        "keys": [],
+        "sample": "[]..."
+      }
+    },
+    {
+      "name": "getTerms",
+      "module": "terms",
+      "category": "read",
+      "parameters": [
+        {
+          "name": "type",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: type",
+      "responseSample": null
+    },
+    {
+      "name": "getUser",
+      "module": "users",
+      "category": "read",
+      "parameters": [
+        {
+          "name": "userId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: userId",
+      "responseSample": null
+    },
+    {
+      "name": "listUsers",
+      "module": "users",
+      "category": "read",
+      "parameters": [],
+      "hasResponse": true,
+      "requestExample": {
+        "args": []
+      },
+      "responseSample": {
+        "keys": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9",
+          "10",
+          "11",
+          "12",
+          "13",
+          "14",
+          "15",
+          "16",
+          "17",
+          "18",
+          "19",
+          "20",
+          "21",
+          "22",
+          "23",
+          "24",
+          "25",
+          "26",
+          "27",
+          "28",
+          "29",
+          "30",
+          "31",
+          "32",
+          "33",
+          "34",
+          "35",
+          "36",
+          "37",
+          "38",
+          "39",
+          "40",
+          "41",
+          "42",
+          "43",
+          "44",
+          "45",
+          "46",
+          "47",
+          "48",
+          "49",
+          "50",
+          "51",
+          "52",
+          "53",
+          "54",
+          "55",
+          "56",
+          "57",
+          "58",
+          "59",
+          "60",
+          "61",
+          "62",
+          "63",
+          "64",
+          "65",
+          "66",
+          "67",
+          "68",
+          "69",
+          "70",
+          "71",
+          "72",
+          "73",
+          "74",
+          "75",
+          "76",
+          "77",
+          "78",
+          "79",
+          "80",
+          "81",
+          "82",
+          "83",
+          "84",
+          "85",
+          "86",
+          "87",
+          "88",
+          "89",
+          "90",
+          "91",
+          "92",
+          "93",
+          "94",
+          "95",
+          "96",
+          "97",
+          "98",
+          "99",
+          "100",
+          "101",
+          "102",
+          "103",
+          "104",
+          "105",
+          "106",
+          "107",
+          "108",
+          "109",
+          "110",
+          "111",
+          "112",
+          "113",
+          "114",
+          "115",
+          "116",
+          "117",
+          "118",
+          "119",
+          "120",
+          "121",
+          "122",
+          "123",
+          "124",
+          "125",
+          "126",
+          "127",
+          "128",
+          "129",
+          "130",
+          "131",
+          "132",
+          "133",
+          "134",
+          "135",
+          "136",
+          "137",
+          "138",
+          "139",
+          "140",
+          "141",
+          "142",
+          "143",
+          "144",
+          "145"
+        ],
+        "sample": "[{\"id\":\"1580452847055537153\",\"createdAt\":\"2025-08-19T09:37:41.058Z\",\"updatedAt\":\"2025-10-13T07:22:04.194Z\",\"role\":\"boardUser\",\"name\":\"Parsa Ramezani\",\"username\":\"theparsa\",\"phone\":\"+989353431049\",\"org..."
+      }
+    },
+    {
+      "name": "listWebhooks",
+      "module": "webhooks",
+      "category": "read",
+      "parameters": [],
+      "hasResponse": false,
+      "error": "Planka API error (404): {\"code\":\"E_NOT_FOUND\"}",
+      "responseSample": null
+    },
+    {
+      "name": "updateBaseCustomFieldGroup",
+      "module": "base-custom-field-groups",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "updateBoardLink",
+      "module": "board-links",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "updateBoardMembership",
+      "module": "board-memberships",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "membershipId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "updates",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: membershipId",
+      "responseSample": null
+    },
+    {
+      "name": "updateBoardRelease",
+      "module": "board-releases",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "boardId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "updateBoardReleaseStatus",
+      "module": "board-releases",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "boardId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "updateBoardTeam",
+      "module": "board-teams",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "updateBoardTemplate",
+      "module": "board-templates",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "updateTemplateList",
+      "module": "board-templates",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "templateId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "listId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: templateId",
+      "responseSample": null
+    },
+    {
+      "name": "updateBoard",
+      "module": "boards",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "boardId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "updates",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167422066853443",
+          {
+            "name": "[SCHEMA_TEST] Updated"
+          }
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "item"
+        ],
+        "sample": "{\"item\":{\"version_count\":0,\"last_version_created_at\":null,\"id\":\"1671167422066853443\",\"createdAt\":\"2025-12-22T13:31:21.103Z\",\"updatedAt\":\"2025-12-22T13:31:23.528Z\",\"position\":999999,\"name\":\"[SCHEMA_TES..."
+      }
+    },
+    {
+      "name": "assignMemberToCard",
+      "module": "cards",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "cardId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "userId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: userId",
+      "responseSample": null
+    },
+    {
+      "name": "updateCard",
+      "module": "cards",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "cardId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "updates",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167422863771207",
+          {
+            "name": "[SCHEMA_TEST] Updated"
+          }
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "item"
+        ],
+        "sample": "{\"item\":{\"id\":\"1671167422863771207\",\"createdAt\":\"2025-12-22T13:31:21.198Z\",\"updatedAt\":\"2025-12-22T13:31:23.583Z\",\"type\":\"project\",\"position\":999999,\"name\":\"[SCHEMA_TEST] Updated\",\"description\":\"Test ..."
+      }
+    },
+    {
+      "name": "updateComment",
+      "module": "comments",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "commentId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "text",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: commentId",
+      "responseSample": null
+    },
+    {
+      "name": "updateCustomFieldGroup",
+      "module": "custom-field-groups",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "updateCustomField",
+      "module": "custom-fields",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "updateFile",
+      "module": "files",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "updateFolder",
+      "module": "folders",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "assignLabelToCard",
+      "module": "labels",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "cardId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "labelId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Planka API error (404): {\"code\":\"E_NOT_FOUND\",\"message\":\"Label not found\"}",
+      "responseSample": null
+    },
+    {
+      "name": "updateLabel",
+      "module": "labels",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "labelId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "updates",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167426336654926",
+          {
+            "name": "[SCHEMA_TEST] Updated"
+          }
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "item"
+        ],
+        "sample": "{\"item\":{\"id\":\"1671167426336654926\",\"createdAt\":\"2025-12-22T13:31:21.612Z\",\"updatedAt\":\"2025-12-22T13:31:23.668Z\",\"position\":999999,\"name\":\"[SCHEMA_TEST] Updated\",\"color\":\"berry-red\",\"isGlobal\":false,..."
+      }
+    },
+    {
+      "name": "archiveList",
+      "module": "lists",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "listId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167426739308111"
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "item"
+        ],
+        "sample": "{\"item\":{\"id\":\"1671167426739308111\",\"createdAt\":\"2025-12-22T13:31:21.660Z\",\"updatedAt\":\"2025-12-22T13:31:23.715Z\",\"type\":\"closed\",\"position\":999999,\"name\":\"[SCHEMA_TEST] Name\",\"color\":null,\"boardId\":\"..."
+      }
+    },
+    {
+      "name": "updateList",
+      "module": "lists",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "listId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "updates",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167426739308111",
+          {
+            "name": "[SCHEMA_TEST] Updated"
+          }
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "item"
+        ],
+        "sample": "{\"item\":{\"id\":\"1671167426739308111\",\"createdAt\":\"2025-12-22T13:31:21.660Z\",\"updatedAt\":\"2025-12-22T13:31:23.773Z\",\"type\":\"closed\",\"position\":999999,\"name\":\"[SCHEMA_TEST] Updated\",\"color\":null,\"boardId..."
+      }
+    },
+    {
+      "name": "updateNotificationService",
+      "module": "notification-services",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "updateNotification",
+      "module": "notifications",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "notificationId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "updates",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: notificationId",
+      "responseSample": null
+    },
+    {
+      "name": "updateProjectCategory",
+      "module": "project-categories",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "updateProjectProfile",
+      "module": "project-profiles",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "updateProjectProfileField",
+      "module": "project-profiles",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "updateProjectProfilePerson",
+      "module": "project-profiles",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "updateProjectProfileSection",
+      "module": "project-profiles",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "updateProjectRelease",
+      "module": "project-releases",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "projectId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "updateProjectReleaseStatus",
+      "module": "project-releases",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "projectId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "updateProjectTeam",
+      "module": "project-teams",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "updateProject",
+      "module": "projects",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "projectId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "updates",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167428811294290",
+          {
+            "name": "[SCHEMA_TEST] Updated"
+          }
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "item"
+        ],
+        "sample": "{\"item\":{\"version_count\":0,\"last_version_created_at\":null,\"id\":\"1671167428811294290\",\"createdAt\":\"2025-12-22T13:31:21.907Z\",\"updatedAt\":\"2025-12-22T13:31:23.809Z\",\"name\":\"[SCHEMA_TEST] Updated\",\"descr..."
+      }
+    },
+    {
+      "name": "updateReport",
+      "module": "reports",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "updateReportPhase",
+      "module": "reports",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "updateShareLink",
+      "module": "share-links",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "updateSpace",
+      "module": "spaces",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "updateTask",
+      "module": "tasks",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "taskId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "updates",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167429943756372",
+          {
+            "name": "[SCHEMA_TEST] Updated"
+          }
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "item"
+        ],
+        "sample": "{\"item\":{\"id\":\"1671167429943756372\",\"createdAt\":\"2025-12-22T13:31:22.042Z\",\"updatedAt\":\"2025-12-22T13:31:23.871Z\",\"position\":1016383,\"name\":\"[SCHEMA_TEST] Updated\",\"isCompleted\":false,\"taskListId\":\"16..."
+      }
+    },
+    {
+      "name": "updateTaskList",
+      "module": "tasks",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "taskListId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "updates",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167430329632341",
+          {
+            "name": "[SCHEMA_TEST] Updated"
+          }
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "item"
+        ],
+        "sample": "{\"item\":{\"id\":\"1671167430329632341\",\"createdAt\":\"2025-12-22T13:31:22.089Z\",\"updatedAt\":\"2025-12-22T13:31:23.920Z\",\"position\":999999,\"name\":\"[SCHEMA_TEST] Updated\",\"showOnFrontOfCard\":true,\"hideComplet..."
+      }
+    },
+    {
+      "name": "updateTeam",
+      "module": "teams",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "teamId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "updates",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Planka API error (403): {\"code\":\"E_FORBIDDEN\",\"message\":\"Not enough rights\"}",
+      "responseSample": null
+    },
+    {
+      "name": "updateTeamMembership",
+      "module": "teams",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "membershipId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "updates",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: membershipId",
+      "responseSample": null
+    },
+    {
+      "name": "updateUser",
+      "module": "users",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "userId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "updates",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: userId",
+      "responseSample": null
+    },
+    {
+      "name": "updateUserEmail",
+      "module": "users",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "userId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "email",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: userId",
+      "responseSample": null
+    },
+    {
+      "name": "updateUserPassword",
+      "module": "users",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "userId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "password",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "currentPassword",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: userId",
+      "responseSample": null
+    },
+    {
+      "name": "updateUserUsername",
+      "module": "users",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "userId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "username",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: userId",
+      "responseSample": null
+    },
+    {
+      "name": "updateWebhook",
+      "module": "webhooks",
+      "category": "update",
+      "parameters": [
+        {
+          "name": "webhookId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "updates",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: webhookId",
+      "responseSample": null
+    },
+    {
+      "name": "deleteAttachment",
+      "module": "attachments",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "attachmentId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: attachmentId",
+      "responseSample": null
+    },
+    {
+      "name": "deleteBackgroundImage",
+      "module": "background-images",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "deleteBaseCustomFieldGroup",
+      "module": "base-custom-field-groups",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "deleteBoardLink",
+      "module": "board-links",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "deleteBoardMembership",
+      "module": "board-memberships",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "membershipId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: membershipId",
+      "responseSample": null
+    },
+    {
+      "name": "deleteBoardRelease",
+      "module": "board-releases",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "boardId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "removeBoardTeam",
+      "module": "board-teams",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "deleteBoardTemplate",
+      "module": "board-templates",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "deleteTemplateCardType",
+      "module": "board-templates",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "templateId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "typeId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: templateId",
+      "responseSample": null
+    },
+    {
+      "name": "deleteTemplateList",
+      "module": "board-templates",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "templateId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "listId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: templateId",
+      "responseSample": null
+    },
+    {
+      "name": "deleteBoardVersion",
+      "module": "board-versions",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "boardId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "versionId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: versionId",
+      "responseSample": null
+    },
+    {
+      "name": "deleteBoard",
+      "module": "boards",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "boardId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167422066853443"
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "item"
+        ],
+        "sample": "{\"item\":{\"version_count\":0,\"last_version_created_at\":null,\"id\":\"1671167422066853443\",\"createdAt\":\"2025-12-22T13:31:21.103Z\",\"updatedAt\":\"2025-12-22T13:31:23.528Z\",\"position\":999999,\"name\":\"[SCHEMA_TES..."
+      }
+    },
+    {
+      "name": "removeCardDependency",
+      "module": "card-dependencies",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "cardId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "dependsOnCardId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: dependsOnCardId",
+      "responseSample": null
+    },
+    {
+      "name": "deleteCard",
+      "module": "cards",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "cardId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": true,
+      "requestExample": {
+        "args": [
+          "1671167422863771207"
+        ]
+      },
+      "responseSample": {
+        "keys": [
+          "item"
+        ],
+        "sample": "{\"item\":{\"id\":\"1671167422863771207\",\"createdAt\":\"2025-12-22T13:31:21.198Z\",\"updatedAt\":\"2025-12-22T13:31:23.583Z\",\"type\":\"project\",\"position\":999999,\"name\":\"[SCHEMA_TEST] Updated\",\"description\":\"Test ..."
+      }
+    },
+    {
+      "name": "removeMemberFromCard",
+      "module": "cards",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "cardId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "userId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: userId",
+      "responseSample": null
+    },
+    {
+      "name": "deleteComment",
+      "module": "comments",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "commentId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: commentId",
+      "responseSample": null
+    },
+    {
+      "name": "deleteCustomFieldGroup",
+      "module": "custom-field-groups",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "deleteCustomFieldValue",
+      "module": "custom-field-values",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "cardId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "customFieldGroupId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "customFieldId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Planka API timeout after 15 seconds",
+      "responseSample": null
+    },
+    {
+      "name": "deleteCustomField",
+      "module": "custom-fields",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "deleteFile",
+      "module": "files",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "deleteFolder",
+      "module": "folders",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "deleteLabel",
+      "module": "labels",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "labelId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Planka API timeout after 15 seconds",
+      "responseSample": null
+    },
+    {
+      "name": "removeLabelFromCard",
+      "module": "labels",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "cardId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "labelId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Planka API timeout after 15 seconds",
+      "responseSample": null
+    },
+    {
+      "name": "deleteList",
+      "module": "lists",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "listId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Planka API timeout after 15 seconds",
+      "responseSample": null
+    },
+    {
+      "name": "deleteNotificationService",
+      "module": "notification-services",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "deleteProjectCategory",
+      "module": "project-categories",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "deleteProjectManager",
+      "module": "project-managers",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "deleteProjectProfile",
+      "module": "project-profiles",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "deleteProjectProfileField",
+      "module": "project-profiles",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "deleteProjectProfileSection",
+      "module": "project-profiles",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "removePersonFromProfileField",
+      "module": "project-profiles",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "deleteProjectRelease",
+      "module": "project-releases",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "projectId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "removeProjectTeam",
+      "module": "project-teams",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "deleteProjectVersion",
+      "module": "project-versions",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "projectId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "versionId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: versionId",
+      "responseSample": null
+    },
+    {
+      "name": "deleteProject",
+      "module": "projects",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "projectId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Planka API timeout after 15 seconds",
+      "responseSample": null
+    },
+    {
+      "name": "removeCardFromRelease",
+      "module": "releases",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "releaseId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "cardId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: releaseId",
+      "responseSample": null
+    },
+    {
+      "name": "deleteReport",
+      "module": "reports",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "deleteReportPhase",
+      "module": "reports",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "deleteSpace",
+      "module": "spaces",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "deleteTask",
+      "module": "tasks",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "taskId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Planka API timeout after 15 seconds",
+      "responseSample": null
+    },
+    {
+      "name": "deleteTaskList",
+      "module": "tasks",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "taskListId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Planka API timeout after 15 seconds",
+      "responseSample": null
+    },
+    {
+      "name": "deleteTeam",
+      "module": "teams",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "teamId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Planka API timeout after 15 seconds",
+      "responseSample": null
+    },
+    {
+      "name": "deleteTeamMembership",
+      "module": "teams",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "membershipId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: membershipId",
+      "responseSample": null
+    },
+    {
+      "name": "deleteUser",
+      "module": "users",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "userId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: userId",
+      "responseSample": null
+    },
+    {
+      "name": "deleteWebhook",
+      "module": "webhooks",
+      "category": "delete",
+      "parameters": [
+        {
+          "name": "webhookId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: webhookId",
+      "responseSample": null
+    },
+    {
+      "name": "acceptTerms",
+      "module": "access-tokens",
+      "category": "other",
+      "parameters": [],
+      "hasResponse": false,
+      "error": "Planka API timeout after 15 seconds",
+      "responseSample": null
+    },
+    {
+      "name": "exchangeWithOIDC",
+      "module": "access-tokens",
+      "category": "other",
+      "parameters": [
+        {
+          "name": "plankaBaseUrl",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "code",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "redirectUri",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: plankaBaseUrl",
+      "responseSample": null
+    },
+    {
+      "name": "logout",
+      "module": "access-tokens",
+      "category": "other",
+      "parameters": [],
+      "hasResponse": false,
+      "error": "Planka API timeout after 15 seconds",
+      "responseSample": null
+    },
+    {
+      "name": "revokePendingToken",
+      "module": "access-tokens",
+      "category": "other",
+      "parameters": [],
+      "hasResponse": false,
+      "error": "Planka API timeout after 15 seconds",
+      "responseSample": null
+    },
+    {
+      "name": "uploadBackgroundImage",
+      "module": "background-images",
+      "category": "other",
+      "parameters": [
+        {
+          "name": "projectId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "file",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: file",
+      "responseSample": null
+    },
+    {
+      "name": "addBoardMembership",
+      "module": "board-memberships",
+      "category": "other",
+      "parameters": [
+        {
+          "name": "boardId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "userId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "role",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: userId",
+      "responseSample": null
+    },
+    {
+      "name": "addBoardTeam",
+      "module": "board-teams",
+      "category": "other",
+      "parameters": [
+        {
+          "name": "boardId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Planka API timeout after 15 seconds",
+      "responseSample": null
+    },
+    {
+      "name": "addCardTypeToTemplate",
+      "module": "board-templates",
+      "category": "other",
+      "parameters": [
+        {
+          "name": "templateId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: templateId",
+      "responseSample": null
+    },
+    {
+      "name": "addListToTemplate",
+      "module": "board-templates",
+      "category": "other",
+      "parameters": [
+        {
+          "name": "templateId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: templateId",
+      "responseSample": null
+    },
+    {
+      "name": "restoreBoardVersion",
+      "module": "board-versions",
+      "category": "other",
+      "parameters": [
+        {
+          "name": "boardId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "versionId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: versionId",
+      "responseSample": null
+    },
+    {
+      "name": "duplicateBoard",
+      "module": "boards",
+      "category": "other",
+      "parameters": [
+        {
+          "name": "boardId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Planka API timeout after 15 seconds",
+      "responseSample": null
+    },
+    {
+      "name": "transferBoard",
+      "module": "boards",
+      "category": "other",
+      "parameters": [
+        {
+          "name": "boardId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "projectId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Planka API timeout after 15 seconds",
+      "responseSample": null
+    },
+    {
+      "name": "addCardDependency",
+      "module": "card-dependencies",
+      "category": "other",
+      "parameters": [
+        {
+          "name": "cardId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "dependsOnCardId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: dependsOnCardId",
+      "responseSample": null
+    },
+    {
+      "name": "duplicateCard",
+      "module": "cards",
+      "category": "other",
+      "parameters": [
+        {
+          "name": "cardId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "position",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Planka API timeout after 15 seconds",
+      "responseSample": null
+    },
+    {
+      "name": "moveCard",
+      "module": "cards",
+      "category": "other",
+      "parameters": [
+        {
+          "name": "cardId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "listId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "position",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Planka API timeout after 15 seconds",
+      "responseSample": null
+    },
+    {
+      "name": "setCustomFieldValue",
+      "module": "custom-field-values",
+      "category": "other",
+      "parameters": [
+        {
+          "name": "cardId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "customFieldGroupId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "customFieldId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: value",
+      "responseSample": null
+    },
+    {
+      "name": "downloadFile",
+      "module": "files",
+      "category": "other",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "uploadFile",
+      "module": "files",
+      "category": "other",
+      "parameters": [
+        {
+          "name": "spaceId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "file",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "folderId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: spaceId",
+      "responseSample": null
+    },
+    {
+      "name": "downloadFolder",
+      "module": "folders",
+      "category": "other",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "clearList",
+      "module": "lists",
+      "category": "other",
+      "parameters": [
+        {
+          "name": "listId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Planka API timeout after 15 seconds",
+      "responseSample": null
+    },
+    {
+      "name": "moveCardsFromList",
+      "module": "lists",
+      "category": "other",
+      "parameters": [
+        {
+          "name": "listId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "targetListId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: targetListId",
+      "responseSample": null
+    },
+    {
+      "name": "sortList",
+      "module": "lists",
+      "category": "other",
+      "parameters": [
+        {
+          "name": "listId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Planka API timeout after 15 seconds",
+      "responseSample": null
+    },
+    {
+      "name": "testNotificationService",
+      "module": "notification-services",
+      "category": "other",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "markAllNotificationsAsRead",
+      "module": "notifications",
+      "category": "other",
+      "parameters": [],
+      "hasResponse": false,
+      "error": "Planka API timeout after 15 seconds",
+      "responseSample": null
+    },
+    {
+      "name": "grantPermission",
+      "module": "permissions",
+      "category": "other",
+      "parameters": [
+        {
+          "name": "resourceType",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "resourceId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "userId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "permissions",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: resourceType",
+      "responseSample": null
+    },
+    {
+      "name": "revokePermission",
+      "module": "permissions",
+      "category": "other",
+      "parameters": [
+        {
+          "name": "permissionId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: permissionId",
+      "responseSample": null
+    },
+    {
+      "name": "addPersonToProfileField",
+      "module": "project-profiles",
+      "category": "other",
+      "parameters": [
+        {
+          "name": "projectId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "fieldId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: fieldId",
+      "responseSample": null
+    },
+    {
+      "name": "addProjectTeam",
+      "module": "project-teams",
+      "category": "other",
+      "parameters": [
+        {
+          "name": "projectId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Planka API timeout after 15 seconds",
+      "responseSample": null
+    },
+    {
+      "name": "restoreProjectVersion",
+      "module": "project-versions",
+      "category": "other",
+      "parameters": [
+        {
+          "name": "projectId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "versionId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: versionId",
+      "responseSample": null
+    },
+    {
+      "name": "duplicateProject",
+      "module": "projects",
+      "category": "other",
+      "parameters": [
+        {
+          "name": "projectId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Planka API timeout after 15 seconds",
+      "responseSample": null
+    },
+    {
+      "name": "accessPublicLink",
+      "module": "public-access",
+      "category": "other",
+      "parameters": [
+        {
+          "name": "plankaBaseUrl",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "token",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: plankaBaseUrl",
+      "responseSample": null
+    },
+    {
+      "name": "downloadFileViaPublicLink",
+      "module": "public-access",
+      "category": "other",
+      "parameters": [
+        {
+          "name": "plankaBaseUrl",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "token",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "fileId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: plankaBaseUrl",
+      "responseSample": null
+    },
+    {
+      "name": "downloadFolderViaPublicLink",
+      "module": "public-access",
+      "category": "other",
+      "parameters": [
+        {
+          "name": "plankaBaseUrl",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "token",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: plankaBaseUrl",
+      "responseSample": null
+    },
+    {
+      "name": "downloadViaPublicLink",
+      "module": "public-access",
+      "category": "other",
+      "parameters": [
+        {
+          "name": "plankaBaseUrl",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "token",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: plankaBaseUrl",
+      "responseSample": null
+    },
+    {
+      "name": "previewFileViaPublicLink",
+      "module": "public-access",
+      "category": "other",
+      "parameters": [
+        {
+          "name": "plankaBaseUrl",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "token",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "fileId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: plankaBaseUrl",
+      "responseSample": null
+    },
+    {
+      "name": "previewViaPublicLink",
+      "module": "public-access",
+      "category": "other",
+      "parameters": [
+        {
+          "name": "plankaBaseUrl",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "token",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: plankaBaseUrl",
+      "responseSample": null
+    },
+    {
+      "name": "addCardToRelease",
+      "module": "releases",
+      "category": "other",
+      "parameters": [
+        {
+          "name": "releaseId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "cardId",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: releaseId",
+      "responseSample": null
+    },
+    {
+      "name": "revokeShareLink",
+      "module": "share-links",
+      "category": "other",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: id",
+      "responseSample": null
+    },
+    {
+      "name": "addTeamMembership",
+      "module": "teams",
+      "category": "other",
+      "parameters": [
+        {
+          "name": "teamId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "userId",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "role",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "hasResponse": false,
+      "error": "Missing required test data: userId",
+      "responseSample": null
+    }
+  ]
+}

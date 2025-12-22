@@ -40,13 +40,13 @@ export async function updateLabel(
   });
 }
 
-export async function deleteLabel(auth: PlankaAuth, labelId: string): Promise<any> {
+export async function deleteLabel(auth: PlankaAuth, labelId: string): Promise<PlankaLabel> {
   return await plankaFetch(auth, `/api/labels/${encodeURIComponent(labelId)}`, {
     method: 'DELETE',
   });
 }
 
-export async function assignLabelToCard(auth: PlankaAuth, cardId: string, labelId: string): Promise<any> {
+export async function assignLabelToCard(auth: PlankaAuth, cardId: string, labelId: string): Promise<{ cardId: string; labelId: string }> {
   return await plankaFetch(auth, `/api/cards/${encodeURIComponent(cardId)}/card-labels`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -54,7 +54,7 @@ export async function assignLabelToCard(auth: PlankaAuth, cardId: string, labelI
   });
 }
 
-export async function removeLabelFromCard(auth: PlankaAuth, cardId: string, labelId: string): Promise<any> {
+export async function removeLabelFromCard(auth: PlankaAuth, cardId: string, labelId: string): Promise<{ cardId: string; labelId: string }> {
   return await plankaFetch(auth, `/api/cards/${encodeURIComponent(cardId)}/card-labels/labelid:${encodeURIComponent(labelId)}`, {
     method: 'DELETE',
   });

@@ -39,12 +39,42 @@ export async function archiveList(auth: PlankaAuth, listId: string): Promise<Pla
   return await plankaFetch(auth, `/api/lists/${encodeURIComponent(listId)}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type: 'archive' }),
+    body: JSON.stringify({ type: 'closed' }),
   });
 }
 
-export async function deleteList(auth: PlankaAuth, listId: string): Promise<any> {
+export async function deleteList(auth: PlankaAuth, listId: string): Promise<PlankaList> {
   return await plankaFetch(auth, `/api/lists/${encodeURIComponent(listId)}`, {
     method: 'DELETE',
+  });
+}
+
+export async function getList(auth: PlankaAuth, listId: string): Promise<PlankaList> {
+  return await plankaFetch(auth, `/api/lists/${encodeURIComponent(listId)}`, {
+    method: 'GET',
+  });
+}
+
+export async function clearList(auth: PlankaAuth, listId: string): Promise<PlankaList> {
+  return await plankaFetch(auth, `/api/lists/${encodeURIComponent(listId)}/clear`, {
+    method: 'POST',
+  });
+}
+
+export async function sortList(auth: PlankaAuth, listId: string): Promise<PlankaList> {
+  return await plankaFetch(auth, `/api/lists/${encodeURIComponent(listId)}/sort`, {
+    method: 'POST',
+  });
+}
+
+export async function moveCardsFromList(
+  auth: PlankaAuth,
+  listId: string,
+  targetListId: string,
+): Promise<PlankaList> {
+  return await plankaFetch(auth, `/api/lists/${encodeURIComponent(listId)}/move-cards`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ targetListId }),
   });
 }

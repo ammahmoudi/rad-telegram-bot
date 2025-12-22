@@ -33,7 +33,7 @@ export async function updateTaskList(
   });
 }
 
-export async function deleteTaskList(auth: PlankaAuth, taskListId: string): Promise<any> {
+export async function deleteTaskList(auth: PlankaAuth, taskListId: string): Promise<PlankaTaskList> {
   return await plankaFetch(auth, `/api/task-lists/${encodeURIComponent(taskListId)}`, {
     method: 'DELETE',
   });
@@ -70,7 +70,7 @@ export async function updateTask(
   });
 }
 
-export async function deleteTask(auth: PlankaAuth, taskId: string): Promise<any> {
+export async function deleteTask(auth: PlankaAuth, taskId: string): Promise<PlankaTask> {
   return await plankaFetch(auth, `/api/tasks/${encodeURIComponent(taskId)}`, {
     method: 'DELETE',
   });

@@ -35,7 +35,6 @@ import {
   deleteTask,
   getAttachments,
   deleteAttachment,
-  getMembers,
 } from '../api/index.js';
 import { requireAuth, text as textHelper } from './helpers.js';
 
@@ -491,7 +490,8 @@ export async function handleToolCall(request: CallToolRequest): Promise<ToolResp
         
         if (!projectId) throw new Error('projectId is required');
         
-        const members = await getMembers(auth, projectId);
+        const project = await getProject(auth, projectId);
+        const members = (project as any)?.included?.users ?? [];
         return textHelper(JSON.stringify({ success: true, members }, null, 2));
       }
 

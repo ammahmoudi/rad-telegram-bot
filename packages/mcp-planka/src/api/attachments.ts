@@ -8,7 +8,7 @@ export async function getAttachments(auth: PlankaAuth, cardId: string): Promise<
   return (card as any)?.included?.attachments ?? [];
 }
 
-export async function deleteAttachment(auth: PlankaAuth, attachmentId: string): Promise<any> {
+export async function deleteAttachment(auth: PlankaAuth, attachmentId: string): Promise<PlankaAttachment> {
   return await plankaFetch(auth, `/api/attachments/${encodeURIComponent(attachmentId)}`, {
     method: 'DELETE',
   });

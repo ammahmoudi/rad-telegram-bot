@@ -51,8 +51,45 @@ export async function moveCard(auth: PlankaAuth, cardId: string, listId: string,
   });
 }
 
-export async function deleteCard(auth: PlankaAuth, cardId: string): Promise<any> {
+export async function deleteCard(auth: PlankaAuth, cardId: string): Promise<PlankaCard> {
   return await plankaFetch(auth, `/api/cards/${encodeURIComponent(cardId)}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function getCard(auth: PlankaAuth, cardId: string): Promise<PlankaCard> {
+  return await plankaFetch(auth, `/api/cards/${encodeURIComponent(cardId)}`, {
+    method: 'GET',
+  });
+}
+
+export async function duplicateCard(auth: PlankaAuth, cardId: string, position?: number): Promise<PlankaCard> {
+  const body: any = {};
+  if (typeof position === 'number') body.position = position;
+
+  return await plankaFetch(auth, `/api/cards/${encodeURIComponent(cardId)}/duplicate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function getCardChildren(auth: PlankaAuth, cardId: string): Promise<PlankaCard[]> {
+  return await plankaFetch(auth, `/api/cards/${encodeURIComponent(cardId)}/children`, {
+    method: 'GET',
+  });
+}
+
+export async function assignMemberToCard(auth: PlankaAuth, cardId: string, userId: string): Promise<{ cardId: string; userId: string }> {
+  return await plankaFetch(auth, `/api/cards/${encodeURIComponent(cardId)}/card-memberships`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId }),
+  });
+}
+
+export async function removeMemberFromCard(auth: PlankaAuth, cardId: string, userId: string): Promise<{ cardId: string; userId: string }> {
+  return await plankaFetch(auth, `/api/cards/${encodeURIComponent(cardId)}/card-memberships/userid:${encodeURIComponent(userId)}`, {
     method: 'DELETE',
   });
 }

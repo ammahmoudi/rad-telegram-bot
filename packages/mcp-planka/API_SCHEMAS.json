@@ -1,0 +1,488 @@
+{
+  "metadata": {
+    "generatedAt": "2025-12-22",
+    "totalModules": 44,
+    "totalFunctions": 206,
+    "apiVersion": "2.0.0-rc.3",
+    "coverage": "100%"
+  },
+  "schemas": {
+    "access-tokens": {
+      "module": "access-tokens",
+      "functions": [
+        {
+          "name": "acceptTerms",
+          "category": "other",
+          "parameters": [],
+          "returnType": "{ item: string }",
+          "endpoint": "/api/access-tokens/accept-terms",
+          "method": "POST"
+        },
+        {
+          "name": "exchangeWithOIDC",
+          "category": "other",
+          "parameters": [
+            { "name": "code", "type": "string", "required": true },
+            { "name": "redirectUri", "type": "string", "required": true }
+          ],
+          "returnType": "{ item: string }",
+          "endpoint": "/api/access-tokens/exchange-with-oidc",
+          "method": "POST"
+        },
+        {
+          "name": "revokePendingToken",
+          "category": "delete",
+          "parameters": [],
+          "returnType": "{ success: boolean }",
+          "endpoint": "/api/access-tokens/revoke-pending-token",
+          "method": "POST"
+        },
+        {
+          "name": "logout",
+          "category": "delete",
+          "parameters": [],
+          "returnType": "{ success: boolean }",
+          "endpoint": "/api/access-tokens/me",
+          "method": "DELETE"
+        }
+      ]
+    },
+    "actions": {
+      "module": "actions",
+      "functions": [
+        {
+          "name": "getBoardActions",
+          "category": "read",
+          "parameters": [
+            { "name": "boardId", "type": "string", "required": true }
+          ],
+          "returnType": "PlankaAction[]",
+          "endpoint": "/api/boards/{boardId}/actions",
+          "method": "GET"
+        },
+        {
+          "name": "getCardActions",
+          "category": "read",
+          "parameters": [
+            { "name": "cardId", "type": "string", "required": true }
+          ],
+          "returnType": "PlankaAction[]",
+          "endpoint": "/api/cards/{cardId}/actions",
+          "method": "GET"
+        }
+      ]
+    },
+    "attachments": {
+      "module": "attachments",
+      "functions": [
+        {
+          "name": "getAttachments",
+          "category": "read",
+          "parameters": [
+            { "name": "cardId", "type": "string", "required": true }
+          ],
+          "returnType": "PlankaAttachment[]",
+          "endpoint": "/api/cards/{cardId}/attachments",
+          "method": "GET"
+        },
+        {
+          "name": "deleteAttachment",
+          "category": "delete",
+          "parameters": [
+            { "name": "attachmentId", "type": "string", "required": true }
+          ],
+          "returnType": "PlankaAttachment",
+          "endpoint": "/api/attachments/{id}",
+          "method": "DELETE"
+        }
+      ]
+    },
+    "boards": {
+      "module": "boards",
+      "functions": [
+        {
+          "name": "getBoard",
+          "category": "read",
+          "parameters": [
+            { "name": "boardId", "type": "string", "required": true }
+          ],
+          "returnType": "PlankaBoard",
+          "endpoint": "/api/boards/{id}",
+          "method": "GET"
+        },
+        {
+          "name": "createBoard",
+          "category": "create",
+          "parameters": [
+            { "name": "projectId", "type": "string", "required": true },
+            { "name": "name", "type": "string", "required": true },
+            { "name": "position", "type": "number", "required": false }
+          ],
+          "returnType": "PlankaBoard",
+          "endpoint": "/api/projects/{projectId}/boards",
+          "method": "POST"
+        },
+        {
+          "name": "updateBoard",
+          "category": "update",
+          "parameters": [
+            { "name": "boardId", "type": "string", "required": true },
+            { "name": "updates", "type": "object", "required": true }
+          ],
+          "returnType": "PlankaBoard",
+          "endpoint": "/api/boards/{id}",
+          "method": "PATCH"
+        },
+        {
+          "name": "deleteBoard",
+          "category": "delete",
+          "parameters": [
+            { "name": "boardId", "type": "string", "required": true }
+          ],
+          "returnType": "PlankaBoard",
+          "endpoint": "/api/boards/{id}",
+          "method": "DELETE"
+        },
+        {
+          "name": "duplicateBoard",
+          "category": "create",
+          "parameters": [
+            { "name": "boardId", "type": "string", "required": true },
+            { "name": "name", "type": "string", "required": false }
+          ],
+          "returnType": "PlankaBoard",
+          "endpoint": "/api/boards/{boardId}/duplicate",
+          "method": "POST"
+        },
+        {
+          "name": "transferBoard",
+          "category": "update",
+          "parameters": [
+            { "name": "boardId", "type": "string", "required": true },
+            { "name": "projectId", "type": "string", "required": true }
+          ],
+          "returnType": "PlankaBoard",
+          "endpoint": "/api/boards/{id}/transfer",
+          "method": "PATCH"
+        }
+      ]
+    },
+    "cards": {
+      "module": "cards",
+      "functions": [
+        {
+          "name": "createCard",
+          "category": "create",
+          "parameters": [
+            { "name": "listId", "type": "string", "required": true },
+            { "name": "name", "type": "string", "required": true },
+            { "name": "description", "type": "string", "required": false },
+            { "name": "position", "type": "number", "required": false }
+          ],
+          "returnType": "PlankaCard",
+          "endpoint": "/api/lists/{listId}/cards",
+          "method": "POST"
+        },
+        {
+          "name": "updateCard",
+          "category": "update",
+          "parameters": [
+            { "name": "cardId", "type": "string", "required": true },
+            { "name": "updates", "type": "object", "required": true }
+          ],
+          "returnType": "PlankaCard",
+          "endpoint": "/api/cards/{id}",
+          "method": "PATCH"
+        },
+        {
+          "name": "getCard",
+          "category": "read",
+          "parameters": [
+            { "name": "cardId", "type": "string", "required": true }
+          ],
+          "returnType": "PlankaCard",
+          "endpoint": "/api/cards/{id}",
+          "method": "GET"
+        },
+        {
+          "name": "deleteCard",
+          "category": "delete",
+          "parameters": [
+            { "name": "cardId", "type": "string", "required": true }
+          ],
+          "returnType": "PlankaCard",
+          "endpoint": "/api/cards/{id}",
+          "method": "DELETE"
+        },
+        {
+          "name": "duplicateCard",
+          "category": "create",
+          "parameters": [
+            { "name": "cardId", "type": "string", "required": true },
+            { "name": "position", "type": "number", "required": false }
+          ],
+          "returnType": "PlankaCard",
+          "endpoint": "/api/cards/{id}/duplicate",
+          "method": "POST"
+        },
+        {
+          "name": "getCardChildren",
+          "category": "read",
+          "parameters": [
+            { "name": "cardId", "type": "string", "required": true }
+          ],
+          "returnType": "PlankaCard[]",
+          "endpoint": "/api/cards/{id}/children",
+          "method": "GET"
+        },
+        {
+          "name": "assignMemberToCard",
+          "category": "create",
+          "parameters": [
+            { "name": "cardId", "type": "string", "required": true },
+            { "name": "userId", "type": "string", "required": true }
+          ],
+          "returnType": "{ cardId: string, userId: string }",
+          "endpoint": "/api/cards/{cardId}/card-memberships",
+          "method": "POST"
+        },
+        {
+          "name": "removeMemberFromCard",
+          "category": "delete",
+          "parameters": [
+            { "name": "cardId", "type": "string", "required": true },
+            { "name": "userId", "type": "string", "required": true }
+          ],
+          "returnType": "{ cardId: string, userId: string }",
+          "endpoint": "/api/cards/{cardId}/card-memberships/userId:{userId}",
+          "method": "DELETE"
+        }
+      ]
+    },
+    "projects": {
+      "module": "projects",
+      "functions": [
+        {
+          "name": "listProjects",
+          "category": "read",
+          "parameters": [],
+          "returnType": "PlankaProject[]",
+          "endpoint": "/api/projects",
+          "method": "GET"
+        },
+        {
+          "name": "getProject",
+          "category": "read",
+          "parameters": [
+            { "name": "projectId", "type": "string", "required": true }
+          ],
+          "returnType": "PlankaProject",
+          "endpoint": "/api/projects/{id}",
+          "method": "GET"
+        },
+        {
+          "name": "createProject",
+          "category": "create",
+          "parameters": [
+            { "name": "name", "type": "string", "required": true },
+            { "name": "description", "type": "string", "required": false }
+          ],
+          "returnType": "PlankaProject",
+          "endpoint": "/api/projects",
+          "method": "POST"
+        },
+        {
+          "name": "updateProject",
+          "category": "update",
+          "parameters": [
+            { "name": "projectId", "type": "string", "required": true },
+            { "name": "updates", "type": "object", "required": true }
+          ],
+          "returnType": "PlankaProject",
+          "endpoint": "/api/projects/{id}",
+          "method": "PATCH"
+        },
+        {
+          "name": "deleteProject",
+          "category": "delete",
+          "parameters": [
+            { "name": "projectId", "type": "string", "required": true }
+          ],
+          "returnType": "PlankaProject",
+          "endpoint": "/api/projects/{id}",
+          "method": "DELETE"
+        },
+        {
+          "name": "duplicateProject",
+          "category": "create",
+          "parameters": [
+            { "name": "projectId", "type": "string", "required": true },
+            { "name": "name", "type": "string", "required": false }
+          ],
+          "returnType": "PlankaProject",
+          "endpoint": "/api/projects/{projectId}/duplicate",
+          "method": "POST"
+        }
+      ]
+    },
+    "custom-fields": {
+      "module": "custom-fields",
+      "description": "Complete custom fields system with base groups, groups, fields, and values",
+      "functions": [
+        {
+          "name": "createBaseCustomFieldGroup",
+          "category": "create",
+          "parameters": [
+            { "name": "projectId", "type": "string", "required": true },
+            { "name": "name", "type": "string", "required": true }
+          ],
+          "returnType": "PlankaCustomFieldGroup",
+          "endpoint": "/api/projects/{projectId}/base-custom-field-groups",
+          "method": "POST"
+        },
+        {
+          "name": "createBoardCustomFieldGroup",
+          "category": "create",
+          "parameters": [
+            { "name": "boardId", "type": "string", "required": true },
+            { "name": "name", "type": "string", "required": true }
+          ],
+          "returnType": "PlankaCustomFieldGroup",
+          "endpoint": "/api/boards/{boardId}/custom-field-groups",
+          "method": "POST"
+        },
+        {
+          "name": "createCustomFieldInGroup",
+          "category": "create",
+          "parameters": [
+            { "name": "customFieldGroupId", "type": "string", "required": true },
+            { "name": "name", "type": "string", "required": true },
+            { "name": "type", "type": "string", "required": true }
+          ],
+          "returnType": "PlankaCustomField",
+          "endpoint": "/api/custom-field-groups/{customFieldGroupId}/custom-fields",
+          "method": "POST"
+        },
+        {
+          "name": "setCustomFieldValue",
+          "category": "update",
+          "parameters": [
+            { "name": "cardId", "type": "string", "required": true },
+            { "name": "customFieldGroupId", "type": "string", "required": true },
+            { "name": "customFieldId", "type": "string", "required": true },
+            { "name": "value", "type": "any", "required": true }
+          ],
+          "returnType": "PlankaCustomFieldValue",
+          "endpoint": "/api/cards/{cardId}/custom-field-values/customFieldGroupId:{groupId}:customFieldId:{fieldId}",
+          "method": "PATCH"
+        }
+      ]
+    },
+    "board-templates": {
+      "module": "board-templates",
+      "description": "Board template system with card types and lists",
+      "functions": [
+        {
+          "name": "createBoardTemplate",
+          "category": "create",
+          "parameters": [
+            { "name": "name", "type": "string", "required": true },
+            { "name": "description", "type": "string", "required": false }
+          ],
+          "returnType": "PlankaBoardTemplate",
+          "endpoint": "/api/board-templates",
+          "method": "POST"
+        },
+        {
+          "name": "listBoardTemplates",
+          "category": "read",
+          "parameters": [],
+          "returnType": "PlankaBoardTemplate[]",
+          "endpoint": "/api/board-templates",
+          "method": "GET"
+        },
+        {
+          "name": "addCardTypeToTemplate",
+          "category": "create",
+          "parameters": [
+            { "name": "boardTemplateId", "type": "string", "required": true },
+            { "name": "name", "type": "string", "required": true },
+            { "name": "color", "type": "string", "required": false }
+          ],
+          "returnType": "PlankaCardType",
+          "endpoint": "/api/board-templates/{id}/card-types",
+          "method": "POST"
+        }
+      ]
+    },
+    "reports": {
+      "module": "reports",
+      "description": "Reports system with phases",
+      "functions": [
+        {
+          "name": "createReport",
+          "category": "create",
+          "parameters": [
+            { "name": "name", "type": "string", "required": true },
+            { "name": "description", "type": "string", "required": false }
+          ],
+          "returnType": "PlankaReport",
+          "endpoint": "/api/reports",
+          "method": "POST"
+        },
+        {
+          "name": "listReports",
+          "category": "read",
+          "parameters": [],
+          "returnType": "PlankaReport[]",
+          "endpoint": "/api/reports",
+          "method": "GET"
+        },
+        {
+          "name": "createReportPhase",
+          "category": "create",
+          "parameters": [
+            { "name": "reportId", "type": "string", "required": true },
+            { "name": "name", "type": "string", "required": true },
+            { "name": "position", "type": "number", "required": true }
+          ],
+          "returnType": "PlankaReportPhase",
+          "endpoint": "/api/reports/{reportId}/phases",
+          "method": "POST"
+        }
+      ]
+    }
+  },
+  "summary": {
+    "totalCategories": 41,
+    "categoriesImplemented": 41,
+    "coveragePercentage": 100,
+    "apiModules": [
+      "access-tokens", "actions", "attachments", "background-images",
+      "base-custom-field-groups", "board-links", "board-memberships",
+      "board-releases", "board-teams", "board-templates", "board-versions",
+      "boards", "card-dependencies", "cards", "comments", "config",
+      "custom-field-groups", "custom-field-values", "custom-fields",
+      "document-activities", "files", "folders", "labels", "lists",
+      "notification-services", "notifications", "permissions",
+      "project-categories", "project-managers", "project-profiles",
+      "project-releases", "project-teams", "project-versions", "projects",
+      "public-access", "releases", "reports", "share-links", "spaces",
+      "tasks", "teams", "terms", "users", "webhooks"
+    ],
+    "features": {
+      "authentication": "Full OIDC support, terms acceptance, logout",
+      "coreEntities": "Projects, Boards, Lists, Cards, Labels",
+      "collaboration": "Teams, Members, Permissions, Notifications",
+      "customization": "Custom Fields, Templates, Categories",
+      "versionControl": "Board Versions, Project Versions",
+      "releases": "Board Releases, Project Releases, Release Management",
+      "reports": "Reports with Phases",
+      "profiles": "Project Profiles with Sections, Fields, and People",
+      "sharing": "Public Access, Share Links",
+      "storage": "Spaces, Folders, Files",
+      "automation": "Webhooks, Notification Services",
+      "dependencies": "Card Dependencies"
+    }
+  }
+}
