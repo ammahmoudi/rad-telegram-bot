@@ -2,6 +2,8 @@ import type { Context } from 'grammy';
 import {
   getPlankaToken,
   deletePlankaToken,
+  getRastarToken,
+  deleteRastarToken,
   createLinkState,
   createNewChatSession,
   listUserSessions,
@@ -31,9 +33,16 @@ export async function handleStartCommand(ctx: Context) {
       '',
       '🔧 <b>Available Commands:</b>',
       '',
+      '� <b>Planka:</b>',
       '🔗 /link_planka - Connect your Planka account',
-      '📊 /planka_status - Check connection status',
-      '🔓 /planka_unlink - Disconnect your account',
+      '📊 /planka_status - Check Planka connection',
+      '🔓 /planka_unlink - Disconnect Planka',
+      '',
+      '🍽️ <b>Rastar (Food Menu):</b>',
+      '� /link_rastar - Connect your Rastar account',
+      '�📊 /rastar_status - Check Rastar connection',
+      '🔓 /rastar_unlink - Disconnect Rastar',
+      '',
       ...(hasAI
         ? [
             '💬 /new_chat - Start a new conversation',
@@ -278,4 +287,184 @@ export async function handleClearChatCommand(ctx: Context) {
   await ctx.reply('🗑️ <b>Chat cleared!</b>\n\nStarting fresh. Send me a message!', {
     parse_mode: 'HTML',
   });
+}
+
+// ============================================================================
+// Rastar Commands
+// ============================================================================
+
+/**
+ * Handle /link_rastar command
+ */
+export async function handleLinkRastarCommand(ctx: Context) {
+  const telegramUserId = String(ctx.from?.id ?? '');
+  if (!telegramUserId) {
+    await ctx.reply('Could not identify your Telegram user.');
+    return;
+  }
+
+  console.log('[telegram-bot] /link_rastar', { telegramUserId });
+
+  // Check if already linked
+  const existingToken = await getRastarToken(telegramUserId);
+  if (existingToken) {
+    // Check token expiry
+    const now = Date.now();
+    const expiresIn = Math.max(0, existingToken.expiresAt - now);
+    const expiresInHours = Math.floor(expiresIn / (1000 * 60 * 60));
+    
+    await ctx.reply(
+      [
+        '✅ Your Rastar account is already linked!',
+        '',
+        `Email: ${existingToken.email}`,
+        `Token expires in: ${expiresInHours} hours`,
+        '',
+        '💡 To re-link your account:',
+        '1. First run /rastar_unlink',
+        '2. Then run /link_rastar again',
+      ].join('\n'),
+    );
+    return;
+  }
+
+  const state = await createLinkState(telegramUserId);
+  const linkUrl = `${stripTrailingSlash(LINK_PORTAL_BASE_URL)}/link/rastar?state=${encodeURIComponent(state)}`;
+
+  console.log('[telegram-bot] /link_rastar - generated URL:', linkUrl);
+
+  await ctx.reply(
+    [
+      '🔗 <b>Link Your Rastar Account</b>',
+      '',
+      '1️⃣ Click the link below (or copy and paste in browser):',
+      `<a href="${linkUrl}">Open Secure Link Portal</a>`,
+      '',
+      '📋 Or copy this URL:',
+      `<code>${linkUrl}</code>`,
+      '',
+      '2️⃣ Enter your Rastar credentials (my.rastar.company)',
+      '3️⃣ Return here after successful linking',
+      '',
+      '⚠️ <b>Note:</b> This link expires in 10 minutes and can only be used once.',
+      '',
+      '🍽️ <b>After linking, you can:</b>',
+      '• View daily food menus',
+      '• Select your lunch choices',
+      '• Manage your food selections',
+    ].join('\n'),
+    { parse_mode: 'HTML' },
+  );
+}
+
+/**
+ * Handle /rastar_status command
+ */
+export async function handleRastarStatusCommand(ctx: Context) {
+  const telegramUserId = String(ctx.from?.id ?? '');
+  if (!telegramUserId) {
+    await ctx.reply('Could not identify your Telegram user.');
+    return;
+  }
+
+  console.log('[telegram-bot] /rastar_status', { telegramUserId });
+
+  const token = await getRastarToken(telegramUserId);
+  
+  if (!token) {
+    await ctx.reply(
+      [
+        '❌ <b>Rastar Not Connected</b>',
+        '',
+        '🍽️ Rastar provides access to:',
+        '• View daily food menus',
+        '• Select your lunch choices',
+        '• Manage your food selections',
+        '',
+        '💡 To connect:',
+        'Run /link_rastar to securely link your account',
+      ].join('\n'),
+      { parse_mode: 'HTML' },
+    );
+    return;
+  }
+
+  // Check token expiry
+  const now = Date.now();
+  const expiresIn = Math.max(0, token.expiresAt - now);
+  const expiresInHours = Math.floor(expiresIn / (1000 * 60 * 60));
+  const expiresInMinutes = Math.floor((expiresIn % (1000 * 60 * 60)) / (1000 * 60));
+
+  await ctx.reply(
+    [
+      '✅ <b>Rastar Connected</b>',
+      '',
+      `👤 Email: ${token.email}`,
+      `🆔 User ID: ${token.userId}`,
+      `⏰ Token expires in: ${expiresInHours}h ${expiresInMinutes}m`,
+      '',
+      '🍽️ <b>Available Features:</b>',
+      '• View daily food menus',
+      '• Select lunch items',
+      '• Manage your selections',
+      '',
+      '💬 Just chat with me to use these features!',
+      'Example: "Show me today\'s menu" or "Select lunch option 2"',
+    ].join('\n'),
+    { parse_mode: 'HTML' },
+  );
+}
+
+/**
+ * Handle /rastar_unlink command
+ */
+export async function handleRastarUnlinkCommand(ctx: Context) {
+  const telegramUserId = String(ctx.from?.id ?? '');
+  if (!telegramUserId) {
+    await ctx.reply('Could not identify your Telegram user.');
+    return;
+  }
+
+  console.log('[telegram-bot] /rastar_unlink', { telegramUserId });
+
+  const token = await getRastarToken(telegramUserId);
+  if (!token) {
+    await ctx.reply(
+      [
+        'ℹ️ <b>Not Connected</b>',
+        '',
+        'Your Rastar account is not currently linked.',
+        '',
+        '💡 To connect:',
+        'Run /link_rastar to securely link your account',
+      ].join('\n'),
+      { parse_mode: 'HTML' },
+    );
+    return;
+  }
+
+  const deleted = await deleteRastarToken(telegramUserId);
+  if (deleted) {
+    await ctx.reply(
+      [
+        '✅ <b>Rastar Disconnected</b>',
+        '',
+        `Account ${token.email} has been unlinked.`,
+        '',
+        '🔗 To reconnect later:',
+        'Run /link_rastar to securely link your account',
+      ].join('\n'),
+      { parse_mode: 'HTML' },
+    );
+  } else {
+    await ctx.reply(
+      [
+        '⚠️ <b>Error</b>',
+        '',
+        'Could not disconnect your Rastar account.',
+        'Please try again or contact support.',
+      ].join('\n'),
+      { parse_mode: 'HTML' },
+    );
+  }
 }

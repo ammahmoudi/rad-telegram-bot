@@ -16,6 +16,16 @@ export type PlankaTokenRecord = {
   updatedAt: number;
 };
 
+export type RastarTokenRecord = {
+  telegramUserId: string;
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: number;
+  userId: string;
+  email: string;
+  updatedAt: number;
+};
+
 export function getDb(): never {
   throw new Error('getDb() removed: use Prisma-based helpers (async).');
 }
@@ -141,6 +151,86 @@ export async function listPlankaTokens(): Promise<PlankaTokenListItem[]> {
   return rows.map((r) => ({
     telegramUserId: r.telegramUserId,
     plankaBaseUrl: r.plankaBaseUrl,
+    updatedAt: Number(r.updatedAt),
+  }));
+}
+
+// ============================================================================
+// Rastar Token Management
+// ============================================================================
+
+export async function upsertRastarToken(
+  telegramUserId: string,
+  accessToken: string,
+  refreshToken: string,
+  expiresAt: number,
+  userId: string,
+  email: string,
+): Promise<void> {
+  const updatedAt = Date.now();
+  const accessTokenEnc = encryptString(accessToken);
+  const refreshTokenEnc = encryptString(refreshToken);
+
+  await getPrisma().rastarToken.upsert({
+    where: { telegramUserId },
+    create: {
+      telegramUserId,
+      accessTokenEnc,
+      refreshTokenEnc,
+      expiresAt: BigInt(expiresAt),
+      userId,
+      email,
+      updatedAt: BigInt(updatedAt),
+    },
+    update: {
+      accessTokenEnc,
+      refreshTokenEnc,
+      expiresAt: BigInt(expiresAt),
+      userId,
+      email,
+      updatedAt: BigInt(updatedAt),
+    },
+  });
+}
+
+export async function getRastarToken(telegramUserId: string): Promise<RastarTokenRecord | null> {
+  const row = await getPrisma().rastarToken.findUnique({ where: { telegramUserId } });
+  if (!row) return null;
+
+  return {
+    telegramUserId: row.telegramUserId,
+    accessToken: decryptString(row.accessTokenEnc),
+    refreshToken: decryptString(row.refreshTokenEnc),
+    expiresAt: Number(row.expiresAt),
+    userId: row.userId,
+    email: row.email,
+    updatedAt: Number(row.updatedAt),
+  };
+}
+
+export async function deleteRastarToken(telegramUserId: string): Promise<boolean> {
+  try {
+    await getPrisma().rastarToken.delete({ where: { telegramUserId } });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export type RastarTokenListItem = {
+  telegramUserId: string;
+  email: string;
+  updatedAt: number;
+};
+
+export async function listRastarTokens(): Promise<RastarTokenListItem[]> {
+  const rows = await getPrisma().rastarToken.findMany({
+    select: { telegramUserId: true, email: true, updatedAt: true },
+    orderBy: { updatedAt: 'desc' },
+  });
+  return rows.map((r: any) => ({
+    telegramUserId: r.telegramUserId,
+    email: r.email,
     updatedAt: Number(r.updatedAt),
   }));
 }

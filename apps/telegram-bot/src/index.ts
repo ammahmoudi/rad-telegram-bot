@@ -19,6 +19,9 @@ import {
   handleNewChatCommand,
   handleHistoryCommand,
   handleClearChatCommand,
+  handleLinkRastarCommand,
+  handleRastarStatusCommand,
+  handleRastarUnlinkCommand,
 } from './handlers/commands.js';
 import { handleAiMessage } from './handlers/ai-message.js';
 
@@ -35,9 +38,18 @@ const bot = new Bot(TELEGRAM_BOT_TOKEN);
 
 // Command handlers
 bot.command('start', handleStartCommand);
+
+// Planka commands
 bot.command('link_planka', handleLinkPlankaCommand);
 bot.command('planka_status', handlePlankaStatusCommand);
 bot.command('planka_unlink', handlePlankaUnlinkCommand);
+
+// Rastar commands
+bot.command('link_rastar', handleLinkRastarCommand);
+bot.command('rastar_status', handleRastarStatusCommand);
+bot.command('rastar_unlink', handleRastarUnlinkCommand);
+
+// Chat commands
 bot.command('new_chat', handleNewChatCommand);
 bot.command('history', handleHistoryCommand);
 bot.command('clear_chat', handleClearChatCommand);

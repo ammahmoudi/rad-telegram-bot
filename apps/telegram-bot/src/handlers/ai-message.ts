@@ -10,10 +10,12 @@ import {
 } from '@rastar/shared';
 import type { ChatCompletionTool } from 'openai/resources/chat/completions';
 import { executeMcpTool } from '../planka-tools.js';
+import { executeRastarTool } from '../rastar-tools.js';
 import { getAiClient } from '../services/ai-client.js';
 import { getAiTools } from '../services/tools-manager.js';
 import { SYSTEM_PROMPT } from '../config/system-prompt.js';
 import { markdownToTelegramHtml, formatToolName, formatToolArgs } from '../utils/formatting.js';
+import { splitHtmlSafely } from '../utils/html-splitter.js';
 import { LOADING_FRAMES, type ReasoningStep } from '../types/streaming.js';
 import { handleStreamingResponse } from './message-streaming.js';
 import { buildFinalResponse, buildEmptySearchNotification } from '../services/response-builder.js';
@@ -310,11 +312,22 @@ export async function handleAiMessage(ctx: Context) {
             }
           }
           
-          const toolResult = await executeMcpTool(
-            telegramUserId,
-            mcpToolName,
-            JSON.parse(toolCall.arguments),
-          );
+          // Route tool calls based on prefix
+          let toolResult;
+          if (mcpToolName.startsWith('rastar.')) {
+            toolResult = await executeRastarTool(
+              telegramUserId,
+              mcpToolName,
+              JSON.parse(toolCall.arguments),
+            );
+          } else {
+            // Default to Planka for backward compatibility
+            toolResult = await executeMcpTool(
+              telegramUserId,
+              mcpToolName,
+              JSON.parse(toolCall.arguments),
+            );
+          }
 
           const resultContent = toolResult.success
             ? toolResult.content
@@ -556,13 +569,13 @@ export async function handleAiMessage(ctx: Context) {
     
     // Update with final content or send new messages for long content
     if (finalContent.length > 4000) {
-      // Delete the streaming message and send chunks
+      // Delete the streaming message and send chunks with safe HTML splitting
       try {
         await ctx.api.deleteMessage(sentMessage.chat.id, sentMessage.message_id);
       } catch (delError) {
         console.log('[telegram-bot] Could not delete message, continuing...');
       }
-      const chunks = finalContent.match(/.{1,4000}/gs) || [];
+      const chunks = splitHtmlSafely(finalContent, 4000);
       for (const chunk of chunks) {
         await ctx.reply(chunk, { parse_mode: 'HTML' });
       }

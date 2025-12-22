@@ -63,8 +63,10 @@ export async function POST(request: Request) {
       }
     }
 
-    // Redirect back to home page
-    return NextResponse.redirect(new URL('/', request.url));
+    // Redirect back to home page with success parameter
+    const url = new URL('/', request.url);
+    url.searchParams.set('success', 'config-updated');
+    return NextResponse.redirect(url);
   } catch (error) {
     console.error('Failed to update config:', error);
     return NextResponse.json({ error: 'Failed to update configuration' }, { status: 500 });

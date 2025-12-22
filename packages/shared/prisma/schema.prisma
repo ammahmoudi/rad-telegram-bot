@@ -22,6 +22,16 @@ model PlankaToken {
   updatedAt       BigInt
 }
 
+model RastarToken {
+  telegramUserId  String @id
+  accessTokenEnc  String
+  refreshTokenEnc String
+  expiresAt       BigInt
+  userId          String  // Rastar user ID
+  email           String
+  updatedAt       BigInt
+}
+
 model SystemConfig {
   key   String @id
   value String

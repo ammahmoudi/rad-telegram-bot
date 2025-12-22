@@ -8,7 +8,15 @@ dotenv.config({ path: path.join(repoRoot, '.env') });
 
 import express from 'express';
 
-import { consumeLinkState, getSystemConfig, peekLinkState, upsertPlankaToken } from '@rastar/shared';
+import { 
+  consumeLinkState, 
+  getSystemConfig, 
+  peekLinkState, 
+  upsertPlankaToken,
+  upsertRastarToken,
+  storeRastarTokenResponse,
+  type RastarTokenResponse,
+} from '@rastar/shared';
 
 const PORT = Number(process.env.LINK_PORTAL_PORT || 8787);
 
@@ -347,6 +355,9 @@ app.post('/link/planka', async (req, res) => {
     return;
   }
 
+  // Check if already linked
+  const existingToken = await getPlankaToken(link.telegramUserId);
+
   // Get base URL from system config
   const baseUrl = (await getSystemConfig('PLANKA_BASE_URL')) || 'https://pm-dev.rastar.dev';
 
@@ -355,12 +366,19 @@ app.post('/link/planka', async (req, res) => {
     await upsertPlankaToken(link.telegramUserId, normalizeBaseUrl(baseUrl), token);
 
     const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'your_bot';
+    const isRelink = !!existingToken;
+    
     await sendTelegramMessage(
       link.telegramUserId,
-      `✅ <b>Planka Account Linked!</b>\n\n` +
-      `Your Planka account has been successfully connected.\n` +
-      `Base URL: ${escapeHtml(normalizeBaseUrl(baseUrl))}\n\n` +
-      `Use /planka_status to check your connection anytime.`,
+      isRelink
+        ? `✅ <b>Planka Account Re-linked!</b>\n\n` +
+          `Your Planka connection has been updated.\n` +
+          `Base URL: ${escapeHtml(normalizeBaseUrl(baseUrl))}\n\n` +
+          `Use /planka_status to verify your connection.`
+        : `✅ <b>Planka Account Linked!</b>\n\n` +
+          `Your Planka account has been successfully connected.\n` +
+          `Base URL: ${escapeHtml(normalizeBaseUrl(baseUrl))}\n\n` +
+          `Use /planka_status to check your connection anytime.`,
     );
 
     res.status(200).send(`<!doctype html>
@@ -433,11 +451,12 @@ app.post('/link/planka', async (req, res) => {
         <!-- Header -->
         <div class="space-y-2">
           <h1 class="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
-            Successfully linked!
+            ${isRelink ? 'Successfully re-linked!' : 'Successfully linked!'}
           </h1>
           <p class="text-sm text-slate-500 dark:text-slate-400">
-            Your Planka account has been connected to Telegram.<br>
-            You can now close this page and return to the bot.
+            ${isRelink 
+              ? 'Your Planka connection has been updated.<br>You can now close this page and return to the bot.' 
+              : 'Your Planka account has been connected to Telegram.<br>You can now close this page and return to the bot.'}
           </p>
         </div>
 
@@ -617,6 +636,85 @@ app.post('/link/planka', async (req, res) => {
   }
 });
 
+// ============================================================================
+// Rastar Link Routes
+// ============================================================================
+
+app.get('/link/rastar', async (req, res) => {
+  const state = typeof req.query.state === 'string' ? req.query.state : '';
+  
+  // Notify user they're on the page (without consuming the state)
+  if (state) {
+    const linkInfo = await peekLinkState(state);
+    if (linkInfo) {
+      await sendTelegramMessage(
+        linkInfo.telegramUserId,
+        '👀 <b>Link opened!</b>\n\n' +
+        'You\'re now on the secure linking page. Enter your Rastar credentials to complete the connection.',
+        { parse_mode: 'HTML' }
+      );
+    }
+  }
+  
+  if (!state) {
+    res.status(400).send(renderErrorPage(
+      'Missing state parameter',
+      'This page must be opened from Telegram with a one-time state value.',
+      [
+        'Open Telegram and message your bot',
+        'Send the command <code>/link_rastar</code>',
+        'Tap the link the bot sends you'
+      ],
+      '/link/rastar?state=...'
+    ));
+    return;
+  }
+
+  res.send(renderRastarLinkForm(state));
+});
+
+app.post('/link/rastar', async (req, res) => {
+  const state = typeof req.body.state === 'string' ? req.body.state : '';
+  const email = typeof req.body.email === 'string' ? req.body.email : '';
+  const password = typeof req.body.password === 'string' ? req.body.password : '';
+
+  if (!state || !email || !password) {
+    res.status(400).send('Missing required fields');
+    return;
+  }
+
+  const link = await consumeLinkState(state);
+  if (!link) {
+    res.status(400).send(renderExpiredPage('rastar'));
+    return;
+  }
+
+  try {
+    const tokenResponse = await rastarLogin(email, password);
+    await storeRastarTokenResponse(link.telegramUserId, tokenResponse);
+
+    await sendTelegramMessage(
+      link.telegramUserId,
+      `✅ <b>Rastar Account Linked!</b>\n\n` +
+      `Your Rastar account has been successfully connected.\n` +
+      `Email: ${escapeHtml(email)}\n\n` +
+      `Use /rastar_status to check your connection anytime.`,
+    );
+
+    res.status(200).send(renderSuccessPage('Rastar', email));
+  } catch (error: any) {
+    await sendTelegramMessage(
+      link.telegramUserId,
+      `❌ <b>Rastar Link Failed</b>\n\n` +
+      `Could not authenticate with Rastar.\n` +
+      `Error: ${escapeHtml(error.message)}\n\n` +
+      `Please check your credentials and try again with /link_rastar`,
+    );
+
+    res.status(400).send(renderAuthErrorPage('Rastar', error.message));
+  }
+});
+
 app.listen(PORT, () => {
   // eslint-disable-next-line no-console
   console.log(`[link-portal] listening on http://localhost:${PORT}`);
@@ -651,6 +749,309 @@ async function plankaLogin(baseUrl: string, emailOrUsername: string, password: s
   }
 
   return token;
+}
+
+async function rastarLogin(email: string, password: string): Promise<RastarTokenResponse> {
+  const baseUrl = process.env.THIRD_PARTY_BASE_URL || 'https://hhryfmueyrkbnjxgjzlf.supabase.co';
+  const tokenPath = process.env.THIRD_PARTY_TOKEN_PATH || '/auth/v1/token';
+  const apiKey = process.env.THIRD_PARTY_API_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhocnlmbXVleXJrYm5qeGdqemxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk5MDMwMDYsImV4cCI6MjA1NTQ3OTAwNn0.zB6aDG8aTVqXkyguz1u35rGYlz05bDy20d5GXjhxirU';
+  const apiKeyHeader = process.env.THIRD_PARTY_API_KEY_HEADER || 'apikey';
+  const url = `${baseUrl}${tokenPath}?grant_type=password`;
+
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      [apiKeyHeader]: apiKey,
+    },
+    body: JSON.stringify({ email, password }),
+  });
+
+  if (!resp.ok) {
+    const text = await resp.text().catch(() => '');
+    throw new Error(`Rastar login failed (${resp.status}): ${text || 'Invalid credentials'}`);
+  }
+
+  return (await resp.json()) as RastarTokenResponse;
+}
+
+function renderRastarLinkForm(state: string): string {
+  return `<!doctype html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Link Rastar Account</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { darkMode: 'class' }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+    body { font-family: 'Inter', system-ui, sans-serif; }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center p-4">
+  <div class="w-full max-w-md">
+    <div class="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg p-8 space-y-6">
+      <!-- Icon -->
+      <div class="mx-auto w-12 h-12 bg-emerald-500 dark:bg-emerald-600 rounded-lg flex items-center justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+      </div>
+
+      <!-- Header -->
+      <div class="space-y-2 text-center">
+        <h1 class="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+          Link your Rastar account
+        </h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400">
+          Enter your Rastar credentials to enable food menu features in Telegram.
+        </p>
+      </div>
+
+      <!-- Form -->
+      <form method="post" action="/link/rastar" class="space-y-4" id="linkForm">
+        <input type="hidden" name="state" value="${escapeHtml(state)}" />
+        
+        <div class="space-y-2">
+          <label for="email" class="block text-sm font-medium text-slate-700 dark:text-slate-300">
+            Email
+          </label>
+          <input 
+            type="email" 
+            id="email" 
+            name="email" 
+            required
+            placeholder="you@company.com"
+            class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-600 focus:border-transparent transition"
+          />
+        </div>
+
+        <div class="space-y-2">
+          <label for="password" class="block text-sm font-medium text-slate-700 dark:text-slate-300">
+            Password
+          </label>
+          <input 
+            type="password" 
+            id="password" 
+            name="password" 
+            required
+            placeholder="Enter your password"
+            class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-600 focus:border-transparent transition"
+          />
+        </div>
+
+        <button 
+          type="submit"
+          class="w-full rounded-lg bg-emerald-500 dark:bg-emerald-600 px-4 py-3 text-sm font-medium text-white hover:bg-emerald-600 dark:hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-slate-950 transition-all active:scale-[0.98]"
+        >
+          Link Account
+        </button>
+      </form>
+
+      <!-- Security Note -->
+      <div class="rounded-lg border border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-950/30 p-4">
+        <div class="flex items-start gap-3 text-left">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          <div class="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+            <strong class="font-medium">Secure:</strong> Your credentials are transmitted securely and only used to obtain an access token. Your password is never stored.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+function renderErrorPage(title: string, message: string, steps: string[], exampleUrl: string): string {
+  const stepsHtml = steps.map((step, i) => `
+    <li class="flex gap-2">
+      <span class="flex-shrink-0 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-medium">${i + 1}</span>
+      <span>${step}</span>
+    </li>
+  `).join('');
+
+  return `<!doctype html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${escapeHtml(title)}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' }</script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+    body { font-family: 'Inter', system-ui, sans-serif; }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center p-4">
+  <div class="w-full max-w-md">
+    <div class="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg p-8 space-y-6">
+      <div class="mx-auto w-12 h-12 bg-amber-500 dark:bg-amber-600 rounded-lg flex items-center justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+      </div>
+      <div class="space-y-2 text-center">
+        <h1 class="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">${escapeHtml(title)}</h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400">${escapeHtml(message)}</p>
+      </div>
+      <div class="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-4">
+        <h2 class="text-sm font-medium text-slate-900 dark:text-slate-50 mb-3">How to link your account:</h2>
+        <ol class="space-y-2 text-sm text-slate-600 dark:text-slate-400">${stepsHtml}</ol>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+function renderExpiredPage(service: string): string {
+  return `<!doctype html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Link Expired</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' }</script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+    body { font-family: 'Inter', system-ui, sans-serif; }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center p-4">
+  <div class="w-full max-w-md">
+    <div class="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg p-8 space-y-6">
+      <div class="mx-auto w-12 h-12 bg-amber-500 dark:bg-amber-600 rounded-lg flex items-center justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+      </div>
+      <div class="space-y-2 text-center">
+        <h1 class="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">Link expired</h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400">This link is no longer valid. Links expire after 10 minutes or once used.</p>
+      </div>
+      <div class="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-4">
+        <h2 class="text-sm font-medium text-slate-900 dark:text-slate-50 mb-3">To get a new link:</h2>
+        <ol class="space-y-2 text-sm text-slate-600 dark:text-slate-400">
+          <li class="flex gap-2">
+            <span class="flex-shrink-0 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-medium">1</span>
+            <span>Go back to Telegram</span>
+          </li>
+          <li class="flex gap-2">
+            <span class="flex-shrink-0 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-medium">2</span>
+            <span>Send <code class="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-slate-50 font-mono text-xs">/link_${service}</code> again</span>
+          </li>
+          <li class="flex gap-2">
+            <span class="flex-shrink-0 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-medium">3</span>
+            <span>Click the new link within 10 minutes</span>
+          </li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+function renderSuccessPage(serviceName: string, identifier: string): string {
+  return `<!doctype html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Account Linked</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' }</script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .animate-check { animation: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+    @keyframes scaleIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center p-4">
+  <div class="w-full max-w-md">
+    <div class="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg p-8 space-y-6">
+      <div class="mx-auto w-16 h-16 bg-emerald-500 dark:bg-emerald-600 rounded-full flex items-center justify-center animate-check">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </div>
+      <div class="space-y-2 text-center">
+        <h1 class="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">Successfully linked!</h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400">Your ${escapeHtml(serviceName)} account is now connected.</p>
+      </div>
+      <div class="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-4">
+        <div class="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Linked account:</div>
+        <div class="text-base font-mono text-slate-900 dark:text-slate-50 break-all">${escapeHtml(identifier)}</div>
+      </div>
+      <div class="text-center text-sm text-slate-500 dark:text-slate-400">
+        You can now close this page and return to Telegram.
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+function renderAuthErrorPage(serviceName: string, errorMessage: string): string {
+  return `<!doctype html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Authentication Failed</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' }</script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+    body { font-family: 'Inter', system-ui, sans-serif; }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center p-4">
+  <div class="w-full max-w-md">
+    <div class="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg p-8 space-y-6">
+      <div class="mx-auto w-12 h-12 bg-red-500 dark:bg-red-600 rounded-lg flex items-center justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="15" y1="9" x2="9" y2="15"></line>
+          <line x1="9" y1="9" x2="15" y2="15"></line>
+        </svg>
+      </div>
+      <div class="space-y-2 text-center">
+        <h1 class="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">Authentication failed</h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400">Could not authenticate with ${escapeHtml(serviceName)}.</p>
+      </div>
+      <div class="rounded-lg border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 p-4">
+        <div class="text-sm text-red-700 dark:text-red-300">${escapeHtml(errorMessage)}</div>
+      </div>
+      <div class="pt-2">
+        <a 
+          href="javascript:history.back()"
+          class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-slate-950 transition-all active:scale-[0.98]"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+          Try Again
+        </a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
 }
 
 function normalizeBaseUrl(input: string): string {

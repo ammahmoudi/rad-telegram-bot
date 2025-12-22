@@ -181,5 +181,20 @@ export async function initializeMcpServers(): Promise<void> {
     },
   });
 
+  // Connect to Rastar MCP server
+  const rastarServerPath = path.join(repoRoot, 'packages/mcp-rastar/src/index.ts');
+  
+  console.log('[MCP] Rastar server path:', rastarServerPath);
+  console.log('[MCP] Connecting to Rastar MCP server...');
+
+  await manager.connect({
+    name: 'rastar',
+    command: 'tsx',
+    args: [rastarServerPath],
+    env: {
+      NODE_ENV: process.env.NODE_ENV || 'development',
+    },
+  });
+
   console.log('[MCP] All servers initialized');
 }
