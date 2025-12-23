@@ -299,11 +299,19 @@ export async function handleAiMessage(ctx: Context) {
               tempToolsDisplay += toolCallsDisplay.map(t => `  ${t}`).join('\n') + '\n';
               tempToolsDisplay += `\n💭 <i>Executing ${toolDisplayName.replace('🔧 ', '')}...</i> ${loadingEmoji}`;
               
+              // Ensure total content doesn't exceed Telegram's limit
+              let tempContent = tempReasoningDisplay + tempToolsDisplay;
+              if (tempContent.length > 4000) {
+                // Truncate using safe HTML splitting
+                const chunks = splitHtmlSafely(tempContent, 4000);
+                tempContent = chunks[0];
+              }
+              
               try {
                 await ctx.api.editMessageText(
                   sentMessage.chat.id,
                   sentMessage.message_id,
-                  tempReasoningDisplay + tempToolsDisplay,
+                  tempContent,
                   { parse_mode: 'HTML' }
                 );
               } catch (editError: any) {
@@ -385,8 +393,16 @@ export async function handleAiMessage(ctx: Context) {
         }
         
         const displayContent = reasoningDisplay + toolsDisplay + `\n💭 <i>Analyzing results...</i> ${loadingEmoji}`;
+        
+        // Ensure content doesn't exceed Telegram's limit
+        let safeDisplayContent = displayContent;
+        if (displayContent.length > 4000) {
+          const chunks = splitHtmlSafely(displayContent, 4000);
+          safeDisplayContent = chunks[0];
+        }
+        
         try {
-          await ctx.api.editMessageText(sentMessage.chat.id, sentMessage.message_id, displayContent, { parse_mode: 'HTML' });
+          await ctx.api.editMessageText(sentMessage.chat.id, sentMessage.message_id, safeDisplayContent, { parse_mode: 'HTML' });
         } catch (error: any) {
           if (!error?.description?.includes('message is not modified')) {
             console.error('[telegram-bot] Failed to update message:', error.message);

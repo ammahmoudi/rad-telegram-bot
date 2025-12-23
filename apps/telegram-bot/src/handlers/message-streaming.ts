@@ -4,6 +4,7 @@ import type { OpenRouterClient, ChatMessage } from '@rastar/shared';
 import type { ChatCompletionTool } from 'openai/resources/chat/completions';
 import type { ReasoningStep } from '../types/streaming.js';
 import { markdownToTelegramHtml, formatToolName } from '../utils/formatting.js';
+import { splitHtmlSafely } from '../utils/html-splitter.js';
 import { LOADING_FRAMES } from '../types/streaming.js';
 
 /**
@@ -69,6 +70,42 @@ export async function handleStreamingResponse(
       content += markdownToTelegramHtml(finalResponse);
     } else if (!reasoningActive && toolCallsDisplay.length === 0) {
       content += '💭 <i>Generating response...</i>';
+    }
+    
+    // Check if content exceeds Telegram's limit (4096 chars)
+    // Use a safety margin to prevent truncation during streaming
+    if (content.length > 4000) {
+      // Truncate the final response part to fit within limit
+      const overflowBy = content.length - 4000;
+      const maxFinalResponseLength = Math.max(0, markdownToTelegramHtml(finalResponse).length - overflowBy - 100);
+      
+      // Rebuild content with truncated response
+      content = '';
+      if (reasoningActive && reasoningText) {
+        content += '🧠 <b>Reasoning...</b>\n\n';
+        const formattedReasoning = markdownToTelegramHtml(reasoningText);
+        content += '<blockquote>' + formattedReasoning.substring(0, 500) + '</blockquote>\n\n';
+      } else if (reasoningActive) {
+        content += '🧠 <i>Reasoning...</i>\n\n';
+      }
+      
+      if (toolCallsDisplay.length > 0) {
+        content += '<b>🛠️ Tools in use:</b>\n';
+        content += toolCallsDisplay.map(t => `  ${t}`).join('\n');
+        content += '\n\n';
+      }
+      
+      if (finalResponse) {
+        const formattedResponse = markdownToTelegramHtml(finalResponse);
+        // Use splitHtmlSafely and take only the first chunk
+        const chunks = splitHtmlSafely(formattedResponse, maxFinalResponseLength);
+        content += chunks[0];
+        if (chunks.length > 1) {
+          content += '\n\n<i>... (message continues)</i>';
+        }
+      } else if (!reasoningActive && toolCallsDisplay.length === 0) {
+        content += '💭 <i>Generating response...</i>';
+      }
     }
     
     try {
