@@ -1,0 +1,9 @@
+dist/
+node_modules/
+.env
+.env.test
+.env.local
+*.log
+api-schemas.json
+coverage/
+.nyc_output/

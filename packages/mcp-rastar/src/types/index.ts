@@ -33,7 +33,7 @@ export interface UserMenuSelection {
   user_id: string;
   menu_schedule_id: string;
   created_at: string;
-  menu_schedule: {
+  menu_schedule?: {
     id: string;
     date: string;
     menu_item: MenuItem;

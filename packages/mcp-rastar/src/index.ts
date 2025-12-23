@@ -1,4 +1,21 @@
 #!/usr/bin/env node
+
+// ==================== EXPORTS FOR LIBRARY USAGE ====================
+// Export raw API functions
+export * from './api/auth.js';
+export * from './api/menu.js';
+
+// Export high-level helper functions (recommended for most use cases)
+export * from './api/menu-helpers.js';
+
+// Export types
+export * from './types/index.js';
+export * from './types/menu-helpers.js';
+
+// Export utilities
+export * from './utils/date-helpers.js';
+
+// ==================== MCP SERVER ====================
 import dotenv from 'dotenv';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
