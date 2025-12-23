@@ -262,7 +262,12 @@ export async function handleAiMessage(ctx: Context) {
 
         // Execute tools
         for (const toolCall of response.toolCalls) {
-          const mcpToolName = toolCall.name.replace(/_/g, '.');
+          // Convert tool name from OpenAI format (rastar_menu_get_today) to MCP format (rastar.menu.get_today)
+          // Only convert the first two underscores to dots (namespace.category.method_name)
+          const parts = toolCall.name.split('_');
+          const mcpToolName = parts.length >= 3 
+            ? `${parts[0]}.${parts[1]}.${parts.slice(2).join('_')}`
+            : toolCall.name.replace(/_/g, '.');
           
           // Track tool for summary AND display
           if (!activeTools.has(toolCall.name)) {

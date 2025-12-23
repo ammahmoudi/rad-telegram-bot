@@ -28,21 +28,31 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
+  ListPromptsRequestSchema,
+  GetPromptRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 
 import { authTools, menuTools, handleToolCall } from './tools/index.js';
+import { menuResources, handleReadResource } from './resources/index.js';
+import { prompts, handleGetPrompt } from './prompts/index.js';
 
 const server = new Server(
-  { name: 'rastar-mcp-rastar', version: '0.1.0' },
+  { name: 'rastar-mcp-rastar', version: '0.2.0' },
   {
     capabilities: {
       tools: {},
+      resources: {},
+      prompts: {},
     },
   },
 );
 
 const tools = [...authTools, ...menuTools];
+const resources = [...menuResources];
 
+// Tools handler
 server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools }));
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
@@ -66,6 +76,28 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       ],
       isError: true,
     };
+  }
+});
+
+// Resources handler
+server.setRequestHandler(ListResourcesRequestSchema, async () => ({ resources }));
+
+server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+  try {
+    return await handleReadResource(request);
+  } catch (error: any) {
+    throw new Error(`Failed to read resource: ${error.message}`);
+  }
+});
+
+// Prompts handler
+server.setRequestHandler(ListPromptsRequestSchema, async () => ({ prompts }));
+
+server.setRequestHandler(GetPromptRequestSchema, async (request) => {
+  try {
+    return handleGetPrompt(request);
+  } catch (error: any) {
+    throw new Error(`Failed to get prompt: ${error.message}`);
   }
 });
 

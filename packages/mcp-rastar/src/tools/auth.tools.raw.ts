@@ -1,7 +1,3 @@
-/**
- * Authentication tools
- */
-
 export const authTools = [
   {
     name: 'rastar.auth.refresh',
@@ -12,7 +8,7 @@ export const authTools = [
       properties: {
         refreshToken: {
           type: 'string',
-          description: 'Refresh token from previous authentication',
+          description: 'Refresh token from previous login',
         },
       },
     },
