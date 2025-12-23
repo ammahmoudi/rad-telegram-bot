@@ -24,7 +24,8 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.7.0",
     "@rastar/shared": "*",
-    "dotenv": "^16.4.7"
+    "dotenv": "^16.4.7",
+    "i18next": "^25.7.3"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

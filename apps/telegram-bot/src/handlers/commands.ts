@@ -1,4 +1,5 @@
 import type { Context } from 'grammy';
+import { Keyboard, InlineKeyboard } from 'grammy';
 import {
   getPlankaToken,
   deletePlankaToken,
@@ -7,9 +8,20 @@ import {
   createLinkState,
   createNewChatSession,
   listUserSessions,
+  getUserLanguage,
 } from '@rastar/shared';
 import { getAiClient } from '../services/ai-client.js';
 import { stripTrailingSlash } from '../utils/formatting.js';
+import { getUserI18n } from '../i18n.js';
+import {
+  getMainMenuKeyboard,
+  getPlankaConnectedKeyboard,
+  getPlankaNotConnectedKeyboard,
+  getPlankaExpiredKeyboard,
+  getRastarConnectedKeyboard,
+  getRastarNotConnectedKeyboard,
+  getRastarExpiredKeyboard,
+} from './keyboards.js';
 
 const LINK_PORTAL_BASE_URL = process.env.LINK_PORTAL_BASE_URL || 'http://localhost:8787';
 
@@ -19,9 +31,14 @@ const LINK_PORTAL_BASE_URL = process.env.LINK_PORTAL_BASE_URL || 'http://localho
 export async function handleStartCommand(ctx: Context) {
   console.log('[telegram-bot] /start', { fromId: ctx.from?.id, username: ctx.from?.username });
   
+  const telegramUserId = String(ctx.from?.id ?? '');
+  const language = await getUserLanguage(telegramUserId);
   const name = ctx.from?.first_name || 'there';
   const client = await getAiClient();
   const hasAI = client !== null;
+  
+  // Build reply keyboard with user's language
+  const keyboard = getMainMenuKeyboard(language);
   
   await ctx.reply(
     [
@@ -55,8 +72,10 @@ export async function handleStartCommand(ctx: Context) {
       hasAI
         ? 'Just send me a message to start chatting! I can help you with Planka tasks once you connect your account with /link_planka'
         : 'Start by running /link_planka to connect your account!',
+      '',
+      '⌨️ <b>Quick Access:</b> Use the buttons below to quickly access common features!',
     ].join('\n'),
-    { parse_mode: 'HTML' },
+    { parse_mode: 'HTML', reply_markup: keyboard },
   );
 }
 
@@ -72,42 +91,24 @@ export async function handleLinkPlankaCommand(ctx: Context) {
 
   console.log('[telegram-bot] /link_planka', { telegramUserId });
 
+  const language = await getUserLanguage(telegramUserId);
+  const t = getUserI18n(language);
+  
   // Check if already linked
   const existingToken = await getPlankaToken(telegramUserId);
   if (existingToken) {
-    // Check token expiry
-    const now = Date.now();
-    const expiresIn = Math.max(0, existingToken.expiresAt - now);
-    const expiresInHours = Math.floor(expiresIn / (1000 * 60 * 60));
-    
-    // Token is expired
-    if (expiresIn <= 0) {
-      await ctx.reply(
-        [
-          '⚠️ <b>Token Expired</b>',
-          '',
-          'Your Planka access token has expired.',
-          '',
-          '🔄 Please re-link your account:',
-          '1. Run /planka_unlink',
-          '2. Then run /link_planka again',
-        ].join('\n'),
-        { parse_mode: 'HTML' },
-      );
-      return;
-    }
-    
+    const keyboard = getPlankaConnectedKeyboard(language);
     await ctx.reply(
       [
-        '✅ Your Planka account is already linked!',
+        t('planka.already_linked'),
         '',
-        `Base URL: ${existingToken.plankaBaseUrl}`,
-        `Token expires in: ${expiresInHours} hours`,
+        t('planka.base_url', { url: existingToken.plankaBaseUrl }),
         '',
-        '💡 To re-link your account:',
-        '1. First run /planka_unlink',
-        '2. Then run /link_planka again',
+        t('planka.relink_instructions'),
+        t('planka.step1'),
+        t('planka.step2'),
       ].join('\n'),
+      { reply_markup: keyboard },
     );
     return;
   }
@@ -117,27 +118,29 @@ export async function handleLinkPlankaCommand(ctx: Context) {
 
   console.log('[telegram-bot] /planka_link - generated URL:', linkUrl);
 
+  const keyboard = getPlankaNotConnectedKeyboard(language);
   await ctx.reply(
     [
-      '🔗 <b>Link Your Planka Account</b>',
+      t('planka.link_title'),
       '',
-      '1️⃣ Click the link below (or copy and paste in browser):',
-      `<a href="${linkUrl}">Open Secure Link Portal</a>`,
+      t('planka.link_step1'),
+      `<a href="${linkUrl}">${t('planka.link_portal')}</a>`,
       '',
-      '📋 Or copy this URL:',
+      t('planka.link_copy'),
       `<code>${linkUrl}</code>`,
       '',
-      '2️⃣ Enter your Planka credentials',
-      '3️⃣ Return here after successful linking',
+      t('planka.link_step2'),
+      t('planka.link_step3'),
       '',
-      '⏱️ This link expires in 10 minutes',
-      '🔒 Your password is never stored - only used to get an access token',
+      t('planka.link_expires'),
+      t('planka.link_security'),
       '',
-      '💡 <i>Note: Localhost links may not be clickable - use the URL above</i>',
+      `💡 <i>${t('planka.link_localhost_note')}</i>`,
     ].join('\n'),
     { 
       parse_mode: 'HTML',
-      link_preview_options: { is_disabled: true }
+      link_preview_options: { is_disabled: true },
+      reply_markup: keyboard
     },
   );
 }
@@ -154,58 +157,39 @@ export async function handlePlankaStatusCommand(ctx: Context) {
 
   console.log('[telegram-bot] /planka_status', { telegramUserId });
 
+  const language = await getUserLanguage(telegramUserId);
+  const t = getUserI18n(language);
   const token = await getPlankaToken(telegramUserId);
+  
   if (!token) {
+    const keyboard = getPlankaNotConnectedKeyboard(language);
+    
     await ctx.reply(
       [
-        '❌ <b>Not Connected</b>',
+        t('planka.not_connected'),
         '',
-        'Your Planka account is not linked yet.',
+        t('planka.not_connected_message'),
         '',
-        '🔗 Run /link_planka to connect your account',
+        t('planka.connect_instruction'),
       ].join('\n'),
-      { parse_mode: 'HTML' },
+      { parse_mode: 'HTML', reply_markup: keyboard },
     );
     return;
   }
 
-  // Check token expiry
-  const now = Date.now();
-  const expiresIn = Math.max(0, token.expiresAt - now);
-  const expiresInHours = Math.floor(expiresIn / (1000 * 60 * 60));
-  const expiresInMinutes = Math.floor((expiresIn % (1000 * 60 * 60)) / (1000 * 60));
-
-  // Token is expired
-  if (expiresIn <= 0) {
-    await ctx.reply(
-      [
-        '⚠️ <b>Token Expired</b>',
-        '',
-        `🌐 Base URL: <code>${token.plankaBaseUrl}</code>`,
-        '',
-        '❌ Your access token has expired and can no longer be used.',
-        '',
-        '🔄 <b>To reconnect:</b>',
-        '1. Run /planka_unlink to remove the expired token',
-        '2. Then run /link_planka to get a new token',
-      ].join('\n'),
-      { parse_mode: 'HTML' },
-    );
-    return;
-  }
+  const keyboard = getPlankaConnectedKeyboard(language);
 
   await ctx.reply(
     [
-      '✅ <b>Connected</b>',
+      t('planka.connected'),
       '',
-      `🌐 Base URL: <code>${token.plankaBaseUrl}</code>`,
-      `⏰ Token expires in: ${expiresInHours}h ${expiresInMinutes}m`,
+      `🌐 ${t('planka.base_url', { url: token.plankaBaseUrl })}`,
       '',
-      '💡 You can now use Planka commands in this bot',
+      t('planka.can_use'),
       '',
-      'To disconnect: /planka_unlink',
+      t('planka.disconnect_command'),
     ].join('\n'),
-    { parse_mode: 'HTML' },
+    { parse_mode: 'HTML', reply_markup: keyboard },
   );
 }
 
@@ -221,23 +205,26 @@ export async function handlePlankaUnlinkCommand(ctx: Context) {
 
   console.log('[telegram-bot] /planka_unlink', { telegramUserId });
 
+  const language = await getUserLanguage(telegramUserId);
+  const t = getUserI18n(language);
   const removed = await deletePlankaToken(telegramUserId);
   
+  const keyboard = getPlankaNotConnectedKeyboard(language);
   if (removed) {
     await ctx.reply(
       [
-        '✅ <b>Account Unlinked</b>',
+        t('planka.unlinked'),
         '',
-        'Your Planka account has been disconnected.',
+        t('planka.unlinked_message'),
         '',
-        '🔗 Run /link_planka to connect again',
+        t('planka.connect_instruction'),
       ].join('\n'),
-      { parse_mode: 'HTML' },
+      { parse_mode: 'HTML', reply_markup: keyboard },
     );
   } else {
     await ctx.reply(
       [
-        'ℹ️ <b>No Account Linked</b>',
+        t('planka.no_account'),
         '',
         'There was no Planka account connected to unlink.',
         '',
@@ -354,6 +341,9 @@ export async function handleLinkRastarCommand(ctx: Context) {
 
   console.log('[telegram-bot] /link_rastar', { telegramUserId });
 
+  const language = await getUserLanguage(telegramUserId);
+  const t = getUserI18n(language);
+  
   // Check if already linked
   const existingToken = await getRastarToken(telegramUserId);
   if (existingToken) {
@@ -361,35 +351,39 @@ export async function handleLinkRastarCommand(ctx: Context) {
     const now = Date.now();
     const expiresIn = Math.max(0, existingToken.expiresAt - now);
     const expiresInHours = Math.floor(expiresIn / (1000 * 60 * 60));
+    const expiresInMinutes = Math.floor((expiresIn % (1000 * 60 * 60)) / (1000 * 60));
     
     // Token is expired
     if (expiresIn <= 0) {
+      const keyboard = getRastarExpiredKeyboard(language);
       await ctx.reply(
         [
-          '⚠️ <b>Token Expired</b>',
+          t('rastar.token_expired'),
           '',
-          'Your Rastar access token has expired.',
+          t('rastar.token_expired_message'),
           '',
-          '🔄 Please re-link your account:',
-          '1. Run /rastar_unlink',
-          '2. Then run /link_rastar again',
+          t('rastar.reconnect_title'),
+          t('rastar.reconnect_step1'),
+          t('rastar.reconnect_step2'),
         ].join('\n'),
-        { parse_mode: 'HTML' },
+        { parse_mode: 'HTML', reply_markup: keyboard },
       );
       return;
     }
     
+    const keyboard = getRastarConnectedKeyboard(language);
     await ctx.reply(
       [
-        '✅ Your Rastar account is already linked!',
+        t('rastar.already_linked'),
         '',
-        `Email: ${existingToken.email}`,
-        `Token expires in: ${expiresInHours} hours`,
+        `${t('rastar.email')}: ${existingToken.email}`,
+        t('rastar.token_expires_in', { hours: expiresInHours, minutes: expiresInMinutes }),
         '',
-        '💡 To re-link your account:',
-        '1. First run /rastar_unlink',
-        '2. Then run /link_rastar again',
+        t('rastar.relink_instructions'),
+        t('rastar.step1'),
+        t('rastar.step2'),
       ].join('\n'),
+      { reply_markup: keyboard },
     );
     return;
   }
@@ -399,27 +393,28 @@ export async function handleLinkRastarCommand(ctx: Context) {
 
   console.log('[telegram-bot] /link_rastar - generated URL:', linkUrl);
 
+  const keyboard = getRastarNotConnectedKeyboard(language);
   await ctx.reply(
     [
-      '🔗 <b>Link Your Rastar Account</b>',
+      t('rastar.link_title'),
       '',
-      '1️⃣ Click the link below (or copy and paste in browser):',
-      `<a href="${linkUrl}">Open Secure Link Portal</a>`,
+      t('rastar.link_step1'),
+      `<a href="${linkUrl}">${t('rastar.link_portal')}</a>`,
       '',
-      '📋 Or copy this URL:',
+      t('rastar.link_copy'),
       `<code>${linkUrl}</code>`,
       '',
-      '2️⃣ Enter your Rastar credentials (my.rastar.company)',
-      '3️⃣ Return here after successful linking',
+      t('rastar.link_step2'),
+      t('rastar.link_step3'),
       '',
-      '⚠️ <b>Note:</b> This link expires in 10 minutes and can only be used once.',
+      t('rastar.link_expires'),
       '',
-      '🍽️ <b>After linking, you can:</b>',
-      '• View daily food menus',
-      '• Select your lunch choices',
-      '• Manage your food selections',
+      t('rastar.after_linking'),
+      t('rastar.feature_menu'),
+      t('rastar.feature_select'),
+      t('rastar.feature_manage'),
     ].join('\n'),
-    { parse_mode: 'HTML' },
+    { parse_mode: 'HTML', reply_markup: keyboard },
   );
 }
 
@@ -435,9 +430,13 @@ export async function handleRastarStatusCommand(ctx: Context) {
 
   console.log('[telegram-bot] /rastar_status', { telegramUserId });
 
+  const language = await getUserLanguage(telegramUserId);
+  const t = getUserI18n(language);
   const token = await getRastarToken(telegramUserId);
   
   if (!token) {
+    const keyboard = getRastarNotConnectedKeyboard(language);
+    
     await ctx.reply(
       [
         '❌ <b>Rastar Not Connected</b>',
@@ -450,7 +449,7 @@ export async function handleRastarStatusCommand(ctx: Context) {
         '💡 To connect:',
         'Run /link_rastar to securely link your account',
       ].join('\n'),
-      { parse_mode: 'HTML' },
+      { parse_mode: 'HTML', reply_markup: keyboard },
     );
     return;
   }
@@ -463,6 +462,8 @@ export async function handleRastarStatusCommand(ctx: Context) {
 
   // Token is expired
   if (expiresIn <= 0) {
+    const keyboard = getRastarExpiredKeyboard(language);
+    
     await ctx.reply(
       [
         '⚠️ <b>Token Expired</b>',
@@ -476,28 +477,30 @@ export async function handleRastarStatusCommand(ctx: Context) {
         '1. Run /rastar_unlink to remove the expired token',
         '2. Then run /link_rastar to get a new token',
       ].join('\n'),
-      { parse_mode: 'HTML' },
+      { parse_mode: 'HTML', reply_markup: keyboard },
     );
     return;
   }
 
+  const keyboard = getRastarConnectedKeyboard(language);
+
   await ctx.reply(
     [
-      '✅ <b>Rastar Connected</b>',
+      t('rastar.connected'),
       '',
-      `👤 Email: ${token.email}`,
-      `🆔 User ID: ${token.userId}`,
-      `⏰ Token expires in: ${expiresInHours}h ${expiresInMinutes}m`,
+      `👤 ${t('rastar.email')}: ${token.email}`,
+      t('rastar.user_id', { userId: token.userId }),
+      t('rastar.token_expires_in', { hours: expiresInHours, minutes: expiresInMinutes }),
       '',
-      '🍽️ <b>Available Features:</b>',
-      '• View daily food menus',
-      '• Select lunch items',
-      '• Manage your selections',
+      t('rastar.available_features'),
+      t('rastar.feature_menu'),
+      t('rastar.feature_select'),
+      t('rastar.feature_manage'),
       '',
-      '💬 Just chat with me to use these features!',
-      'Example: "Show me today\'s menu" or "Select lunch option 2"',
+      t('rastar.chat_instruction'),
+      t('rastar.example'),
     ].join('\n'),
-    { parse_mode: 'HTML' },
+    { parse_mode: 'HTML', reply_markup: keyboard },
   );
 }
 
@@ -513,18 +516,22 @@ export async function handleRastarUnlinkCommand(ctx: Context) {
 
   console.log('[telegram-bot] /rastar_unlink', { telegramUserId });
 
+  const language = await getUserLanguage(telegramUserId);
+  const t = getUserI18n(language);
   const token = await getRastarToken(telegramUserId);
+  
+  const keyboard = getRastarNotConnectedKeyboard(language);
   if (!token) {
     await ctx.reply(
       [
-        'ℹ️ <b>Not Connected</b>',
+        t('rastar.not_connected'),
         '',
-        'Your Rastar account is not currently linked.',
+        t('rastar.not_connected_message'),
         '',
-        '💡 To connect:',
-        'Run /link_rastar to securely link your account',
+        t('rastar.connect_instruction'),
+        t('rastar.connect_command'),
       ].join('\n'),
-      { parse_mode: 'HTML' },
+      { parse_mode: 'HTML', reply_markup: keyboard },
     );
     return;
   }
@@ -533,24 +540,54 @@ export async function handleRastarUnlinkCommand(ctx: Context) {
   if (deleted) {
     await ctx.reply(
       [
-        '✅ <b>Rastar Disconnected</b>',
+        t('rastar.disconnected'),
         '',
-        `Account ${token.email} has been unlinked.`,
+        t('rastar.disconnected_message', { email: token.email }),
         '',
-        '🔗 To reconnect later:',
-        'Run /link_rastar to securely link your account',
+        t('rastar.reconnect_later'),
+        t('rastar.connect_command'),
       ].join('\n'),
-      { parse_mode: 'HTML' },
+      { parse_mode: 'HTML', reply_markup: keyboard },
     );
   } else {
     await ctx.reply(
       [
-        '⚠️ <b>Error</b>',
+        t('rastar.error'),
         '',
-        'Could not disconnect your Rastar account.',
-        'Please try again or contact support.',
+        t('rastar.error_message'),
+        '',
+        t('rastar.try_again'),
       ].join('\n'),
-      { parse_mode: 'HTML' },
+      { parse_mode: 'HTML', reply_markup: keyboard },
     );
   }
+}
+
+/**
+ * Handle /menu command - Show keyboard menu
+ */
+export async function handleMenuCommand(ctx: Context) {
+  const telegramUserId = String(ctx.from?.id ?? '');
+  const language = await getUserLanguage(telegramUserId);
+  const keyboard = getMainMenuKeyboard(language);
+  
+  await ctx.reply(
+    [
+      '⌨️ <b>Quick Access Menu</b>',
+      '',
+      'Use the buttons below to quickly access features:',
+      '',
+      '📊 <b>Planka Status</b> - Check Planka connection',
+      '🍽️ <b>Rastar Status</b> - Check Rastar connection',
+      '📋 <b>Today\'s Menu</b> - View food options',
+      '⚠️ <b>Unselected Days</b> - Check missing food selections',
+      '🔴 <b>Delayed Tasks</b> - View overdue Planka tasks',
+      '📂 <b>My Boards</b> - View Planka boards',
+      '💬 <b>New Chat</b> - Start fresh conversation',
+      '📚 <b>History</b> - View chat history',
+      '',
+      'Or just type your message naturally!',
+    ].join('\n'),
+    { parse_mode: 'HTML', reply_markup: keyboard },
+  );
 }

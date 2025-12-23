@@ -25,23 +25,29 @@ import { buildFinalResponse, buildEmptySearchNotification } from '../services/re
  * This is the main AI interaction handler for the Telegram bot
  */
 export async function handleAiMessage(ctx: Context) {
+  console.log('[ai-message] handleAiMessage called');
+  
   const client = await getAiClient();
   if (!client) {
+    console.log('[ai-message] No AI client, returning');
     return; // AI not configured, ignore messages
   }
 
   const text = ctx.message?.text;
   if (!text) {
+    console.log('[ai-message] No text in message, returning');
     return;
   }
   
   // Ignore commands (already handled by command handlers)
   if (text.startsWith('/')) {
+    console.log('[ai-message] Text starts with /, returning');
     return;
   }
 
   const telegramUserId = String(ctx.from?.id ?? '');
   if (!telegramUserId) {
+    console.log('[ai-message] No telegramUserId, returning');
     return;
   }
 

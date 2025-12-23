@@ -4,3 +4,4 @@ export * from './prisma.js';
 export * from './ai-chat.js';
 export * from './openrouter.js';
 export * from './rastar.js';
+export * from './user-preferences.js';

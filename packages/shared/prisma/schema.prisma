@@ -37,6 +37,12 @@ model SystemConfig {
   value String
 }
 
+model UserPreferences {
+  telegramUserId String @id
+  language       String @default("fa") // Default to Persian
+  updatedAt      BigInt
+}
+
 model ChatSession {
   id             String @id @default(cuid())
   telegramUserId String
