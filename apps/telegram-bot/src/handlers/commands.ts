@@ -75,11 +75,34 @@ export async function handleLinkPlankaCommand(ctx: Context) {
   // Check if already linked
   const existingToken = await getPlankaToken(telegramUserId);
   if (existingToken) {
+    // Check token expiry
+    const now = Date.now();
+    const expiresIn = Math.max(0, existingToken.expiresAt - now);
+    const expiresInHours = Math.floor(expiresIn / (1000 * 60 * 60));
+    
+    // Token is expired
+    if (expiresIn <= 0) {
+      await ctx.reply(
+        [
+          '⚠️ <b>Token Expired</b>',
+          '',
+          'Your Planka access token has expired.',
+          '',
+          '🔄 Please re-link your account:',
+          '1. Run /planka_unlink',
+          '2. Then run /link_planka again',
+        ].join('\n'),
+        { parse_mode: 'HTML' },
+      );
+      return;
+    }
+    
     await ctx.reply(
       [
         '✅ Your Planka account is already linked!',
         '',
         `Base URL: ${existingToken.plankaBaseUrl}`,
+        `Token expires in: ${expiresInHours} hours`,
         '',
         '💡 To re-link your account:',
         '1. First run /planka_unlink',
@@ -146,11 +169,37 @@ export async function handlePlankaStatusCommand(ctx: Context) {
     return;
   }
 
+  // Check token expiry
+  const now = Date.now();
+  const expiresIn = Math.max(0, token.expiresAt - now);
+  const expiresInHours = Math.floor(expiresIn / (1000 * 60 * 60));
+  const expiresInMinutes = Math.floor((expiresIn % (1000 * 60 * 60)) / (1000 * 60));
+
+  // Token is expired
+  if (expiresIn <= 0) {
+    await ctx.reply(
+      [
+        '⚠️ <b>Token Expired</b>',
+        '',
+        `🌐 Base URL: <code>${token.plankaBaseUrl}</code>`,
+        '',
+        '❌ Your access token has expired and can no longer be used.',
+        '',
+        '🔄 <b>To reconnect:</b>',
+        '1. Run /planka_unlink to remove the expired token',
+        '2. Then run /link_planka to get a new token',
+      ].join('\n'),
+      { parse_mode: 'HTML' },
+    );
+    return;
+  }
+
   await ctx.reply(
     [
       '✅ <b>Connected</b>',
       '',
       `🌐 Base URL: <code>${token.plankaBaseUrl}</code>`,
+      `⏰ Token expires in: ${expiresInHours}h ${expiresInMinutes}m`,
       '',
       '💡 You can now use Planka commands in this bot',
       '',
@@ -313,6 +362,23 @@ export async function handleLinkRastarCommand(ctx: Context) {
     const expiresIn = Math.max(0, existingToken.expiresAt - now);
     const expiresInHours = Math.floor(expiresIn / (1000 * 60 * 60));
     
+    // Token is expired
+    if (expiresIn <= 0) {
+      await ctx.reply(
+        [
+          '⚠️ <b>Token Expired</b>',
+          '',
+          'Your Rastar access token has expired.',
+          '',
+          '🔄 Please re-link your account:',
+          '1. Run /rastar_unlink',
+          '2. Then run /link_rastar again',
+        ].join('\n'),
+        { parse_mode: 'HTML' },
+      );
+      return;
+    }
+    
     await ctx.reply(
       [
         '✅ Your Rastar account is already linked!',
@@ -394,6 +460,26 @@ export async function handleRastarStatusCommand(ctx: Context) {
   const expiresIn = Math.max(0, token.expiresAt - now);
   const expiresInHours = Math.floor(expiresIn / (1000 * 60 * 60));
   const expiresInMinutes = Math.floor((expiresIn % (1000 * 60 * 60)) / (1000 * 60));
+
+  // Token is expired
+  if (expiresIn <= 0) {
+    await ctx.reply(
+      [
+        '⚠️ <b>Token Expired</b>',
+        '',
+        `👤 Email: ${token.email}`,
+        `🆔 User ID: ${token.userId}`,
+        '',
+        '❌ Your access token has expired and can no longer be used.',
+        '',
+        '🔄 <b>To reconnect:</b>',
+        '1. Run /rastar_unlink to remove the expired token',
+        '2. Then run /link_rastar to get a new token',
+      ].join('\n'),
+      { parse_mode: 'HTML' },
+    );
+    return;
+  }
 
   await ctx.reply(
     [
