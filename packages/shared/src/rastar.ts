@@ -36,7 +36,7 @@ export async function storeRastarTokenResponse(
     telegramUserId,
     tokenResponse.access_token,
     tokenResponse.refresh_token,
-    tokenResponse.expires_at * 1000, // Convert to milliseconds
+    tokenResponse.expires_at, // Already in milliseconds
     tokenResponse.user.id,
     tokenResponse.user.email
   );

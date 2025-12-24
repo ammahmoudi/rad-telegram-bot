@@ -19,7 +19,7 @@ import {
   type RastarTokenResponse,
 } from '@rastar/shared';
 
-const PORT = Number(process.env.LINK_PORTAL_PORT || 8787);
+const PORT = Number(process.env.PORT || 8787);
 
 const app = express();
 app.use(express.urlencoded({ extended: false }));

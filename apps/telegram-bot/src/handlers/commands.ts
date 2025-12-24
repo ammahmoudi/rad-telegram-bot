@@ -9,6 +9,7 @@ import {
   createNewChatSession,
   listUserSessions,
   getUserLanguage,
+  validatePlankaToken,
 } from '@rastar/shared';
 import { getAiClient } from '../services/ai-client.js';
 import { stripTrailingSlash } from '../utils/formatting.js';
@@ -171,6 +172,29 @@ export async function handlePlankaStatusCommand(ctx: Context) {
         t('planka.not_connected_message'),
         '',
         t('planka.connect_instruction'),
+      ].join('\n'),
+      { parse_mode: 'HTML', reply_markup: keyboard },
+    );
+    return;
+  }
+
+  // Validate that the token actually works
+  const isValid = await validatePlankaToken(telegramUserId);
+  
+  if (!isValid) {
+    const keyboard = getPlankaExpiredKeyboard(language);
+    
+    await ctx.reply(
+      [
+        '⚠️ <b>' + t('planka.token_invalid') + '</b>',
+        '',
+        `🌐 ${t('planka.base_url', { url: token.plankaBaseUrl })}`,
+        '',
+        '❌ ' + t('planka.token_invalid_message'),
+        '',
+        '🔄 <b>' + t('planka.reconnect_steps') + '</b>',
+        '1. ' + t('planka.unlink_first'),
+        '2. ' + t('planka.link_again'),
       ].join('\n'),
       { parse_mode: 'HTML', reply_markup: keyboard },
     );

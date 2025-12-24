@@ -1,0 +1,219 @@
+
+services:
+  # === Database ===
+  
+  postgres:
+    image: postgres:16-alpine
+    container_name: rastar-postgres
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_DB=rastar
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - rastar-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:
+      - "com.rastar.service=postgres"
+  
+  # === MCP Servers (Standalone) ===
+  
+  mcp-planka:
+    build:
+      context: .
+      dockerfile: ./packages/mcp-planka/Dockerfile
+    container_name: rastar-mcp-planka
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - MCP_TRANSPORT=http
+      - PORT=3100
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/rastar
+      - PLANKA_SERVER_URL=${PLANKA_SERVER_URL}
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./logs/mcp-planka:/app/logs
+    networks:
+      - rastar-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3100/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    labels:
+      - "com.rastar.service=mcp-planka"
+      - "com.rastar.version=0.1.0"
+  
+  mcp-rastar:
+    build:
+      context: .
+      dockerfile: ./packages/mcp-rastar/Dockerfile
+    container_name: rastar-mcp-rastar
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - MCP_TRANSPORT=http
+      - PORT=3101
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/rastar
+      - RASTAR_API_URL=${RASTAR_API_URL}
+      - RASTAR_USERNAME=${RASTAR_USERNAME}
+      - RASTAR_PASSWORD=${RASTAR_PASSWORD}
+    ports:
+      - "3101:3101"
+    volumes:
+      - ./logs/mcp-rastar:/app/logs
+    networks:
+      - rastar-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3101/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    labels:
+      - "com.rastar.service=mcp-rastar"
+      - "com.rastar.version=0.2.0"
+
+  # === Main Application Services ===
+  
+  # Telegram Bot Service
+  telegram-bot:
+    build:
+      context: .
+      dockerfile: ./apps/telegram-bot/Dockerfile
+    container_name: rastar-telegram-bot
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/rastar
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - DEFAULT_AI_MODEL=${DEFAULT_AI_MODEL:-anthropic/claude-3.5-sonnet}
+      - PLANKA_SERVER_URL=${PLANKA_SERVER_URL}
+      - RASTAR_API_URL=${RASTAR_API_URL}
+      - RASTAR_USERNAME=${RASTAR_USERNAME}
+      - RASTAR_PASSWORD=${RASTAR_PASSWORD}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - LINK_PORTAL_URL=${LINK_PORTAL_URL:-http://link-portal:3002}
+      # MCP Server URLs (HTTP/SSE endpoints)
+      - MCP_PLANKA_URL=http://mcp-planka:3100/sse
+      - MCP_RASTAR_URL=http://mcp-rastar:3101/sse
+    volumes:
+      - ./logs/telegram-bot:/app/logs
+    networks:
+      - rastar-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      link-portal:
+        condition: service_healthy
+      mcp-planka:
+        condition: service_healthy
+      mcp-rastar:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "com.rastar.service=telegram-bot"
+      - "com.rastar.version=1.0.0"
+
+  # Link Portal Service
+  link-portal:
+    build:
+      context: .
+      dockerfile: ./apps/link-portal/Dockerfile
+    container_name: rastar-link-portal
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3002
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/rastar
+      - RASTAR_API_URL=${RASTAR_API_URL}
+      - RASTAR_USERNAME=${RASTAR_USERNAME}
+      - RASTAR_PASSWORD=${RASTAR_PASSWORD}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+    ports:
+      - "3002:3002"
+    volumes:
+      - ./logs/link-portal:/app/logs
+    networks:
+      - rastar-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3002/healthz', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    labels:
+      - "com.rastar.service=link-portal"
+      - "com.rastar.version=1.0.0"
+
+  # Admin Panel Service
+  admin-panel:
+    build:
+      context: .
+      dockerfile: ./apps/admin-panel/Dockerfile
+    container_name: rastar-admin-panel
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/rastar
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+      - ADMIN_BASIC_AUTH_USER=${ADMIN_BASIC_AUTH_USER:-admin}
+      - ADMIN_BASIC_AUTH_PASS=${ADMIN_BASIC_AUTH_PASS}
+      - NEXT_TELEMETRY_DISABLED=1
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./logs/admin-panel:/app/logs
+    networks:
+      - rastar-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "com.rastar.service=admin-panel"
+      - "com.rastar.version=1.0.0"
+
+networks:
+  rastar-network:
+    driver: bridge
+    name: rastar-network
+
+volumes:
+  postgres-data:
+    driver: local
+    name: rastar-postgres-data
