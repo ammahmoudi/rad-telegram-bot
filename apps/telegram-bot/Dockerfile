@@ -98,5 +98,5 @@ EXPOSE 3001
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
 
-# Run migrations and start the bot
-CMD ["sh", "-c", "npx prisma migrate deploy --schema=./packages/shared/prisma/schema.prisma --config=./packages/shared/prisma.config.ts && node apps/telegram-bot/dist/index.js"]
+# Sync database schema on startup then start the app
+CMD ["sh", "-c", "cd packages/shared && npx prisma db push && cd ../.. && node apps/telegram-bot/dist/index.js"]

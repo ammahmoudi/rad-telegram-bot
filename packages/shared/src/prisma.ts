@@ -35,22 +35,42 @@ let prismaSingleton: import('@prisma/client').PrismaClient | null = null;
 export function getPrisma(): import('@prisma/client').PrismaClient {
   if (prismaSingleton) return prismaSingleton;
 
-  // Ensure DATABASE_URL exists for Prisma
-  process.env.DATABASE_URL = buildSqliteDatabaseUrl();
-
-  // Prisma ORM 7 requires an explicit driver adapter (or Accelerate).
   const { PrismaClient } = require('@prisma/client') as typeof import('@prisma/client');
-  const { PrismaBetterSqlite3 } = require('@prisma/adapter-better-sqlite3') as typeof import('@prisma/adapter-better-sqlite3');
 
-  const adapter = new PrismaBetterSqlite3({
-    url: process.env.DATABASE_URL,
-  });
+  // Check if DATABASE_URL is already set (e.g., for PostgreSQL in Docker)
+  if (!process.env.DATABASE_URL) {
+    // Use SQLite for local development
+    process.env.DATABASE_URL = buildSqliteDatabaseUrl();
+  }
 
-  prismaSingleton = new PrismaClient({
-    adapter,
-    // Minimal logging; never log secrets
-    log: process.env.PRISMA_LOG_QUERIES === 'true' ? ['warn', 'error'] : ['error'],
-  });
+  const databaseUrl = process.env.DATABASE_URL;
+
+  // Prisma 7 with library engine STILL requires adapters for all databases
+  if (databaseUrl.startsWith('postgres://') || databaseUrl.startsWith('postgresql://')) {
+    // PostgreSQL - requires @prisma/adapter-pg
+    const { PrismaPg } = require('@prisma/adapter-pg') as typeof import('@prisma/adapter-pg');
+    const pg = require('pg') as typeof import('pg');
+
+    const pool = new pg.Pool({ connectionString: databaseUrl });
+    const adapter = new PrismaPg(pool);
+
+    prismaSingleton = new PrismaClient({
+      adapter,
+      log: process.env.PRISMA_LOG_QUERIES === 'true' ? ['warn', 'error'] : ['error'],
+    });
+  } else {
+    // SQLite - requires @prisma/adapter-better-sqlite3
+    const { PrismaBetterSqlite3 } = require('@prisma/adapter-better-sqlite3') as typeof import('@prisma/adapter-better-sqlite3');
+
+    const adapter = new PrismaBetterSqlite3({
+      url: databaseUrl,
+    });
+
+    prismaSingleton = new PrismaClient({
+      adapter,
+      log: process.env.PRISMA_LOG_QUERIES === 'true' ? ['warn', 'error'] : ['error'],
+    });
+  }
 
   return prismaSingleton;
 }

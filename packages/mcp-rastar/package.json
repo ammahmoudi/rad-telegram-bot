@@ -23,8 +23,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.7.0",
     "@rastar/shared": "*",
-    "dotenv": "^16.4.7",
-    "express": "^4.21.2"
+    "dotenv": "^16.4.7"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",

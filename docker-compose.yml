@@ -26,7 +26,9 @@ services:
     labels:
       - "com.rastar.service=postgres"
   
-  # === MCP Servers (Standalone) ===
+  # === MCP Servers (Streamable HTTP) ===
+  # Using modern Streamable HTTP transport from official MCP SDK v1.x
+  # Stateless mode for simple, reliable container deployment
   
   mcp-planka:
     build:
@@ -36,7 +38,6 @@ services:
     restart: unless-stopped
     environment:
       - NODE_ENV=production
-      - MCP_TRANSPORT=http
       - PORT=3100
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/rastar
       - PLANKA_SERVER_URL=${PLANKA_SERVER_URL}
@@ -67,7 +68,6 @@ services:
     restart: unless-stopped
     environment:
       - NODE_ENV=production
-      - MCP_TRANSPORT=http
       - PORT=3101
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/rastar
       - RASTAR_API_URL=${RASTAR_API_URL}
@@ -113,9 +113,9 @@ services:
       - RASTAR_PASSWORD=${RASTAR_PASSWORD}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
       - LINK_PORTAL_URL=${LINK_PORTAL_URL:-http://link-portal:3002}
-      # MCP Server URLs (HTTP/SSE endpoints)
-      - MCP_PLANKA_URL=http://mcp-planka:3100/sse
-      - MCP_RASTAR_URL=http://mcp-rastar:3101/sse
+      # MCP Server URLs (Streamable HTTP endpoints)
+      - MCP_PLANKA_URL=http://mcp-planka:3100/mcp
+      - MCP_RASTAR_URL=http://mcp-rastar:3101/mcp
     volumes:
       - ./logs/telegram-bot:/app/logs
     networks:

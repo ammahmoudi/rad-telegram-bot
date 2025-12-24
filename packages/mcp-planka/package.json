@@ -25,7 +25,6 @@
     "@modelcontextprotocol/sdk": "^1.7.0",
     "@rastar/shared": "*",
     "dotenv": "^16.4.7",
-    "express": "^4.21.2",
     "i18next": "^25.7.3"
   },
   "devDependencies": {

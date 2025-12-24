@@ -17,34 +17,30 @@ export * from './utils/date-helpers.js';
 
 // ==================== MCP SERVER ====================
 import dotenv from 'dotenv';
-import express from 'express';
+import type { Request, Response } from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 dotenv.config({ path: path.join(repoRoot, '.env') });
 
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-  ListResourcesRequestSchema,
-  ReadResourceRequestSchema,
-  ListPromptsRequestSchema,
-  GetPromptRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
 
 import { authTools, menuTools, handleToolCall } from './tools/index.js';
 import { menuResources, handleReadResource } from './resources/index.js';
 import { prompts, handleGetPrompt } from './prompts/index.js';
 
-const tools = [...authTools, ...menuTools];
-const resources = [...menuResources];
+const allTools = [...authTools, ...menuTools];
+const allResources = [...menuResources];
 
+/**
+ * Create and configure the MCP server
+ * Using production-ready patterns from official MCP TypeScript SDK v1.x
+ */
 function createServer() {
-  const server = new Server(
+  const server = new McpServer(
     { name: 'rastar-mcp-rastar', version: '0.2.0' },
     {
       capabilities: {
@@ -55,109 +51,150 @@ function createServer() {
     },
   );
 
-  // Tools handler
-  server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools }));
+  // Register all tools using v1.x API
+  for (const tool of allTools) {
+    server.registerTool(
+      tool.name,
+      {
+        description: tool.description,
+        inputSchema: tool.inputSchema as any,
+      },
+      async (args: any) => {
+        try {
+          const result = await handleToolCall(tool.name as any, args);
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: JSON.stringify(result, null, 2),
+              },
+            ],
+          };
+        } catch (error: any) {
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: `Error: ${error.message}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+      }
+    );
+  }
 
-  server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    try {
-      const result = await handleToolCall(request.params.name, request.params.arguments || {});
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(result, null, 2),
-          },
-        ],
-      };
-    } catch (error: any) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Error: ${error.message}`,
-          },
-        ],
-        isError: true,
-      };
-    }
-  });
+  // Register all prompts
+  for (const prompt of prompts) {
+    server.registerPrompt(
+      prompt.name,
+      {
+        description: prompt.description,
+        argsSchema: prompt.arguments as any,
+      },
+      (async (args: any, _extra: any) => {
+        const result = await handleGetPrompt({ 
+          params: { 
+            name: prompt.name as any, 
+            arguments: args 
+          } 
+        } as any);
+        return result as any;
+      }) as any
+    );
+  }
 
-  // Resources handler
-  server.setRequestHandler(ListResourcesRequestSchema, async () => ({ resources }));
-
-  server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
-    try {
-      return await handleReadResource(request);
-    } catch (error: any) {
-      throw new Error(`Failed to read resource: ${error.message}`);
-    }
-  });
-
-  // Prompts handler
-  server.setRequestHandler(ListPromptsRequestSchema, async () => ({ prompts }));
-
-  server.setRequestHandler(GetPromptRequestSchema, async (request) => {
-    try {
-      return handleGetPrompt(request);
-    } catch (error: any) {
-      throw new Error(`Failed to get prompt: ${error.message}`);
-    }
-  });
+  // Register all resources
+  for (const resource of allResources) {
+    server.registerResource(
+      resource.name,
+      resource.uri,
+      {
+        description: resource.description,
+        mimeType: resource.mimeType,
+      },
+      async () => {
+        const result = await handleReadResource({ 
+          params: { 
+            uri: resource.uri 
+          } 
+        } as any);
+        return result;
+      }
+    );
+  }
 
   return server;
 }
 
-// Determine transport mode: HTTP (SSE) or stdio
-const useHttp = process.env.MCP_TRANSPORT === 'http' || process.env.NODE_ENV === 'production';
+/**
+ * Main entry point for Streamable HTTP server
+ * Uses stateless mode - ideal for containerized production deployment
+ */
+async function main() {
+  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3101;
 
-if (useHttp) {
-  // HTTP/SSE mode for Docker/network access
-  const app = express();
-  const PORT = process.env.PORT || 3101;
+  // Create Express app with DNS rebinding protection
+  // Allow connections from telegram-bot container via Docker service names
+  const app = createMcpExpressApp({ 
+    host: '0.0.0.0',
+    allowedHosts: ['mcp-rastar', 'localhost', '127.0.0.1'] 
+  });
 
-  app.use(express.json());
+  console.error('[MCP Rastar] Starting Streamable HTTP server...');
 
   // Health check endpoint
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok', service: 'mcp-rastar', version: '0.2.0' });
   });
 
-  // MCP SSE endpoint (GET for client connection)
-  app.get('/sse', async (req, res) => {
-    const server = createServer();
-    const transport = new SSEServerTransport('/message', res);
-    await server.connect(transport);
+  // Streamable HTTP endpoint (POST) - Stateless mode
+  app.post('/mcp', async (req: Request, res: Response) => {
+    try {
+      // Create a new server and transport for each request (stateless)
+      const server = createServer();
+      const transport = new StreamableHTTPServerTransport({
+        // Stateless mode - no session tracking
+        sessionIdGenerator: undefined,
+      });
+
+      await server.connect(transport);
+      await transport.handleRequest(req, res, req.body);
+    } catch (error) {
+      console.error('[MCP Rastar] Error handling request:', error);
+      if (!res.headersSent) {
+        res.status(500).json({
+          jsonrpc: '2.0',
+          error: { code: -32603, message: 'Internal server error' },
+          id: null,
+        });
+      }
+    }
   });
 
-  // MCP SSE endpoint (POST for compatibility)
-  app.post('/sse', async (req, res) => {
-    const server = createServer();
-    const transport = new SSEServerTransport('/message', res);
-    await server.connect(transport);
-  });
-
-  // Message handling endpoint
-  app.post('/message', async (req, res) => {
-    // Handle incoming MCP messages
-    res.json({ received: true });
-  });
-
+  // Start server
   app.listen(PORT, () => {
-    console.log(`MCP Rastar Server running on http://localhost:${PORT}`);
-    console.log(`Health: http://localhost:${PORT}/health`);
-    console.log(`SSE endpoint: http://localhost:${PORT}/sse`);
-  });
-} else {
-  // Stdio mode for local development/Claude Desktop
-  async function main() {
-    const server = createServer();
-    const transport = new StdioServerTransport();
-    await server.connect(transport);
-    console.error('Rastar MCP server running on stdio');
-  }
-
-  main().catch((error) => {
-    console.error('Fatal error in main():', error);
-    process.exit(1);
+    console.error(`[MCP Rastar] Streamable HTTP server running on port ${PORT}`);
+    console.error(`[MCP Rastar] Health: http://localhost:${PORT}/health`);
+    console.error(`[MCP Rastar] MCP endpoint: http://localhost:${PORT}/mcp`);
+    console.error('[MCP Rastar] Ready to handle requests');
   });
 }
+
+// Handle graceful shutdown
+process.on('SIGINT', () => {
+  console.error('[MCP Rastar] Received SIGINT, shutting down gracefully');
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  console.error('[MCP Rastar] Received SIGTERM, shutting down gracefully');
+  process.exit(0);
+});
+
+// Start the server
+main().catch((error) => {
+  console.error('[MCP Rastar] Fatal error:', error);
+  process.exit(1);
+});

@@ -1,24 +1,15 @@
 #!/usr/bin/env node
 import dotenv from 'dotenv';
-import express from 'express';
+import type { Request, Response } from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 dotenv.config({ path: path.join(repoRoot, '.env') });
 
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-  ListPromptsRequestSchema,
-  GetPromptRequestSchema,
-  ListResourcesRequestSchema,
-  ReadResourceRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
-
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
 import {
   authTools,
   projectTools,
@@ -36,7 +27,7 @@ import {
 import { prompts, handleGetPrompt } from './prompts/index.js';
 import { resources, handleReadResource } from './resources/index.js';
 
-const tools = [
+const allTools = [
   ...authTools,
   ...projectTools,
   ...boardTools,
@@ -48,10 +39,14 @@ const tools = [
   ...taskTools,
   ...attachmentTools,
   ...userTools,
-] as const;
+];
 
+/**
+ * Create and configure the MCP server
+ * Using production-ready patterns from official MCP TypeScript SDK v1.x
+ */
 function createServer() {
-  const server = new Server(
+  const server = new McpServer(
     { name: 'rastar-mcp-planka', version: '0.1.0' },
     {
       capabilities: {
@@ -62,70 +57,148 @@ function createServer() {
     },
   );
 
-  server.setRequestHandler(ListToolsRequestSchema, async () => {
-    return { tools: tools as any };
-  });
+  // Register all tools using v1.x API
+  for (const tool of allTools) {
+    server.registerTool(
+      tool.name,
+      {
+        description: tool.description,
+        inputSchema: tool.inputSchema as any,
+      },
+      async (args: any) => {
+        try {
+          const result = await handleToolCall({ 
+            params: { 
+              name: tool.name as any, 
+              arguments: args 
+            } 
+          } as any);
+          return result;
+        } catch (error: any) {
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: `Error: ${error.message}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+      }
+    );
+  }
 
-  server.setRequestHandler(ListPromptsRequestSchema, async () => {
-    return { prompts: prompts as any };
-  });
+  // Register all prompts
+  for (const prompt of prompts) {
+    server.registerPrompt(
+      prompt.name,
+      {
+        description: prompt.description,
+        argsSchema: prompt.arguments as any,
+      },
+      (async (args: any, _extra: any) => {
+        const result = await handleGetPrompt({ 
+          params: { 
+            name: prompt.name as any, 
+            arguments: args 
+          } 
+        } as any);
+        return result as any;
+      }) as any
+    );
+  }
 
-  server.setRequestHandler(GetPromptRequestSchema, handleGetPrompt);
-
-  server.setRequestHandler(ListResourcesRequestSchema, async () => {
-    return { resources: resources as any };
-  });
-
-  server.setRequestHandler(ReadResourceRequestSchema, handleReadResource);
-
-  server.setRequestHandler(CallToolRequestSchema, handleToolCall);
+  // Register all resources
+  for (const resource of resources) {
+    server.registerResource(
+      resource.name,
+      resource.uri,
+      {
+        description: resource.description,
+        mimeType: resource.mimeType,
+      },
+      async () => {
+        const result = await handleReadResource({ 
+          params: { 
+            uri: resource.uri 
+          } 
+        } as any);
+        return result;
+      }
+    );
+  }
 
   return server;
 }
 
-// Determine transport mode: HTTP (SSE) or stdio
-const useHttp = process.env.MCP_TRANSPORT === 'http' || process.env.NODE_ENV === 'production';
+/**
+ * Main entry point for Streamable HTTP server
+ * Uses stateless mode - ideal for containerized production deployment
+ */
+async function main() {
+  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3100;
 
-if (useHttp) {
-  // HTTP/SSE mode for Docker/network access
-  const app = express();
-  const PORT = process.env.PORT || 3100;
+  // Create Express app with DNS rebinding protection
+  // Allow connections from telegram-bot container via Docker service names
+  const app = createMcpExpressApp({ 
+    host: '0.0.0.0',
+    allowedHosts: ['mcp-planka', 'localhost', '127.0.0.1'] 
+  });
 
-  app.use(express.json());
+  console.error('[MCP Planka] Starting Streamable HTTP server...');
 
   // Health check endpoint
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok', service: 'mcp-planka', version: '0.1.0' });
   });
 
-  // MCP SSE endpoint (GET for client connection)
-  app.get('/sse', async (req, res) => {
-    const server = createServer();
-    const transport = new SSEServerTransport('/message', res);
-    await server.connect(transport);
+  // Streamable HTTP endpoint (POST) - Stateless mode
+  app.post('/mcp', async (req: Request, res: Response) => {
+    try {
+      // Create a new server and transport for each request (stateless)
+      const server = createServer();
+      const transport = new StreamableHTTPServerTransport({
+        // Stateless mode - no session tracking
+        sessionIdGenerator: undefined,
+      });
+
+      await server.connect(transport);
+      await transport.handleRequest(req, res, req.body);
+    } catch (error) {
+      console.error('[MCP Planka] Error handling request:', error);
+      if (!res.headersSent) {
+        res.status(500).json({
+          jsonrpc: '2.0',
+          error: { code: -32603, message: 'Internal server error' },
+          id: null,
+        });
+      }
+    }
   });
 
-  // MCP SSE endpoint (POST for compatibility)
-  app.post('/sse', async (req, res) => {
-    const server = createServer();
-    const transport = new SSEServerTransport('/message', res);
-    await server.connect(transport);
-  });
-
-  // Message handling endpoint
-  app.post('/message', async (req, res) => {
-    // Handle incoming MCP messages
-    res.json({ received: true });
-  });
-
+  // Start server
   app.listen(PORT, () => {
-    console.log(`MCP Planka Server running on http://localhost:${PORT}`);
-    console.log(`Health: http://localhost:${PORT}/health`);
-    console.log(`SSE endpoint: http://localhost:${PORT}/sse`);
+    console.error(`[MCP Planka] Streamable HTTP server running on port ${PORT}`);
+    console.error(`[MCP Planka] Health: http://localhost:${PORT}/health`);
+    console.error(`[MCP Planka] MCP endpoint: http://localhost:${PORT}/mcp`);
+    console.error('[MCP Planka] Ready to handle requests');
   });
-} else {
-  // Stdio mode for local development/Claude Desktop
-  const server = createServer();
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
 }
+
+// Handle graceful shutdown
+process.on('SIGINT', () => {
+  console.error('[MCP Planka] Received SIGINT, shutting down gracefully');
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  console.error('[MCP Planka] Received SIGTERM, shutting down gracefully');
+  process.exit(0);
+});
+
+// Start the server
+main().catch((error) => {
+  console.error('[MCP Planka] Fatal error:', error);
+  process.exit(1);
+});
