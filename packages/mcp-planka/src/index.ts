@@ -60,12 +60,14 @@ function createServer() {
   );
 
   // Register all tools using v1.x API
+  // Pass an empty object as inputSchema to indicate "accepts any arguments"
+  // This allows arguments to pass through without validation
   for (const tool of allTools) {
     server.registerTool(
       tool.name,
       {
         description: tool.description,
-        inputSchema: tool.inputSchema as any,
+        inputSchema: {}, // Empty object schema - accepts any arguments
       },
       async (args: any) => {
         try {

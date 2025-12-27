@@ -2,6 +2,13 @@ import * as api from '../api/index.js';
 import * as helpers from '../api/menu-helpers.js';
 
 export async function handleToolCall(name: string, args: any): Promise<any> {
+  console.error('[tool-handlers] handleToolCall called:', { 
+    name, 
+    hasAccessToken: !!args.accessToken,
+    tokenLength: args.accessToken?.length,
+    tokenPreview: args.accessToken?.substring(0, 20) + '...'
+  });
+  
   const auth = { accessToken: args.accessToken };
 
   switch (name) {

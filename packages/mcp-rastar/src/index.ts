@@ -29,6 +29,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
+import { z } from 'zod';
 
 import { authTools, menuTools, handleToolCall } from './tools/index.js';
 import { menuResources, handleReadResource } from './resources/index.js';
@@ -36,6 +37,30 @@ import { prompts, handleGetPrompt } from './prompts/index.js';
 
 const allTools = [...authTools, ...menuTools];
 const allResources = [...menuResources];
+
+/**
+ * Create Zod schemas from JSON Schema tool definitions
+ * This allows the SDK to validate and convert to proper JSON Schema for AI
+ */
+function createZodSchemaFromTool(tool: any) {
+  // For tools with accessToken + userId parameters
+  if (tool.inputSchema?.properties?.accessToken && tool.inputSchema?.properties?.userId) {
+    return z.object({
+      accessToken: z.string(),
+      userId: z.string(),
+    }).passthrough(); // Allow other properties too
+  }
+  
+  // For tools with just refreshToken
+  if (tool.inputSchema?.properties?.refreshToken) {
+    return z.object({
+      refreshToken: z.string(),
+    });
+  }
+  
+  // Default: accept anything
+  return z.object({}).passthrough();
+}
 
 /**
  * Create and configure the MCP server
@@ -54,14 +79,22 @@ function createServer() {
   );
 
   // Register all tools using v1.x API
+  // Create Zod schemas from JSON Schema definitions
   for (const tool of allTools) {
     server.registerTool(
       tool.name,
       {
         description: tool.description,
-        inputSchema: tool.inputSchema as any,
+        inputSchema: createZodSchemaFromTool(tool),
       },
       async (args: any) => {
+        console.error('[index.ts] Tool handler called:', { 
+          toolName: tool.name, 
+          argsType: typeof args,
+          argsKeys: args ? Object.keys(args) : 'null',
+          hasAccessToken: !!args?.accessToken,
+          hasUserId: !!args?.userId
+        });
         try {
           const result = await handleToolCall(tool.name as any, args);
           return {
@@ -73,6 +106,7 @@ function createServer() {
             ],
           };
         } catch (error: any) {
+          console.error(`[index.ts] Tool ${tool.name} error:`, error.message);
           return {
             content: [
               {
