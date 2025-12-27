@@ -10,9 +10,10 @@ vi.mock('../client.js', () => ({
 describe('Auth API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.THIRD_PARTY_TOKEN_PATH = '/auth/v1/token';
-    process.env.THIRD_PARTY_API_KEY = 'test-api-key';
-    process.env.THIRD_PARTY_API_KEY_HEADER = 'apikey';
+    process.env.RASTAR_SUPABASE_URL = 'https://test.supabase.co';
+    process.env.RASTAR_SUPABASE_AUTH_PATH = '/auth/v1/token';
+    process.env.RASTAR_SUPABASE_ANON_KEY = 'test-api-key';
+    process.env.RASTAR_SUPABASE_KEY_HEADER = 'apikey';
   });
 
   describe('login', () => {

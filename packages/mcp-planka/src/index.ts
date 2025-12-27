@@ -5,10 +5,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+dotenv.config({ path: path.join(repoRoot, '.env.local') });
 dotenv.config({ path: path.join(repoRoot, '.env') });
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
 import {
   authTools,
@@ -133,18 +135,32 @@ function createServer() {
 }
 
 /**
- * Main entry point for Streamable HTTP server
- * Uses stateless mode - ideal for containerized production deployment
+ * Main entry point - supports both stdio (local dev) and HTTP (production) modes
  */
 async function main() {
-  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3100;
+  const transport = process.env.MCP_TRANSPORT || 'http';
 
-  // Create Express app with DNS rebinding protection
-  // Allow connections from telegram-bot container via Docker service names
-  const app = createMcpExpressApp({ 
-    host: '0.0.0.0',
-    allowedHosts: ['mcp-planka', 'localhost', '127.0.0.1'] 
-  });
+  if (transport === 'stdio') {
+    // Stdio mode for local development
+    console.error('[MCP Planka] Starting in stdio mode (local development)');
+    
+    const server = createServer();
+    const stdioTransport = new StdioServerTransport();
+    
+    await server.connect(stdioTransport);
+    console.error('[MCP Planka] Connected via stdio, ready to handle requests');
+  } else {
+    // HTTP mode for Docker/production
+    console.error('[MCP Planka] Starting Streamable HTTP server...');
+    
+    const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3100;
+
+    // Create Express app with DNS rebinding protection
+    // Allow connections from telegram-bot container via Docker service names
+    const app = createMcpExpressApp({ 
+      host: '0.0.0.0',
+      allowedHosts: ['mcp-planka', 'localhost', '127.0.0.1'] 
+    });
 
   console.error('[MCP Planka] Starting Streamable HTTP server...');
 
@@ -184,6 +200,7 @@ async function main() {
     console.error(`[MCP Planka] MCP endpoint: http://localhost:${PORT}/mcp`);
     console.error('[MCP Planka] Ready to handle requests');
   });
+  }
 }
 
 // Handle graceful shutdown

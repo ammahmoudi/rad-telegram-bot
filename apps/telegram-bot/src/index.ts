@@ -6,6 +6,10 @@ import { fileURLToPath } from 'node:url';
 import { Bot } from 'grammy';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
+
+// Load .env.local first (for local development), then .env (for Docker)
+// .env.local takes precedence if it exists
+dotenv.config({ path: path.join(repoRoot, '.env.local') });
 dotenv.config({ path: path.join(repoRoot, '.env') });
 
 console.log('[telegram-bot] Environment loaded');

@@ -65,6 +65,7 @@ USER nodejs
 # Set environment variables
 ENV NODE_ENV=production \
     PORT=3000 \
+    HOSTNAME="0.0.0.0" \
     DATABASE_URL="file:/app/data/rastar.db" \
     NEXT_TELEMETRY_DISABLED=1
 

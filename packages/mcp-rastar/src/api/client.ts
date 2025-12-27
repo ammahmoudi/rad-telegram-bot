@@ -1,8 +1,16 @@
 import type { RastarAuth } from '../types/index.js';
 
-const THIRD_PARTY_BASE_URL = process.env.THIRD_PARTY_BASE_URL || 'https://hhryfmueyrkbnjxgjzlf.supabase.co';
-const THIRD_PARTY_API_KEY = process.env.THIRD_PARTY_API_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhocnlmbXVleXJrYm5qeGdqemxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk5MDMwMDYsImV4cCI6MjA1NTQ3OTAwNn0.zB6aDG8aTVqXkyguz1u35rGYlz05bDy20d5GXjhxirU';
-const THIRD_PARTY_API_KEY_HEADER = process.env.THIRD_PARTY_API_KEY_HEADER || 'apikey';
+const RASTAR_SUPABASE_URL = process.env.RASTAR_SUPABASE_URL;
+const RASTAR_SUPABASE_ANON_KEY = process.env.RASTAR_SUPABASE_ANON_KEY;
+const RASTAR_SUPABASE_KEY_HEADER = process.env.RASTAR_SUPABASE_KEY_HEADER || 'apikey';
+
+if (!RASTAR_SUPABASE_URL || !RASTAR_SUPABASE_ANON_KEY) {
+  throw new Error('RASTAR_SUPABASE_URL and RASTAR_SUPABASE_ANON_KEY environment variables are required');
+}
+
+// Asserted as non-null after the check above
+const baseUrl = RASTAR_SUPABASE_URL!;
+const anonKey = RASTAR_SUPABASE_ANON_KEY!;
 
 export interface RastarFetchOptions extends RequestInit {
   params?: Record<string, string>;
@@ -15,7 +23,7 @@ export async function rastarFetch<T>(
 ): Promise<T> {
   const { params, ...init } = options || {};
   
-  let url = `${THIRD_PARTY_BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
+  let url = `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
   
   if (params) {
     const searchParams = new URLSearchParams(params);
@@ -28,7 +36,7 @@ export async function rastarFetch<T>(
   const headers: Record<string, string> = {
     Accept: 'application/json',
     'Content-Type': 'application/json',
-    [THIRD_PARTY_API_KEY_HEADER]: THIRD_PARTY_API_KEY,
+    [RASTAR_SUPABASE_KEY_HEADER]: anonKey,
     ...(init.headers as Record<string, string> || {}),
   };
 

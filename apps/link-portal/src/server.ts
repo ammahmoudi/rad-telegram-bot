@@ -4,6 +4,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
+
+// Load .env.local first (for local development), then .env (for Docker)
+// .env.local takes precedence if it exists
+dotenv.config({ path: path.join(repoRoot, '.env.local') });
 dotenv.config({ path: path.join(repoRoot, '.env') });
 
 import express from 'express';
@@ -495,6 +499,10 @@ app.post('/link/planka', async (req, res) => {
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error';
     
+    // Generate a new link for retry
+    const newState = await createLinkState(link.telegramUserId);
+    const retryUrl = `${process.env.LINK_PORTAL_URL || 'http://localhost:8787'}/link/planka?state=${newState}`;
+    
     // Determine error type and provide specific guidance
     let errorTitle = 'Connection failed';
     let errorMessage = msg;
@@ -517,6 +525,15 @@ app.post('/link/planka', async (req, res) => {
       errorMessage = 'The Planka server took too long to respond.';
       errorTip = 'The server might be busy. Please try again in a few moments.';
     }
+    
+    // Send Telegram message with retry link
+    await sendTelegramMessage(
+      link.telegramUserId,
+      `❌ <b>Planka Link Failed</b>\n\n` +
+      `${escapeHtml(errorTitle)}: ${escapeHtml(errorMessage)}\n\n` +
+      `<b>🔄 Try again:</b>\n` +
+      `<a href="${escapeHtml(retryUrl)}">Click here to retry with correct credentials</a>`,
+    );
     
     res.status(500).send(`<!doctype html>
 <html lang="en" class="dark">
@@ -620,13 +637,16 @@ app.post('/link/planka', async (req, res) => {
         <!-- Action Button -->
         <div class="pt-2">
           <a 
-            href="javascript:history.back()"
-            class="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-slate-950 transition-all active:scale-[0.98]"
+            href="${escapeHtml(retryUrl)}"
+            class="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700 px-6 py-3 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-slate-950 transition-all active:scale-[0.98]"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="15 18 9 12 15 6"></polyline>
+              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+              <path d="M3 3v5h5"></path>
+              <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path>
+              <path d="M16 16h5v5"></path>
             </svg>
-            Try Again
+            Try Again with New Credentials
           </a>
         </div>
       </div>
@@ -704,15 +724,20 @@ app.post('/link/rastar', async (req, res) => {
 
     res.status(200).send(renderSuccessPage('Rastar', email));
   } catch (error: any) {
+    // Generate a new link for retry
+    const newState = await createLinkState(link.telegramUserId);
+    const retryUrl = `${process.env.LINK_PORTAL_URL || 'http://localhost:8787'}/link/rastar?state=${newState}`;
+    
     await sendTelegramMessage(
       link.telegramUserId,
       `❌ <b>Rastar Link Failed</b>\n\n` +
       `Could not authenticate with Rastar.\n` +
       `Error: ${escapeHtml(error.message)}\n\n` +
-      `Please check your credentials and try again with /link_rastar`,
+      `<b>🔄 Try again:</b>\n` +
+      `<a href="${escapeHtml(retryUrl)}">Click here to retry with correct credentials</a>`,
     );
 
-    res.status(400).send(renderAuthErrorPage('Rastar', error.message));
+    res.status(400).send(renderAuthErrorPage('Rastar', error.message, retryUrl));
   }
 });
 
@@ -753,10 +778,15 @@ async function plankaLogin(baseUrl: string, emailOrUsername: string, password: s
 }
 
 async function rastarLogin(email: string, password: string): Promise<RastarTokenResponse> {
-  const baseUrl = process.env.THIRD_PARTY_BASE_URL || 'https://hhryfmueyrkbnjxgjzlf.supabase.co';
-  const tokenPath = process.env.THIRD_PARTY_TOKEN_PATH || '/auth/v1/token';
-  const apiKey = process.env.THIRD_PARTY_API_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhocnlmbXVleXJrYm5qeGdqemxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk5MDMwMDYsImV4cCI6MjA1NTQ3OTAwNn0.zB6aDG8aTVqXkyguz1u35rGYlz05bDy20d5GXjhxirU';
-  const apiKeyHeader = process.env.THIRD_PARTY_API_KEY_HEADER || 'apikey';
+  const baseUrl = process.env.RASTAR_SUPABASE_URL;
+  const tokenPath = process.env.RASTAR_SUPABASE_AUTH_PATH || '/auth/v1/token';
+  const apiKey = process.env.RASTAR_SUPABASE_ANON_KEY;
+  const apiKeyHeader = process.env.RASTAR_SUPABASE_KEY_HEADER || 'apikey';
+  
+  if (!baseUrl || !apiKey) {
+    throw new Error('RASTAR_SUPABASE_URL and RASTAR_SUPABASE_ANON_KEY environment variables are required');
+  }
+  
   const url = `${baseUrl}${tokenPath}?grant_type=password`;
 
   const resp = await fetch(url, {
@@ -967,6 +997,9 @@ function renderExpiredPage(service: string): string {
 }
 
 function renderSuccessPage(serviceName: string, identifier: string): string {
+  const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'your_bot';
+  const telegramUrl = `https://t.me/${botUsername}`;
+  
   return `<!doctype html>
 <html lang="en" class="dark">
 <head>
@@ -998,8 +1031,19 @@ function renderSuccessPage(serviceName: string, identifier: string): string {
         <div class="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Linked account:</div>
         <div class="text-base font-mono text-slate-900 dark:text-slate-50 break-all">${escapeHtml(identifier)}</div>
       </div>
-      <div class="text-center text-sm text-slate-500 dark:text-slate-400">
-        You can now close this page and return to Telegram.
+      <div class="space-y-3">
+        <a 
+          href="${escapeHtml(telegramUrl)}"
+          class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 px-6 py-3 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-950 transition-all active:scale-[0.98]"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.02-1.96 1.24-5.54 3.65-.52.36-.99.53-1.42.52-.47-.01-1.37-.27-2.03-.49-.82-.27-1.47-.42-1.42-.88.03-.24.37-.49 1.03-.74 4.04-1.76 6.73-2.92 8.08-3.49 3.85-1.62 4.65-1.9 5.17-1.91.11 0 .37.03.54.17.14.11.18.26.2.37.01.08.03.29.01.45z"/>
+          </svg>
+          Go to Telegram
+        </a>
+        <div class="text-center text-xs text-slate-500 dark:text-slate-400">
+          Or close this page manually
+        </div>
       </div>
     </div>
   </div>
@@ -1007,7 +1051,30 @@ function renderSuccessPage(serviceName: string, identifier: string): string {
 </html>`;
 }
 
-function renderAuthErrorPage(serviceName: string, errorMessage: string): string {
+function renderAuthErrorPage(serviceName: string, errorMessage: string, retryUrl?: string): string {
+  const retryButton = retryUrl 
+    ? `<a 
+          href="${escapeHtml(retryUrl)}"
+          class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700 px-6 py-3 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-slate-950 transition-all active:scale-[0.98]"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+            <path d="M3 3v5h5"></path>
+            <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path>
+            <path d="M16 16h5v5"></path>
+          </svg>
+          Try Again with New Credentials
+        </a>`
+    : `<a 
+          href="javascript:history.back()"
+          class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700 px-6 py-3 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-slate-950 transition-all active:scale-[0.98]"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+          Try Again
+        </a>`;
+        
   return `<!doctype html>
 <html lang="en" class="dark">
 <head>
@@ -1039,15 +1106,7 @@ function renderAuthErrorPage(serviceName: string, errorMessage: string): string 
         <div class="text-sm text-red-700 dark:text-red-300">${escapeHtml(errorMessage)}</div>
       </div>
       <div class="pt-2">
-        <a 
-          href="javascript:history.back()"
-          class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-slate-950 transition-all active:scale-[0.98]"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="15 18 9 12 15 6"></polyline>
-          </svg>
-          Try Again
-        </a>
+        ${retryButton}
       </div>
     </div>
   </div>

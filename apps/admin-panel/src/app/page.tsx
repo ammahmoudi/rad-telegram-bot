@@ -6,14 +6,16 @@ export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
   const tokens = await listPlankaTokens();
-  const plankaBaseUrl = (await getSystemConfig('PLANKA_BASE_URL')) || 'Not set';
+  const plankaBaseUrl = (await getSystemConfig('PLANKA_BASE_URL')) || process.env.PLANKA_SERVER_URL || 'Not set';
   const openRouterKey = (await getSystemConfig('OPENROUTER_API_KEY')) || '';
-  const defaultModel = (await getSystemConfig('DEFAULT_AI_MODEL')) || 'anthropic/claude-3.5-sonnet';
+  const defaultModel = (await getSystemConfig('DEFAULT_AI_MODEL')) || process.env.DEFAULT_AI_MODEL || 'anthropic/claude-3.5-sonnet';
   const maxToolCalls = (await getSystemConfig('maxToolCalls')) || '5';
   const mcpProjectScanLimit = (await getSystemConfig('mcpProjectScanLimit')) || '';
   const mcpProjectScanDelay = (await getSystemConfig('mcpProjectScanDelay')) || '100';
   
   const hasApiKey = openRouterKey.length > 0;
+  const envApiKey = process.env.OPENROUTER_API_KEY || '';
+  const usingEnvApiKey = !hasApiKey && envApiKey.length > 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
@@ -55,13 +57,18 @@ export default async function HomePage() {
               <div className="space-y-2">
                 <label htmlFor="plankaBaseUrl" className="text-sm font-medium text-slate-900 dark:text-slate-50 block">
                   Planka Base URL
+                  {plankaBaseUrl === 'Not set' && process.env.PLANKA_SERVER_URL && (
+                    <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">
+                      (using .env: {process.env.PLANKA_SERVER_URL})
+                    </span>
+                  )}
                 </label>
                 <input
                   id="plankaBaseUrl"
                   type="url"
                   name="plankaBaseUrl"
-                  defaultValue={plankaBaseUrl}
-                  placeholder="https://pm-dev.rastar.dev"
+                  defaultValue={plankaBaseUrl === 'Not set' ? process.env.PLANKA_SERVER_URL || '' : plankaBaseUrl}
+                  placeholder="https://pm-dev.rastar.dev or leave empty to use .env"
                   className="w-full h-10 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-slate-950"
                   required
                 />
@@ -88,11 +95,16 @@ export default async function HomePage() {
                     <label htmlFor="openRouterKey" className="text-sm font-medium text-slate-900 dark:text-slate-50 block">
                       OpenRouter API Key
                       {hasApiKey && (
-                        <span className="ml-2 text-xs text-green-600 dark:text-green-400">✓ Configured</span>
+                        <span className="ml-2 text-xs text-green-600 dark:text-green-400">✓ Configured in DB</span>
                       )}
-                      {!hasApiKey && (
+                      {usingEnvApiKey && (
+                        <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">
+                          ✓ Using .env (sk-or-v1-...{envApiKey.slice(-4)})
+                        </span>
+                      )}
+                      {!hasApiKey && !usingEnvApiKey && (
                         <span className="ml-2 text-xs text-amber-600 dark:text-amber-400">
-                          (using .env if available)
+                          ⚠ Not configured
                         </span>
                       )}
                     </label>
@@ -112,6 +124,11 @@ export default async function HomePage() {
                   <div className="space-y-2">
                     <label htmlFor="defaultModel" className="text-sm font-medium text-slate-900 dark:text-slate-50 block">
                       Default AI Model
+                      {process.env.DEFAULT_AI_MODEL && (
+                        <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">
+                          (env default: {process.env.DEFAULT_AI_MODEL})
+                        </span>
+                      )}
                     </label>
                     <ModelSelector name="defaultModel" defaultValue={defaultModel} />
                     <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2 space-y-1">

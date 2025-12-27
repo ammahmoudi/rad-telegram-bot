@@ -16,7 +16,21 @@ function normalizeFileUrl(fileUrlOrPath: string): string {
 }
 
 function buildSqliteDatabaseUrl(): string {
-  if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
+  if (process.env.DATABASE_URL) {
+    const dbUrl = process.env.DATABASE_URL;
+    // If it's a file URL, ensure the directory exists
+    if (dbUrl.startsWith('file:')) {
+      const filePathMatch = dbUrl.match(/^file:(.+)$/);
+      if (filePathMatch) {
+        const filePath = filePathMatch[1];
+        const absolutePath = path.isAbsolute(filePath) 
+          ? filePath 
+          : path.resolve(repoRoot, filePath);
+        fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
+      }
+    }
+    return dbUrl;
+  }
 
   const dbPathEnv = process.env.DATABASE_PATH;
   const dbPath = dbPathEnv
@@ -37,13 +51,28 @@ export function getPrisma(): import('@prisma/client').PrismaClient {
 
   const { PrismaClient } = require('@prisma/client') as typeof import('@prisma/client');
 
-  // Check if DATABASE_URL is already set (e.g., for PostgreSQL in Docker)
-  if (!process.env.DATABASE_URL) {
-    // Use SQLite for local development
-    process.env.DATABASE_URL = buildSqliteDatabaseUrl();
+  // Build/validate database URL (this ensures directory exists for file: URLs)
+  let databaseUrl = process.env.DATABASE_URL || buildSqliteDatabaseUrl();
+  
+  // Ensure directory exists for file-based databases and convert to absolute path
+  if (databaseUrl.startsWith('file:')) {
+    const filePathMatch = databaseUrl.match(/^file:(.+)$/);
+    if (filePathMatch) {
+      const filePath = filePathMatch[1];
+      const absolutePath = path.isAbsolute(filePath) 
+        ? filePath 
+        : path.resolve(repoRoot, filePath);
+      fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
+      
+      // Convert to absolute file URL for better-sqlite3
+      databaseUrl = `file:${absolutePath}`;
+    }
   }
-
-  const databaseUrl = process.env.DATABASE_URL;
+  
+  // Set the DATABASE_URL if it wasn't set
+  if (!process.env.DATABASE_URL) {
+    process.env.DATABASE_URL = databaseUrl;
+  }
 
   // Prisma 7 with library engine STILL requires adapters for all databases
   if (databaseUrl.startsWith('postgres://') || databaseUrl.startsWith('postgresql://')) {

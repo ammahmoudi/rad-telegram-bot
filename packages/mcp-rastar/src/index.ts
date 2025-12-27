@@ -22,10 +22,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+dotenv.config({ path: path.join(repoRoot, '.env.local') });
 dotenv.config({ path: path.join(repoRoot, '.env') });
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
 
 import { authTools, menuTools, handleToolCall } from './tools/index.js';
@@ -129,20 +131,32 @@ function createServer() {
 }
 
 /**
- * Main entry point for Streamable HTTP server
- * Uses stateless mode - ideal for containerized production deployment
+ * Main entry point - supports both stdio (local dev) and HTTP (production) modes
  */
 async function main() {
-  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3101;
+  const transport = process.env.MCP_TRANSPORT || 'http';
 
-  // Create Express app with DNS rebinding protection
-  // Allow connections from telegram-bot container via Docker service names
-  const app = createMcpExpressApp({ 
-    host: '0.0.0.0',
-    allowedHosts: ['mcp-rastar', 'localhost', '127.0.0.1'] 
-  });
+  if (transport === 'stdio') {
+    // Stdio mode for local development
+    console.error('[MCP Rastar] Starting in stdio mode (local development)');
+    
+    const server = createServer();
+    const stdioTransport = new StdioServerTransport();
+    
+    await server.connect(stdioTransport);
+    console.error('[MCP Rastar] Connected via stdio, ready to handle requests');
+  } else {
+    // HTTP mode for Docker/production
+    console.error('[MCP Rastar] Starting Streamable HTTP server...');
+    
+    const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3101;
 
-  console.error('[MCP Rastar] Starting Streamable HTTP server...');
+    // Create Express app with DNS rebinding protection
+    // Allow connections from telegram-bot container via Docker service names
+    const app = createMcpExpressApp({ 
+      host: '0.0.0.0',
+      allowedHosts: ['mcp-rastar', 'localhost', '127.0.0.1'] 
+    });
 
   // Health check endpoint
   app.get('/health', (_req, res) => {
@@ -180,6 +194,7 @@ async function main() {
     console.error(`[MCP Rastar] MCP endpoint: http://localhost:${PORT}/mcp`);
     console.error('[MCP Rastar] Ready to handle requests');
   });
+  }
 }
 
 // Handle graceful shutdown

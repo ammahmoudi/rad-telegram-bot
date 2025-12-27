@@ -6,9 +6,16 @@ export interface RastarConfig {
 }
 
 export function getRastarConfig(): RastarConfig {
+  const baseUrl = process.env.RASTAR_SUPABASE_URL;
+  const apiKey = process.env.RASTAR_SUPABASE_ANON_KEY;
+  
+  if (!baseUrl || !apiKey) {
+    throw new Error('RASTAR_SUPABASE_URL and RASTAR_SUPABASE_ANON_KEY environment variables are required');
+  }
+  
   return {
-    baseUrl: process.env.RASTAR_BASE_URL || 'https://hhryfmueyrkbnjxgjzlf.supabase.co',
-    apiKey: process.env.RASTAR_API_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhocnlmbXVleXJrYm5qeGdqemxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk5MDMwMDYsImV4cCI6MjA1NTQ3OTAwNn0.zB6aDG8aTVqXkyguz1u35rGYlz05bDy20d5GXjhxirU',
+    baseUrl,
+    apiKey,
   };
 }
 

@@ -1,26 +1,32 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(__dirname, '../../..');
 
 export interface McpServerConfig {
   name: string;
-  url: string;
+  url?: string;  // For HTTP transport
+  command?: string;  // For stdio transport
+  args?: string[];  // For stdio transport
+  env?: Record<string, string>;  // For stdio transport
 }
 
 /**
  * MCP Client Manager
- * Uses Streamable HTTP transport (modern, production-ready approach for v1.x SDK)
+ * Supports both Streamable HTTP (Docker/production) and stdio (local development) transports
  */
 export class McpClientManager {
   private clients: Map<string, Client> = new Map();
-  private transports: Map<string, StreamableHTTPClientTransport> = new Map();
+  private transports: Map<string, Transport> = new Map();
 
   /**
-   * Connect to an MCP server via Streamable HTTP transport
+   * Connect to an MCP server via HTTP or stdio transport
    */
   async connect(config: McpServerConfig): Promise<void> {
     if (this.clients.has(config.name)) {
@@ -28,13 +34,31 @@ export class McpClientManager {
       return;
     }
 
-    console.log(`[MCP] Connecting to ${config.name} via Streamable HTTP...`);
-    console.log(`[MCP] URL: ${config.url}`);
+    let transport: Transport;
+
+    // Use stdio transport if command is provided
+    if (config.command) {
+      console.log(`[MCP] Connecting to ${config.name} via stdio...`);
+      console.log(`[MCP] Command: ${config.command} ${config.args?.join(' ') || ''}`);
+      
+      transport = new StdioClientTransport({
+        command: config.command,
+        args: config.args || [],
+        env: config.env,
+      });
+    } 
+    // Use HTTP transport if URL is provided
+    else if (config.url) {
+      console.log(`[MCP] Connecting to ${config.name} via Streamable HTTP...`);
+      console.log(`[MCP] URL: ${config.url}`);
+      
+      transport = new StreamableHTTPClientTransport(new URL(config.url));
+    }
+    else {
+      throw new Error(`[MCP] Invalid config for ${config.name}: must provide either url or command`);
+    }
 
     try {
-      // Create Streamable HTTP transport
-      const transport = new StreamableHTTPClientTransport(new URL(config.url));
-
       // Create and connect client
       const client = new Client(
         {
@@ -155,29 +179,61 @@ export function getMcpManager(): McpClientManager {
 
 /**
  * Initialize MCP servers for the Telegram bot
- * Uses Streamable HTTP transport (production-ready for v1.x SDK)
+ * Supports both stdio (local development) and HTTP (Docker/production) transports
  */
 export async function initializeMcpServers(): Promise<void> {
   console.log('[MCP] Starting MCP server initialization...');
-  console.log('[MCP] Using Streamable HTTP transport (production-ready)');
-
+  
+  const mcpTransport = process.env.MCP_TRANSPORT || 'http';
   const manager = getMcpManager();
 
-  // MCP server URLs (Streamable HTTP endpoints)
-  const plankaUrl = process.env.MCP_PLANKA_URL || 'http://mcp-planka:3100/mcp';
-  const rastarUrl = process.env.MCP_RASTAR_URL || 'http://mcp-rastar:3101/mcp';
+  if (mcpTransport === 'stdio') {
+    console.log('[MCP] Using stdio transport (local development)');
+    
+    // Spawn MCP servers as child processes
+    const plankaServerPath = path.join(repoRoot, 'packages/mcp-planka/dist/index.js');
+    const rastarServerPath = path.join(repoRoot, 'packages/mcp-rastar/dist/index.js');
 
-  console.log(`[MCP] Connecting to Planka MCP server at ${plankaUrl}...`);
-  await manager.connect({
-    name: 'planka',
-    url: plankaUrl,
-  });
+    console.log(`[MCP] Connecting to Planka MCP server (stdio)...`);
+    await manager.connect({
+      name: 'planka',
+      command: 'node',
+      args: [plankaServerPath],
+      env: {
+        ...(process.env as Record<string, string>),
+        MCP_TRANSPORT: 'stdio',
+      },
+    });
 
-  console.log(`[MCP] Connecting to Rastar MCP server at ${rastarUrl}...`);
-  await manager.connect({
-    name: 'rastar',
-    url: rastarUrl,
-  });
+    console.log(`[MCP] Connecting to Rastar MCP server (stdio)...`);
+    await manager.connect({
+      name: 'rastar',
+      command: 'node',
+      args: [rastarServerPath],
+      env: {
+        ...(process.env as Record<string, string>),
+        MCP_TRANSPORT: 'stdio',
+      },
+    });
+  } else {
+    console.log('[MCP] Using Streamable HTTP transport (Docker/production)');
+    
+    // MCP server URLs (Streamable HTTP endpoints)
+    const plankaUrl = process.env.MCP_PLANKA_URL || 'http://mcp-planka:3100/mcp';
+    const rastarUrl = process.env.MCP_RASTAR_URL || 'http://mcp-rastar:3101/mcp';
+
+    console.log(`[MCP] Connecting to Planka MCP server at ${plankaUrl}...`);
+    await manager.connect({
+      name: 'planka',
+      url: plankaUrl,
+    });
+
+    console.log(`[MCP] Connecting to Rastar MCP server at ${rastarUrl}...`);
+    await manager.connect({
+      name: 'rastar',
+      url: rastarUrl,
+    });
+  }
 
   console.log('[MCP] All servers initialized successfully');
 }

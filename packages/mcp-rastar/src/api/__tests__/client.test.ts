@@ -235,19 +235,25 @@ describe('rastarFetch', () => {
     ).rejects.toThrow('Invalid JSON');
   });
 
-  it('should use THIRD_PARTY_BASE_URL from environment if auth is undefined', async () => {
-    // This test verifies that the hardcoded base URL is used since the module is already loaded
+  it('should use RASTAR_SUPABASE_URL from environment', async () => {
+    // Set environment variable for this test
+    process.env.RASTAR_SUPABASE_URL = 'https://test.supabase.co';
+    process.env.RASTAR_SUPABASE_ANON_KEY = 'test-key';
+    
     const mockResponse = { access_token: 'token' };
     
     (global.fetch as any).mockResolvedValueOnce(mockFetchResponse(mockResponse));
 
+    // Need to re-import the module to pick up env vars
+    const { rastarFetch } = await import('../client.js');
+    
     await rastarFetch('/auth/v1/token', undefined, {
       method: 'POST',
       headers: { apikey: 'key' },
     });
 
     expect(fetch).toHaveBeenCalledWith(
-      'https://hhryfmueyrkbnjxgjzlf.supabase.co/auth/v1/token',
+      'https://test.supabase.co/auth/v1/token',
       expect.any(Object)
     );
   });
