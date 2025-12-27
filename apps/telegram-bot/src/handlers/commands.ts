@@ -119,7 +119,7 @@ export async function handleLinkPlankaCommand(ctx: Context) {
 
   console.log('[telegram-bot] /planka_link - generated URL:', linkUrl);
 
-  const keyboard = getPlankaNotConnectedKeyboard(language);
+  const keyboard = getPlankaNotConnectedKeyboard(language, linkUrl);
   await ctx.reply(
     [
       t('planka.link_title'),
@@ -263,15 +263,19 @@ export async function handlePlankaUnlinkCommand(ctx: Context) {
  * Handle /new_chat command
  */
 export async function handleNewChatCommand(ctx: Context) {
-  const client = await getAiClient();
-  if (!client) {
-    await ctx.reply('❌ AI chat is not configured. Please set OPENROUTER_API_KEY in admin panel.');
+  const telegramUserId = String(ctx.from?.id ?? '');
+  if (!telegramUserId) {
+    const language = await getUserLanguage(telegramUserId);
+    const t = getUserI18n(language);
+    await ctx.reply(t('callback_errors.user_not_identified'));
     return;
   }
 
-  const telegramUserId = String(ctx.from?.id ?? '');
-  if (!telegramUserId) {
-    await ctx.reply('Could not identify your Telegram user.');
+  const client = await getAiClient();
+  if (!client) {
+    const language = await getUserLanguage(telegramUserId);
+    const t = getUserI18n(language);
+    await ctx.reply(t('command_errors.ai_not_configured'));
     return;
   }
 
@@ -292,15 +296,19 @@ export async function handleNewChatCommand(ctx: Context) {
  * Handle /history command
  */
 export async function handleHistoryCommand(ctx: Context) {
-  const client = await getAiClient();
-  if (!client) {
-    await ctx.reply('❌ AI chat is not configured.');
+  const telegramUserId = String(ctx.from?.id ?? '');
+  if (!telegramUserId) {
+    const language = await getUserLanguage(telegramUserId);
+    const t = getUserI18n(language);
+    await ctx.reply(t('callback_errors.user_not_identified'));
     return;
   }
 
-  const telegramUserId = String(ctx.from?.id ?? '');
-  if (!telegramUserId) {
-    await ctx.reply('Could not identify your Telegram user.');
+  const client = await getAiClient();
+  if (!client) {
+    const language = await getUserLanguage(telegramUserId);
+    const t = getUserI18n(language);
+    await ctx.reply(t('command_errors.ai_not_configured_short'));
     return;
   }
 
@@ -331,20 +339,27 @@ export async function handleHistoryCommand(ctx: Context) {
  * Handle /clear_chat command
  */
 export async function handleClearChatCommand(ctx: Context) {
-  const client = await getAiClient();
-  if (!client) {
-    await ctx.reply('❌ AI chat is not configured.');
-    return;
-  }
-
   const telegramUserId = String(ctx.from?.id ?? '');
   if (!telegramUserId) {
-    await ctx.reply('Could not identify your Telegram user.');
+    const language = await getUserLanguage(telegramUserId);
+    const t = getUserI18n(language);
+    await ctx.reply(t('callback_errors.user_not_identified'));
     return;
   }
 
-  await createNewChatSession(telegramUserId);
-  await ctx.reply('🗑️ <b>Chat cleared!</b>\n\nStarting fresh. Send me a message!', {
+  const client = await getAiClient();
+  if (!client) {
+    const language = await getUserLanguage(telegramUserId);
+    const t = getUserI18n(language);
+    await ctx.reply(t('command_errors.ai_not_configured_short'));
+    return;
+  }
+
+  await clearChatSession(telegramUserId);
+  
+  const language = await getUserLanguage(telegramUserId);
+  const t = getUserI18n(language);
+  await ctx.reply(t('command_errors.chat_cleared'), {
     parse_mode: 'HTML',
   });
 }
@@ -417,7 +432,7 @@ export async function handleLinkRastarCommand(ctx: Context) {
 
   console.log('[telegram-bot] /link_rastar - generated URL:', linkUrl);
 
-  const keyboard = getRastarNotConnectedKeyboard(language);
+  const keyboard = getRastarNotConnectedKeyboard(language, linkUrl);
   await ctx.reply(
     [
       t('rastar.link_title'),

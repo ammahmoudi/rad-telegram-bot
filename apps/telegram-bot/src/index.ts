@@ -48,6 +48,7 @@ import {
 } from './handlers/callback-handlers.js';
 import { registerDynamicKeyboardHandlers } from './handlers/dynamic-keyboard.js';
 import { handleAiMessage } from './handlers/ai-message.js';
+import { handleButtonCallback } from './handlers/button-callback.js';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 if (!TELEGRAM_BOT_TOKEN) {
@@ -103,6 +104,9 @@ bot.callbackQuery('rastar_status_inline', handleRastarStatusCommand);
 
 // Register all keyboard button handlers dynamically from translation files
 registerDynamicKeyboardHandlers(bot);
+
+// Dynamic AI button callbacks (for AI-suggested actions)
+bot.on('callback_query:data', handleButtonCallback);
 
 // AI Chat Handler (for regular messages)
 bot.on('message:text', handleAiMessage);

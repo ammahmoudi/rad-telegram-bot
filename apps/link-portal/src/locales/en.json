@@ -1,0 +1,29 @@
+{
+  "notifications": {
+    "link_opened": {
+      "title": "Link opened!",
+      "planka_message": "You're now on the secure linking page. Enter your Planka credentials to complete the connection.",
+      "rastar_message": "You're now on the secure linking page. Enter your Rastar credentials to complete the connection."
+    },
+    "planka": {
+      "linked_title": "Planka Account Linked!",
+      "linked_message": "Your Planka account has been successfully connected.",
+      "relinked_title": "Planka Account Re-linked!",
+      "relinked_message": "Your Planka connection has been updated.",
+      "base_url": "Base URL: {{url}}",
+      "check_status": "Use /planka_status to check your connection anytime.",
+      "verify_connection": "Use /planka_status to verify your connection."
+    },
+    "rastar": {
+      "linked_title": "Rastar Account Linked!",
+      "linked_message": "Your Rastar account has been successfully connected.",
+      "email": "Email: {{email}}",
+      "check_status": "Use /rastar_status to check your connection anytime.",
+      "failed_title": "Rastar Link Failed",
+      "failed_message": "Could not authenticate with Rastar.",
+      "error": "Error: {{error}}",
+      "try_again": "Try again:",
+      "retry_link": "Click here to retry with correct credentials"
+    }
+  }
+}

@@ -20,8 +20,11 @@ import {
   getPlankaToken,
   upsertRastarToken,
   storeRastarTokenResponse,
+  getUserLanguage,
   type RastarTokenResponse,
 } from '@rad/shared';
+
+import { t } from './i18n.js';
 
 const PORT = Number(process.env.PORT || 8787);
 
@@ -39,10 +42,11 @@ app.get('/link/planka', async (req, res) => {
   if (state) {
     const linkInfo = await peekLinkState(state);
     if (linkInfo) {
+      const language = await getUserLanguage(linkInfo.telegramUserId);
       await sendTelegramMessage(
         linkInfo.telegramUserId,
-        '\ud83d\udc40 <b>Link opened!</b>\n\n' +
-        'You\'re now on the secure linking page. Enter your Planka credentials to complete the connection.',
+        `👀 <b>${t(language, 'notifications.link_opened.title')}</b>\n\n` +
+        t(language, 'notifications.link_opened.planka_message'),
         { parse_mode: 'HTML' }
       );
     }
@@ -372,18 +376,19 @@ app.post('/link/planka', async (req, res) => {
 
     const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'your_bot';
     const isRelink = !!existingToken;
+    const language = await getUserLanguage(link.telegramUserId);
     
     await sendTelegramMessage(
       link.telegramUserId,
       isRelink
-        ? `✅ <b>Planka Account Re-linked!</b>\n\n` +
-          `Your Planka connection has been updated.\n` +
-          `Base URL: ${escapeHtml(normalizeBaseUrl(baseUrl))}\n\n` +
-          `Use /planka_status to verify your connection.`
-        : `✅ <b>Planka Account Linked!</b>\n\n` +
-          `Your Planka account has been successfully connected.\n` +
-          `Base URL: ${escapeHtml(normalizeBaseUrl(baseUrl))}\n\n` +
-          `Use /planka_status to check your connection anytime.`,
+        ? `✅ <b>${t(language, 'notifications.planka.relinked_title')}</b>\n\n` +
+          `${t(language, 'notifications.planka.relinked_message')}\n` +
+          `${t(language, 'notifications.planka.base_url', { url: escapeHtml(normalizeBaseUrl(baseUrl)) })}\n\n` +
+          t(language, 'notifications.planka.verify_connection')
+        : `✅ <b>${t(language, 'notifications.planka.linked_title')}</b>\n\n` +
+          `${t(language, 'notifications.planka.linked_message')}\n` +
+          `${t(language, 'notifications.planka.base_url', { url: escapeHtml(normalizeBaseUrl(baseUrl)) })}\n\n` +
+          t(language, 'notifications.planka.check_status'),
     );
 
     res.status(200).send(`<!doctype html>
@@ -668,10 +673,11 @@ app.get('/link/rastar', async (req, res) => {
   if (state) {
     const linkInfo = await peekLinkState(state);
     if (linkInfo) {
+      const language = await getUserLanguage(linkInfo.telegramUserId);
       await sendTelegramMessage(
         linkInfo.telegramUserId,
-        '👀 <b>Link opened!</b>\n\n' +
-        'You\'re now on the secure linking page. Enter your Rastar credentials to complete the connection.',
+        `👀 <b>${t(language, 'notifications.link_opened.title')}</b>\n\n` +
+        t(language, 'notifications.link_opened.rastar_message'),
         { parse_mode: 'HTML' }
       );
     }
@@ -714,12 +720,14 @@ app.post('/link/rastar', async (req, res) => {
     const tokenResponse = await rastarLogin(email, password);
     await storeRastarTokenResponse(link.telegramUserId, tokenResponse);
 
+    const language = await getUserLanguage(link.telegramUserId);
+
     await sendTelegramMessage(
       link.telegramUserId,
-      `✅ <b>Rastar Account Linked!</b>\n\n` +
-      `Your Rastar account has been successfully connected.\n` +
-      `Email: ${escapeHtml(email)}\n\n` +
-      `Use /rastar_status to check your connection anytime.`,
+      `✅ <b>${t(language, 'notifications.rastar.linked_title')}</b>\n\n` +
+      `${t(language, 'notifications.rastar.linked_message')}\n` +
+      `${t(language, 'notifications.rastar.email', { email: escapeHtml(email) })}\n\n` +
+      t(language, 'notifications.rastar.check_status'),
     );
 
     res.status(200).send(renderSuccessPage('Rastar', email));
@@ -728,13 +736,15 @@ app.post('/link/rastar', async (req, res) => {
     const newState = await createLinkState(link.telegramUserId);
     const retryUrl = `${process.env.LINK_PORTAL_URL || 'http://localhost:8787'}/link/rastar?state=${newState}`;
     
+    const language = await getUserLanguage(link.telegramUserId);
+    
     await sendTelegramMessage(
       link.telegramUserId,
-      `❌ <b>Rastar Link Failed</b>\n\n` +
-      `Could not authenticate with Rastar.\n` +
-      `Error: ${escapeHtml(error.message)}\n\n` +
-      `<b>🔄 Try again:</b>\n` +
-      `<a href="${escapeHtml(retryUrl)}">Click here to retry with correct credentials</a>`,
+      `❌ <b>${t(language, 'notifications.rastar.failed_title')}</b>\n\n` +
+      `${t(language, 'notifications.rastar.failed_message')}\n` +
+      `${t(language, 'notifications.rastar.error', { error: escapeHtml(error.message) })}\n\n` +
+      `<b>🔄 ${t(language, 'notifications.rastar.try_again')}</b>\n` +
+      `<a href="${escapeHtml(retryUrl)}">${t(language, 'notifications.rastar.retry_link')}</a>`,
     );
 
     res.status(400).send(renderAuthErrorPage('Rastar', error.message, retryUrl));

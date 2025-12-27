@@ -21,6 +21,7 @@ import { LOADING_FRAMES, type ReasoningStep } from '../types/streaming.js';
 import { handleStreamingResponse } from './message-streaming.js';
 import { buildFinalResponse, buildEmptySearchNotification } from '../services/response-builder.js';
 import { getUserI18n } from '../i18n.js';
+import { parseAiButtons, createButtonKeyboard } from '../utils/ai-buttons.js';
 
 /**
  * Handle AI chat messages from users
@@ -596,21 +597,40 @@ export async function handleAiMessage(ctx: Context) {
     console.log('[telegram-bot] Sending final response, length:', finalContent.length);
     console.log('[telegram-bot] Final response content:', finalContent.substring(0, 500));
     
+    // Parse AI-suggested buttons from response
+    const { messageText, buttons } = parseAiButtons(finalContent);
+    const keyboard = buttons.length > 0 ? createButtonKeyboard(buttons, telegramUserId) : undefined;
+    
+    console.log('[telegram-bot] Parsed buttons:', buttons.length);
+    
+    // Use the cleaned message text (without button tags)
+    const cleanContent = messageText;
+    
     // Update with final content or send new messages for long content
-    if (finalContent.length > 4000) {
+    if (cleanContent.length > 4000) {
       // Delete the streaming message and send chunks with safe HTML splitting
       try {
         await ctx.api.deleteMessage(sentMessage.chat.id, sentMessage.message_id);
       } catch (delError) {
         console.log('[telegram-bot] Could not delete message, continuing...');
       }
-      const chunks = splitHtmlSafely(finalContent, 4000);
-      for (const chunk of chunks) {
-        await ctx.reply(chunk, { parse_mode: 'HTML' });
+      const chunks = splitHtmlSafely(cleanContent, 4000);
+      for (let i = 0; i < chunks.length; i++) {
+        // Only add buttons to the last chunk
+        const isLastChunk = i === chunks.length - 1;
+        const replyOptions: any = { parse_mode: 'HTML' };
+        if (isLastChunk && keyboard) {
+          replyOptions.reply_markup = keyboard;
+        }
+        await ctx.reply(chunks[i], replyOptions);
       }
     } else {
       try {
-        await ctx.api.editMessageText(sentMessage.chat.id, sentMessage.message_id, finalContent, { parse_mode: 'HTML' });
+        const editOptions: any = { parse_mode: 'HTML' };
+        if (keyboard) {
+          editOptions.reply_markup = keyboard;
+        }
+        await ctx.api.editMessageText(sentMessage.chat.id, sentMessage.message_id, cleanContent, editOptions);
       } catch (editError: any) {
         // If edit fails, the streamed message is already visible - no need to send duplicate
         // Common reasons: message content identical, message too old, or already deleted

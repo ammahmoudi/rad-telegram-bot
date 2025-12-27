@@ -65,7 +65,10 @@ export async function handlePlankaListBoardsCallback(ctx: Context) {
     await handleAiMessage(fakeMessageCtx);
   } catch (error) {
     console.error('[callback] planka_list_boards error:', error);
-    await ctx.reply('❌ Error fetching boards. Please try again.');
+    const telegramUserId = String(ctx.from?.id ?? '');
+    const language = await getUserLanguage(telegramUserId);
+    const t = getUserI18n(language);
+    await ctx.reply(t('callback_errors.fetch_boards'));
   }
 }
 
@@ -85,7 +88,10 @@ export async function handlePlankaDelayedTasksCallback(ctx: Context) {
     await handleAiMessage(fakeMessageCtx);
   } catch (error) {
     console.error('[callback] planka_delayed_tasks error:', error);
-    await ctx.reply('❌ Error checking tasks. Please try again.');
+    const telegramUserId = String(ctx.from?.id ?? '');
+    const language = await getUserLanguage(telegramUserId);
+    const t = getUserI18n(language);
+    await ctx.reply(t('callback_errors.check_tasks'));
   }
 }
 
@@ -93,8 +99,12 @@ export async function handlePlankaDelayedTasksCallback(ctx: Context) {
  * Handle "planka_create_card" callback
  */
 export async function handlePlankaCreateCardCallback(ctx: Context) {
+  const telegramUserId = String(ctx.from?.id ?? '');
+  const language = await getUserLanguage(telegramUserId);
+  const t = getUserI18n(language);
+  
   await ctx.answerCallbackQuery();
-  await ctx.reply('➕ What would you like to create? Please describe the task or card.');
+  await ctx.reply(t('callback_errors.create_prompt'));
 }
 
 /**
@@ -129,7 +139,10 @@ export async function handleRastarTodayMenuCallback(ctx: Context) {
     await handleAiMessage(fakeMessageCtx);
   } catch (error) {
     console.error('[callback] rastar_today_menu error:', error);
-    await ctx.reply('❌ Error fetching menu. Please try again.');
+    const telegramUserId = String(ctx.from?.id ?? '');
+    const language = await getUserLanguage(telegramUserId);
+    const t = getUserI18n(language);
+    await ctx.reply(t('callback_errors.fetch_menu'));
   }
 }
 
@@ -149,7 +162,10 @@ export async function handleRastarUnselectedDaysCallback(ctx: Context) {
     await handleAiMessage(fakeMessageCtx);
   } catch (error) {
     console.error('[callback] rastar_unselected_days error:', error);
-    await ctx.reply('❌ Error checking unselected days. Please try again.');
+    const telegramUserId = String(ctx.from?.id ?? '');
+    const language = await getUserLanguage(telegramUserId);
+    const t = getUserI18n(language);
+    await ctx.reply(t('callback_errors.check_unselected_days'));
   }
 }
 
@@ -169,6 +185,9 @@ export async function handleRastarWeekMenuCallback(ctx: Context) {
     await handleAiMessage(fakeMessageCtx);
   } catch (error) {
     console.error('[callback] rastar_week_menu error:', error);
-    await ctx.reply('❌ Error fetching week menu. Please try again.');
+    const telegramUserId = String(ctx.from?.id ?? '');
+    const language = await getUserLanguage(telegramUserId);
+    const t = getUserI18n(language);
+    await ctx.reply(t('callback_errors.fetch_week_menu'));
   }
 }

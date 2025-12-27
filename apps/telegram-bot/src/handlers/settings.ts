@@ -9,7 +9,9 @@ import { getSettingsKeyboard, getLanguageKeyboard, getMainMenuKeyboard } from '.
 export async function handleSettingsCommand(ctx: Context) {
   const telegramUserId = String(ctx.from?.id ?? '');
   if (!telegramUserId) {
-    await ctx.reply('Could not identify your Telegram user.');
+    const language = await getUserLanguage(telegramUserId);
+    const t = getUserI18n(language);
+    await ctx.reply(t('callback_errors.user_not_identified'));
     return;
   }
 
@@ -37,7 +39,9 @@ export async function handleSettingsCommand(ctx: Context) {
 export async function handleLanguageSelectionCallback(ctx: Context) {
   const telegramUserId = String(ctx.from?.id ?? '');
   if (!telegramUserId) {
-    await ctx.answerCallbackQuery('Could not identify user');
+    const language = await getUserLanguage(telegramUserId);
+    const t = getUserI18n(language);
+    await ctx.answerCallbackQuery(t('callback_errors.user_not_identified_short'));
     return;
   }
 
@@ -58,7 +62,9 @@ export async function handleLanguageSelectionCallback(ctx: Context) {
 export async function handleLanguageChangeCallback(ctx: Context, newLanguage: 'fa' | 'en') {
   const telegramUserId = String(ctx.from?.id ?? '');
   if (!telegramUserId) {
-    await ctx.answerCallbackQuery('Could not identify user');
+    const language = await getUserLanguage(telegramUserId);
+    const t = getUserI18n(language);
+    await ctx.answerCallbackQuery(t('callback_errors.user_not_identified_short'));
     return;
   }
 

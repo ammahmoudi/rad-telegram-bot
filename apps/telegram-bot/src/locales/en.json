@@ -237,5 +237,44 @@
       "retry": "• Try again in a moment",
       "break_up": "• If asking about many tasks, break it into smaller requests"
     }
+  },
+  "ai_buttons": {
+    "invalid_data": "❌ Invalid button data",
+    "not_for_you": "❌ This button is not for you",
+    "processing": "⏳ Processing...",
+    "cancelled": "Operation cancelled.",
+    "unknown_action": "❌ Unknown action: {{action}}",
+    "error": "❌ An error occurred. Please try again.",
+    "no_message": "❌ No message found to send",
+    "selecting_foods": "🔄 Selecting foods...",
+    "error_with_message": "❌ Error: {{error}}",
+    "all_days_selected": "✅ All days are already selected!",
+    "foods_selected_success": "✅ All foods selected successfully!",
+    "data_processing_error": "❌ Error processing data",
+    "selecting_by_appetite": "🔄 Selecting foods based on appetite ({{appetite}})...",
+    "not_implemented": "⚠️ This feature is not yet implemented.",
+    "today_menu": "📋 Today's Menu:\n\n{{content}}",
+    "today_menu_formatted": "📋 Today's Menu:\n\n{{menu}}",
+    "week_menu": "📅 This Week's Menu:\n\n{{content}}",
+    "action_not_found": "❌ Action information not found"
+  },
+  "callback_errors": {
+    "user_not_identified": "Could not identify your Telegram user.",
+    "user_not_identified_short": "Could not identify user",
+    "fetch_boards": "❌ Error fetching boards. Please try again.",
+    "check_tasks": "❌ Error checking tasks. Please try again.",
+    "create_prompt": "➕ What would you like to create? Please describe the task or card.",
+    "fetch_menu": "❌ Error fetching menu. Please try again.",
+    "check_unselected_days": "❌ Error checking unselected days. Please try again.",
+    "fetch_week_menu": "❌ Error fetching week menu. Please try again."
+  },
+  "command_errors": {
+    "ai_not_configured": "❌ AI chat is not configured. Please set OPENROUTER_API_KEY in admin panel.",
+    "ai_not_configured_short": "❌ AI chat is not configured.",
+    "chat_cleared": "🗑️ <b>Chat cleared!</b>\n\nStarting fresh. Send me a message!"
+  },
+  "button_callback": {
+    "invalid_button_data": "❌ Invalid button data",
+    "failed_to_process": "❌ Failed to process button action. Please try again."
   }
 }
