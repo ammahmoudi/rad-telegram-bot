@@ -196,6 +196,46 @@
     "week_menu": "Show me the complete food menu for this week"
   },
   "errors": {
-    "generic": "❌ An error occurred. Please try again."
+    "generic": "❌ An error occurred. Please try again.",
+    "rate_limit": {
+      "title": "⏱️ Rate Limit Reached",
+      "description": "The {{model}} is temporarily overloaded.",
+      "what_to_do": "💡 What you can do:",
+      "wait": "• Wait 10-30 seconds and try again",
+      "message_saved": "• Your message was saved, just resend it",
+      "note": "This happens when many users are using the free tier simultaneously."
+    },
+    "network": {
+      "title": "⚠️ Network Connection Issue",
+      "description": "Could not connect to the AI service. This is usually temporary.",
+      "try": "💡 Try:",
+      "wait_retry": "• Wait a moment and send your message again",
+      "check_connection": "• Check your internet connection",
+      "server_issue": "• If the problem persists, it may be a server issue"
+    },
+    "model_compatibility": {
+      "title": "❌ Model Compatibility Issue",
+      "description": "The current AI model doesn't support the tools needed for this bot.",
+      "compatible_models": "💡 Compatible models:",
+      "ask_admin": "Please ask an admin to switch to a supported model."
+    },
+    "credits": {
+      "title": "💳 API Credits Depleted",
+      "description": "The API account has run out of credits.",
+      "ask_admin": "💡 Please ask an admin to add credits to the OpenRouter account."
+    },
+    "auth": {
+      "title": "🔑 Authentication Failed",
+      "description": "The API key is invalid or expired.",
+      "ask_admin": "💡 Please ask an admin to check the OpenRouter API key configuration."
+    },
+    "timeout": {
+      "title": "⏰ Request Timeout",
+      "description": "The AI took too long to respond.",
+      "try": "💡 Try:",
+      "simplify": "• Simplify your question",
+      "retry": "• Try again in a moment",
+      "break_up": "• If asking about many tasks, break it into smaller requests"
+    }
   }
 }

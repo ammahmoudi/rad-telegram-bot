@@ -6,8 +6,9 @@ import {
   getSessionMessages,
   addMessage,
   getSystemConfig,
+  getUserLanguage,
   type ChatMessage,
-} from '@rastar/shared';
+} from '@rad/shared';
 import type { ChatCompletionTool } from 'openai/resources/chat/completions';
 import { executeMcpTool } from '../planka-tools.js';
 import { executeRastarTool } from '../rastar-tools.js';
@@ -19,6 +20,7 @@ import { splitHtmlSafely } from '../utils/html-splitter.js';
 import { LOADING_FRAMES, type ReasoningStep } from '../types/streaming.js';
 import { handleStreamingResponse } from './message-streaming.js';
 import { buildFinalResponse, buildEmptySearchNotification } from '../services/response-builder.js';
+import { getUserI18n } from '../i18n.js';
 
 /**
  * Handle AI chat messages from users
@@ -612,7 +614,13 @@ export async function handleAiMessage(ctx: Context) {
       } catch (editError: any) {
         // If edit fails, the streamed message is already visible - no need to send duplicate
         // Common reasons: message content identical, message too old, or already deleted
-        console.log('[telegram-bot] Could not edit message:', editError?.description || editError?.message);
+        const errorDesc = editError?.description || editError?.message || '';
+        
+        // Only log non-duplicate errors
+        if (!errorDesc.includes('message is not modified')) {
+          console.log('[telegram-bot] Could not edit message:', errorDesc);
+        }
+        
         console.log('[telegram-bot] Streamed message is already visible, skipping duplicate');
       }
     }
@@ -620,31 +628,59 @@ export async function handleAiMessage(ctx: Context) {
   } catch (error) {
     console.error('[telegram-bot] AI chat error', error);
     
+    // Get user language for localized error messages
+    const language = await getUserLanguage(telegramUserId);
+    const t = getUserI18n(language);
+    
     // Provide more specific error messages
-    let errorMessage = '❌ Sorry, I encountered an error processing your message. Please try again.';
+    let errorMessage = t('errors.generic');
     
     if (error instanceof Error) {
       const errorStr = error.message.toLowerCase();
+      const errorStack = error.stack?.toLowerCase() || '';
       
-      if (errorStr.includes('network connection failed') || errorStr.includes('socket hang up') || errorStr.includes('econnreset')) {
-        errorMessage = '⚠️ <b>Network Connection Issue</b>\n\n' +
-          'Could not connect to Telegram servers. This is usually temporary.\n\n' +
-          '💡 <b>Try:</b>\n' +
-          '• Wait a moment and send your message again\n' +
-          '• Check your internet connection\n' +
-          '• If the problem persists, it may be a Telegram server issue';
+      // Check for rate limit errors (429)
+      if (errorStr.includes('429') || errorStr.includes('rate limit') || errorStr.includes('temporarily rate-limited') || errorStr.includes('provider returned error')) {
+        const modelName = client.model.includes('gemini') ? 'Gemini' : 
+                         client.model.includes('claude') ? 'Claude' :
+                         client.model.includes('gpt') ? 'GPT' : (language === 'fa' ? 'مدل هوش مصنوعی' : 'AI model');
+        
+        errorMessage = `<b>${t('errors.rate_limit.title')}</b>\n\n` +
+          t('errors.rate_limit.description', { model: modelName }) + '\n\n' +
+          `<b>${t('errors.rate_limit.what_to_do')}</b>\n` +
+          t('errors.rate_limit.wait') + '\n' +
+          t('errors.rate_limit.message_saved') + '\n\n' +
+          `<i>${t('errors.rate_limit.note')}</i>`;
+      } else if (errorStr.includes('network connection failed') || errorStr.includes('socket hang up') || errorStr.includes('econnreset')) {
+        errorMessage = `<b>${t('errors.network.title')}</b>\n\n` +
+          t('errors.network.description') + '\n\n' +
+          `<b>${t('errors.network.try')}</b>\n` +
+          t('errors.network.wait_retry') + '\n' +
+          t('errors.network.check_connection') + '\n' +
+          t('errors.network.server_issue');
       } else if (errorStr.includes('tool use') || errorStr.includes('endpoints found')) {
-        errorMessage = '❌ The current AI model doesn\'t support tool use (function calling). Please ask an admin to select a different model that supports tools, such as:\n\n' +
+        errorMessage = `<b>${t('errors.model_compatibility.title')}</b>\n\n` +
+          t('errors.model_compatibility.description') + '\n\n' +
+          `<b>${t('errors.model_compatibility.compatible_models')}</b>\n` +
           '• anthropic/claude-3.5-sonnet\n' +
           '• openai/gpt-4-turbo\n' +
           '• google/gemini-pro-1.5\n\n' +
-          'Tip: Avoid using "openrouter/auto" mode as it may route to models without tool support.';
-      } else if (errorStr.includes('rate limit') || errorStr.includes('temporarily rate-limited')) {
-        errorMessage = '❌ The AI model is temporarily rate-limited. Please try again in a few moments, or ask an admin to switch to a different model.';
+          `<i>${t('errors.model_compatibility.ask_admin')}</i>`;
       } else if (errorStr.includes('insufficient credits') || errorStr.includes('quota')) {
-        errorMessage = '❌ Insufficient API credits. Please ask an admin to add credits to the OpenRouter account.';
+        errorMessage = `<b>${t('errors.credits.title')}</b>\n\n` +
+          t('errors.credits.description') + '\n\n' +
+          t('errors.credits.ask_admin');
       } else if (errorStr.includes('unauthorized') || errorStr.includes('401')) {
-        errorMessage = '❌ API authentication failed. Please ask an admin to check the OpenRouter API key.';
+        errorMessage = `<b>${t('errors.auth.title')}</b>\n\n` +
+          t('errors.auth.description') + '\n\n' +
+          t('errors.auth.ask_admin');
+      } else if (errorStr.includes('timeout') || errorStr.includes('timed out')) {
+        errorMessage = `<b>${t('errors.timeout.title')}</b>\n\n` +
+          t('errors.timeout.description') + '\n\n' +
+          `<b>${t('errors.timeout.try')}</b>\n` +
+          t('errors.timeout.simplify') + '\n' +
+          t('errors.timeout.retry') + '\n' +
+          t('errors.timeout.break_up');
       }
     }
     

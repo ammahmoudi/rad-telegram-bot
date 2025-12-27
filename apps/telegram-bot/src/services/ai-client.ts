@@ -1,4 +1,4 @@
-import { OpenRouterClient, getSystemConfig } from '@rastar/shared';
+import { OpenRouterClient, getSystemConfig } from '@rad/shared';
 
 // Cache for AI client
 let aiClient: OpenRouterClient | null = null;

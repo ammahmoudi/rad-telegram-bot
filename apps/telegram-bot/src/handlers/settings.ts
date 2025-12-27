@@ -1,5 +1,5 @@
 import type { Context } from 'grammy';
-import { getUserLanguage, setUserLanguage } from '@rastar/shared';
+import { getUserLanguage, setUserLanguage } from '@rad/shared';
 import { getUserI18n } from '../i18n.js';
 import { getSettingsKeyboard, getLanguageKeyboard, getMainMenuKeyboard } from './keyboards.js';
 

@@ -112,13 +112,64 @@ bot.catch((err) => {
 // Startup
 // ============================================================================
 
-try {
-  // If this bot token was previously used in a webhook-based deployment,
-  // polling will fail with a 409 conflict until the webhook is removed.
-  await bot.api.deleteWebhook({ drop_pending_updates: true });
-} catch (err) {
-  console.warn('[telegram-bot] failed to deleteWebhook (continuing)', err);
+/**
+ * Retry a function with exponential backoff
+ */
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  options: {
+    maxRetries?: number;
+    initialDelay?: number;
+    maxDelay?: number;
+    operationName?: string;
+  } = {}
+): Promise<T> {
+  const {
+    maxRetries = 5,
+    initialDelay = 1000,
+    maxDelay = 30000,
+    operationName = 'operation',
+  } = options;
+
+  let lastError: Error | undefined;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err as Error;
+      
+      if (attempt === maxRetries) {
+        console.error(`[telegram-bot] ${operationName} failed after ${maxRetries + 1} attempts:`, err);
+        throw err;
+      }
+      
+      const delay = Math.min(initialDelay * Math.pow(2, attempt), maxDelay);
+      console.warn(
+        `[telegram-bot] ${operationName} failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay}ms...`,
+        err instanceof Error ? err.message : err
+      );
+      
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+  
+  throw lastError;
 }
+
+// Delete webhook with retry logic
+await retryWithBackoff(
+  async () => {
+    await bot.api.deleteWebhook({ drop_pending_updates: true });
+    console.log('[telegram-bot] Webhook deleted successfully');
+  },
+  {
+    maxRetries: 5,
+    initialDelay: 2000,
+    maxDelay: 30000,
+    operationName: 'deleteWebhook',
+  }
+);
 
 // Initialize MCP servers before starting the bot
 try {
@@ -130,11 +181,22 @@ try {
   console.log('[telegram-bot] Bot will start without MCP tools');
 }
 
-bot.start({
-  onStart: (info) => {
-    console.log(`[telegram-bot] started as @${info.username} (polling)`);
+// Start bot with retry logic
+await retryWithBackoff(
+  async () => {
+    await bot.start({
+      onStart: (info) => {
+        console.log(`[telegram-bot] started as @${info.username} (polling)`);
+      },
+    });
   },
-});
+  {
+    maxRetries: 5,
+    initialDelay: 2000,
+    maxDelay: 30000,
+    operationName: 'bot.start',
+  }
+);
 
 // Keep process alive and handle errors
 process.on('unhandledRejection', (err) => {

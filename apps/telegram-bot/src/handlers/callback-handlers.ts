@@ -7,7 +7,7 @@ import {
 } from './commands.js';
 import { handleAiMessage } from './ai-message.js';
 import { getUserI18n } from '../i18n.js';
-import { getUserLanguage } from '@rastar/shared';
+import { getUserLanguage } from '@rad/shared';
 
 /**
  * Helper function to create a message context from a callback query

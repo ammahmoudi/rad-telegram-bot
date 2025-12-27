@@ -1,5 +1,5 @@
 import type { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
-import { getSystemConfig } from '@rastar/shared';
+import { getSystemConfig } from '@rad/shared';
 import {
   listProjects,
   getProject,

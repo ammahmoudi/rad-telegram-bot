@@ -1,6 +1,6 @@
 import type { Context } from 'grammy';
 import type { Message } from 'grammy/types';
-import type { OpenRouterClient, ChatMessage } from '@rastar/shared';
+import type { OpenRouterClient, ChatMessage } from '@rad/shared';
 import type { ChatCompletionTool } from 'openai/resources/chat/completions';
 import type { ReasoningStep } from '../types/streaming.js';
 import { markdownToTelegramHtml, formatToolName } from '../utils/formatting.js';

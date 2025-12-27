@@ -1,5 +1,5 @@
 import { getMcpManager } from './mcp-client.js';
-import { getValidRastarToken } from '@rastar/shared';
+import { getValidRastarToken } from '@rad/shared';
 
 export interface ToolExecutionResult {
   success: boolean;

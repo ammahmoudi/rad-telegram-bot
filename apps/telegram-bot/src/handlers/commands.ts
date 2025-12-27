@@ -10,7 +10,7 @@ import {
   listUserSessions,
   getUserLanguage,
   validatePlankaToken,
-} from '@rastar/shared';
+} from '@rad/shared';
 import { getAiClient } from '../services/ai-client.js';
 import { stripTrailingSlash } from '../utils/formatting.js';
 import { getUserI18n } from '../i18n.js';

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { fetchOpenRouterModels, sortModelsByPrice, getRecommendedModels } from '@rastar/shared';
+import { fetchOpenRouterModels, sortModelsByPrice, getRecommendedModels } from '@rad/shared';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

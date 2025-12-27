@@ -1,4 +1,4 @@
-import { setSystemConfig } from '@rastar/shared';
+import { setSystemConfig } from '@rad/shared';
 import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';

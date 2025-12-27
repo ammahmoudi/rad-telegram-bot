@@ -17,7 +17,7 @@ import {
   upsertRastarToken,
   storeRastarTokenResponse,
   type RastarTokenResponse,
-} from '@rastar/shared';
+} from '@rad/shared';
 
 const PORT = Number(process.env.PORT || 8787);
 

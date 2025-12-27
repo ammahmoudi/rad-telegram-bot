@@ -1,6 +1,6 @@
 import type { ChatCompletionTool } from 'openai/resources/chat/completions';
 import { getMcpManager } from '../mcp-client.js';
-import { getPlankaToken, getRastarToken } from '@rastar/shared';
+import { getPlankaToken, getRastarToken } from '@rad/shared';
 
 /**
  * Get AI tools for the given Telegram user

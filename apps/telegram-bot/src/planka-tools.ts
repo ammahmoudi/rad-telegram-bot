@@ -1,5 +1,5 @@
 import { getMcpManager } from './mcp-client.js';
-import { getPlankaToken } from '@rastar/shared';
+import { getPlankaToken } from '@rad/shared';
 
 export interface ToolExecutionResult {
   success: boolean;
