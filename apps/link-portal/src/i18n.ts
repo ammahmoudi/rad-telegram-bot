@@ -1,5 +1,5 @@
-import enTranslations from './locales/en.json' assert { type: 'json' };
-import faTranslations from './locales/fa.json' assert { type: 'json' };
+import enTranslations from './locales/en.json' with { type: 'json' };
+import faTranslations from './locales/fa.json' with { type: 'json' };
 
 type Translations = typeof enTranslations;
 

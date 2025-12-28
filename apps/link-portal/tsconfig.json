@@ -3,8 +3,9 @@
   "compilerOptions": {
     "composite": true,
     "rootDir": "src",
-    "outDir": "dist"
+    "outDir": "dist",
+    "resolveJsonModule": true
   },
   "references": [{ "path": "../../packages/shared" }],
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "src/**/*.json"]
 }

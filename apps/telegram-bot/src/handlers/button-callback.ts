@@ -15,6 +15,9 @@ export async function handleButtonCallback(ctx: Context) {
   }
 
   const callbackData = callbackQuery.data;
+  if (!callbackData) {
+    return;
+  }
 
   console.log('[button-callback] Button clicked:', callbackData);
 

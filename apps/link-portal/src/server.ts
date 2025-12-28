@@ -14,6 +14,7 @@ import express from 'express';
 
 import { 
   consumeLinkState, 
+  createLinkState,
   getSystemConfig, 
   peekLinkState, 
   upsertPlankaToken,
