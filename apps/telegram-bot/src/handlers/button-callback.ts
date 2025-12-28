@@ -28,6 +28,10 @@ export async function handleButtonCallback(ctx: Context) {
     } else {
       // Unknown button format
       const telegramUserId = String(ctx.from?.id ?? '');
+      if (!telegramUserId) {
+        console.error('[button-callback] No user ID in callback query');
+        return;
+      }
       const language = await getUserLanguage(telegramUserId);
       const t = getUserI18n(language);
       await ctx.answerCallbackQuery({ text: t('button_callback.invalid_button_data') });

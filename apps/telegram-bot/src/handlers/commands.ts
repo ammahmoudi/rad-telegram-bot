@@ -355,7 +355,7 @@ export async function handleClearChatCommand(ctx: Context) {
     return;
   }
 
-  await clearChatSession(telegramUserId);
+  await createNewChatSession(telegramUserId);
   
   const language = await getUserLanguage(telegramUserId);
   const t = getUserI18n(language);

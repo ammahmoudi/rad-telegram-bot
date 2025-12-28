@@ -5,7 +5,6 @@
 import type { CallbackQueryContext, Context } from 'grammy';
 import { parseButtonCallback, BUTTON_ACTIONS } from '../utils/ai-buttons.js';
 import { executeRastarTool } from '../rastar-tools.js';
-import { executePlankaToolCall } from '../planka-tools.js';
 import { getUserI18n } from '../i18n.js';
 import { getUserLanguage } from '@rad/shared';
 
@@ -201,7 +200,7 @@ async function handleViewTodayMenu(
   t: any
 ) {
   // Use send_message to let AI format today's menu nicely
-  return handleSendMessage(ctx, telegramUserId, 'show me today\'s menu', t);
+  return handleSendMessage(ctx, 'show me today\'s menu', t);
 }
 
 /**
@@ -213,7 +212,7 @@ async function handleViewWeekMenu(
   t: any
 ) {
   // Use send_message to let AI format the week menu nicely
-  return handleSendMessage(ctx, telegramUserId, 'show me this week\'s menu', t);
+  return handleSendMessage(ctx, 'show me this week\'s menu', t);
 }
 
 /**
