@@ -5,12 +5,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Bot } from 'grammy';
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
-
-// Load .env.local first (for local development), then .env (for Docker)
-// .env.local takes precedence if it exists
-dotenv.config({ path: path.join(repoRoot, '.env.local') });
-dotenv.config({ path: path.join(repoRoot, '.env') });
+// Load .env files only in development (Dokploy injects env vars directly in production)
+if (process.env.NODE_ENV !== 'production') {
+  const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
+  dotenv.config({ path: path.join(repoRoot, '.env.local') });
+  dotenv.config({ path: path.join(repoRoot, '.env') });
+}
 
 console.log('[telegram-bot] Environment loaded');
 

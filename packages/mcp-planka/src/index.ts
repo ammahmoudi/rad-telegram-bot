@@ -4,9 +4,12 @@ import type { Request, Response } from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-dotenv.config({ path: path.join(repoRoot, '.env.local') });
-dotenv.config({ path: path.join(repoRoot, '.env') });
+// Load .env files only in development (Dokploy injects env vars directly in production)
+if (process.env.NODE_ENV !== 'production') {
+  const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+  dotenv.config({ path: path.join(repoRoot, '.env.local') });
+  dotenv.config({ path: path.join(repoRoot, '.env') });
+}
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
