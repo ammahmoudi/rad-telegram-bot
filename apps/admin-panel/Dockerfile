@@ -1,6 +1,6 @@
 # Multi-stage build for Next.js Admin Panel
 # Stage 1: Build dependencies and compile Next.js
-FROM node:22-alpine AS builder
+FROM node:22.12-alpine AS builder
 
 WORKDIR /app
 
@@ -30,7 +30,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run admin:build
 
 # Stage 2: Production image
-FROM node:22-alpine AS production
+FROM node:22.12-alpine AS production
 
 # Install dumb-init for proper signal handling
 RUN apk add --no-cache dumb-init

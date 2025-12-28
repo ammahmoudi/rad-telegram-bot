@@ -1,6 +1,6 @@
 # Multi-stage build for Telegram Bot
 # Stage 1: Build dependencies and compile TypeScript
-FROM node:22-alpine AS builder
+FROM node:22.12-alpine AS builder
 
 WORKDIR /app
 
@@ -37,7 +37,7 @@ RUN npm run build -w packages/mcp-rastar
 RUN npm run build -w apps/telegram-bot
 
 # Stage 2: Production image
-FROM node:22-alpine AS production
+FROM node:22.12-alpine AS production
 
 # Install dumb-init for proper signal handling
 RUN apk add --no-cache dumb-init

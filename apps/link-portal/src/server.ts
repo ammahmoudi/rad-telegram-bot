@@ -183,10 +183,11 @@ app.get('/link/planka', async (req, res) => {
       <div class="p-8 space-y-6">
         <!-- Header -->
         <div class="space-y-2 text-center">
-          <div class="mx-auto w-12 h-12 bg-primary rounded-lg flex items-center justify-center mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary-foreground">
-              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+          <div class="mx-auto w-20 h-20 flex items-center justify-center mb-4">
+            <!-- Planka SVG Logo - Replace this SVG with your actual Planka logo -->
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" class="w-full h-full">
+              <rect width="100" height="100" rx="16" fill="#50b6c1"/>
+              <text x="50" y="65" font-family="Inter, sans-serif" font-size="48" font-weight="700" fill="white" text-anchor="middle">P</text>
             </svg>
           </div>
           <h1 class="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
@@ -837,10 +838,36 @@ function renderRastarLinkForm(state: string): string {
   <div class="w-full max-w-md">
     <div class="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg p-8 space-y-6">
       <!-- Icon -->
-      <div class="mx-auto w-12 h-12 bg-emerald-500 dark:bg-emerald-600 rounded-lg flex items-center justify-center">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-          <circle cx="12" cy="7" r="4"></circle>
+      <div class="mx-auto w-48 h-20 flex items-center justify-center">
+        <!-- Rastar SVG Logo -->
+        <svg id="Layer_2" data-name="Layer 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 279.75 100.89" class="w-full h-full">
+          <defs>
+            <style>
+              .cls-1 {
+                fill: #c3c3bb;
+              }
+
+              .cls-2 {
+                fill: #50b6c1;
+              }
+            </style>
+          </defs>
+          <g id="Layer_1-2" data-name="Layer 1">
+            <g>
+              <polygon class="cls-2" points="238.94 36.28 119.04 36.28 92.9 62.43 96.83 36.28 102.3 0 87.87 0 70.12 0 55.7 0 55.13 3.82 69.55 3.82 64.7 36.28 55.02 100.56 87.16 100.56 87.21 100.22 119.08 68.42 234.18 68.42 238.94 36.28"/>
+              <polygon class="cls-2" points="247.61 36.28 238.51 96.77 225.34 96.77 224.73 100.59 253.95 100.59 253.95 100.56 270.09 100.56 279.75 36.28 247.61 36.28"/>
+              <polygon class="cls-2" points="22.88 36.28 13.78 96.77 .61 96.77 0 100.59 29.21 100.59 29.22 100.56 45.35 100.56 55.02 36.28 22.88 36.28"/>
+              <polygon class="cls-2" points="171.67 0 113.15 0 110.15 20.39 168.67 20.39 171.67 0"/>
+            </g>
+            <g>
+              <path class="cls-1" d="M124.97,94.09h-1.07v6.5h-3.6v-17.5h5.15c2.17,0,3.86.45,5.07,1.35s1.82,2.18,1.82,3.85c0,2.52-1.16,4.07-3.47,4.67.75.32,1.44,1.09,2.07,2.33l2.55,5.3h-3.85l-2.38-4.95c-.28-.55-.6-.95-.95-1.19-.35-.24-.8-.36-1.35-.36ZM125.27,86.14h-1.38v4.95h1.38c2.27,0,3.4-.83,3.4-2.5,0-.9-.28-1.53-.85-1.9-.57-.37-1.42-.55-2.55-.55Z"/>
+              <path class="cls-1" d="M149.19,100.59l-1.05-3.85h-6.45c-.35,1.17-.7,2.45-1.05,3.85h-3.67c2-7.32,4.02-13.15,6.07-17.5h3.72c2.12,4.48,4.15,10.32,6.1,17.5h-3.67ZM144.92,86.89c-.6,1.3-1.38,3.57-2.35,6.8h4.67c-1-3.35-1.78-5.62-2.33-6.8Z"/>
+              <path class="cls-1" d="M156.66,99.87l.65-3.02c1.65.63,3.18.95,4.6.95,1.93,0,2.9-.67,2.9-2,0-.73-.25-1.27-.74-1.61-.49-.34-1.38-.72-2.66-1.14-1.55-.53-2.72-1.19-3.51-1.97-.79-.78-1.19-1.87-1.19-3.25,0-1.6.53-2.84,1.58-3.71,1.05-.87,2.53-1.31,4.45-1.31,1.78,0,3.35.3,4.7.9l-.7,2.97c-1.32-.52-2.57-.77-3.77-.77-1.75,0-2.62.61-2.62,1.82,0,.63.2,1.11.6,1.42.4.32,1.14.67,2.22,1.05.85.3,1.55.58,2.1.84.55.26,1.09.6,1.61,1.02.53.42.91.94,1.16,1.55.25.61.38,1.33.38,2.16,0,1.63-.58,2.9-1.74,3.79s-2.7,1.34-4.61,1.34c-2.12,0-3.92-.34-5.4-1.02Z"/>
+              <path class="cls-1" d="M184.06,86.14h-4.65v14.45h-3.57v-14.45h-4.65v-3.05h12.87v3.05Z"/>
+              <path class="cls-1" d="M196.03,100.59l-1.05-3.85h-6.45c-.35,1.17-.7,2.45-1.05,3.85h-3.67c2-7.32,4.02-13.15,6.07-17.5h3.72c2.12,4.48,4.15,10.32,6.1,17.5h-3.67ZM191.76,86.89c-.6,1.3-1.38,3.57-2.35,6.8h4.67c-1-3.35-1.78-5.62-2.33-6.8Z"/>
+              <path class="cls-1" d="M209.05,94.09h-1.07v6.5h-3.6v-17.5h5.15c2.17,0,3.86.45,5.07,1.35,1.22.9,1.82,2.18,1.82,3.85,0,2.52-1.16,4.07-3.47,4.67.75.32,1.44,1.09,2.07,2.33l2.55,5.3h-3.85l-2.38-4.95c-.28-.55-.6-.95-.95-1.19-.35-.24-.8-.36-1.35-.36ZM209.36,86.14h-1.38v4.95h1.38c2.27,0,3.4-.83,3.4-2.5,0-.9-.28-1.53-.85-1.9-.57-.37-1.42-.55-2.55-.55Z"/>
+            </g>
+          </g>
         </svg>
       </div>
 

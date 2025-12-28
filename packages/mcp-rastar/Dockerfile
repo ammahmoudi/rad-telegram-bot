@@ -1,5 +1,5 @@
 # Multi-stage build for MCP Rastar Server
-FROM node:22-alpine AS builder
+FROM node:22.12-alpine AS builder
 
 WORKDIR /app
 
@@ -28,7 +28,7 @@ RUN npm run build -w packages/shared
 RUN npm run build -w packages/mcp-rastar
 
 # Production image
-FROM node:22-alpine AS production
+FROM node:22.12-alpine AS production
 
 RUN apk add --no-cache dumb-init
 
