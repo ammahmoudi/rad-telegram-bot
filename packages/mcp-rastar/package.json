@@ -16,7 +16,7 @@
   },
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc --build tsconfig.json",
+    "build": "tsc --build tsconfig.json --force",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
