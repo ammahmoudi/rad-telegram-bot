@@ -165,14 +165,21 @@ async function main() {
     // Add all other hosts (localhost, production domains, etc.) via ALLOWED_HOSTS env var
     const baseHosts = ['mcp-planka'];
     const envHosts = process.env.ALLOWED_HOSTS;
+    
+    console.error(`[MCP Planka] Environment check:`);
+    console.error(`[MCP Planka] - ALLOWED_HOSTS raw value: ${JSON.stringify(envHosts)}`);
+    console.error(`[MCP Planka] - NODE_ENV: ${process.env.NODE_ENV}`);
+    
     if (!envHosts) {
       console.warn('[MCP Planka] WARNING: ALLOWED_HOSTS not set. Only internal Docker access allowed.');
       console.warn('[MCP Planka] Set ALLOWED_HOSTS env var to allow external access (e.g., "localhost,planka-mcp.rastar.dev")');
     }
+    
     const additionalHosts = envHosts ? envHosts.split(',').map(h => h.trim()).filter(Boolean) : [];
     const allowedHosts = [...baseHosts, ...additionalHosts];
     
-    console.error(`[MCP Planka] Allowed hosts: ${allowedHosts.join(', ')}`);
+    console.error(`[MCP Planka] Final allowed hosts configuration: ${JSON.stringify(allowedHosts)}`);
+    console.error(`[MCP Planka] Requests from these hostnames will be accepted.`);
     
     const app = createMcpExpressApp({ 
       host: '0.0.0.0',

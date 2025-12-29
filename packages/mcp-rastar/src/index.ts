@@ -193,14 +193,21 @@ async function main() {
     // Add all other hosts (localhost, production domains, etc.) via ALLOWED_HOSTS env var
     const baseHosts = ['mcp-rastar'];
     const envHosts = process.env.ALLOWED_HOSTS;
+    
+    console.error(`[MCP Rastar] Environment check:`);
+    console.error(`[MCP Rastar] - ALLOWED_HOSTS raw value: ${JSON.stringify(envHosts)}`);
+    console.error(`[MCP Rastar] - NODE_ENV: ${process.env.NODE_ENV}`);
+    
     if (!envHosts) {
       console.warn('[MCP Rastar] WARNING: ALLOWED_HOSTS not set. Only internal Docker access allowed.');
       console.warn('[MCP Rastar] Set ALLOWED_HOSTS env var to allow external access (e.g., "localhost,rastar-mcp.rastar.dev")');
     }
+    
     const additionalHosts = envHosts ? envHosts.split(',').map(h => h.trim()).filter(Boolean) : [];
     const allowedHosts = [...baseHosts, ...additionalHosts];
     
-    console.error(`[MCP Rastar] Allowed hosts: ${allowedHosts.join(', ')}`);
+    console.error(`[MCP Rastar] Final allowed hosts configuration: ${JSON.stringify(allowedHosts)}`);
+    console.error(`[MCP Rastar] Requests from these hostnames will be accepted.`);
     
     const app = createMcpExpressApp({ 
       host: '0.0.0.0',
