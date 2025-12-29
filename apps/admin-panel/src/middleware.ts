@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(req: NextRequest) {
+  // TEMPORARILY DISABLED - Basic Auth removed for testing
+  // TODO: Re-enable basic auth before production deployment
+  return NextResponse.next();
+  
+  /* ORIGINAL BASIC AUTH CODE - COMMENTED OUT
   const user = process.env.ADMIN_BASIC_AUTH_USER || '';
   const pass = process.env.ADMIN_BASIC_AUTH_PASS || '';
 
@@ -34,6 +39,7 @@ export function middleware(req: NextRequest) {
   }
 
   return NextResponse.next();
+  */
 }
 
 export const config = {
