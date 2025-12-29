@@ -54,6 +54,9 @@ RUN npm ci --workspaces
 COPY --from=builder --chown=nodejs:nodejs /app/apps/link-portal/dist ./apps/link-portal/dist
 COPY --from=builder --chown=nodejs:nodejs /app/packages/shared/dist ./packages/shared/dist
 
+# Copy locale files for i18n
+COPY --from=builder --chown=nodejs:nodejs /app/apps/link-portal/src/locales ./apps/link-portal/dist/locales
+
 # Copy Prisma schema and generated client
 COPY --from=builder --chown=nodejs:nodejs /app/packages/shared/prisma ./packages/shared/prisma
 COPY --from=builder --chown=nodejs:nodejs /app/packages/shared/prisma.config.ts ./packages/shared/prisma.config.ts
