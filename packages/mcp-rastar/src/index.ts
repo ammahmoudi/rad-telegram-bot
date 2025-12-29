@@ -214,6 +214,17 @@ async function main() {
       allowedHosts
     });
 
+  // Debug middleware - log all incoming requests with their Host headers
+  app.use((req, _res, next) => {
+    console.error(`[MCP Rastar] Incoming request:`);
+    console.error(`[MCP Rastar] - Method: ${req.method}`);
+    console.error(`[MCP Rastar] - Path: ${req.path}`);
+    console.error(`[MCP Rastar] - Host header: ${req.headers.host}`);
+    console.error(`[MCP Rastar] - X-Forwarded-Host: ${req.headers['x-forwarded-host']}`);
+    console.error(`[MCP Rastar] - X-Forwarded-Proto: ${req.headers['x-forwarded-proto']}`);
+    next();
+  });
+
   // Health check endpoint
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok', service: 'mcp-rastar', version: '0.2.0' });

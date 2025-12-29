@@ -186,6 +186,17 @@ async function main() {
       allowedHosts
     });
 
+  // Debug middleware - log all incoming requests with their Host headers
+  app.use((req, _res, next) => {
+    console.error(`[MCP Planka] Incoming request:`);
+    console.error(`[MCP Planka] - Method: ${req.method}`);
+    console.error(`[MCP Planka] - Path: ${req.path}`);
+    console.error(`[MCP Planka] - Host header: ${req.headers.host}`);
+    console.error(`[MCP Planka] - X-Forwarded-Host: ${req.headers['x-forwarded-host']}`);
+    console.error(`[MCP Planka] - X-Forwarded-Proto: ${req.headers['x-forwarded-proto']}`);
+    next();
+  });
+
   console.error('[MCP Planka] Starting Streamable HTTP server...');
 
   // Health check endpoint
