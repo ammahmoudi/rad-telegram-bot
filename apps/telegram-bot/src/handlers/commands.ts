@@ -38,70 +38,41 @@ export async function handleStartCommand(ctx: Context) {
   const client = await getAiClient();
   const hasAI = client !== null;
   
-  // Build reply keyboard with user's language
-  const keyboard = getMainMenuKeyboard(language);
-  
-  // Try to get custom welcome message from database
-  let welcomeMessage = '';
+  // Create/update user in database
   try {
     const { getPrisma } = await import('@rad/shared');
     const prisma = getPrisma();
-    const customMessage = await prisma.systemMessage.findUnique({
-      where: {
-        language_messageType: {
-          language,
-          messageType: 'welcome',
-        },
+    const now = Date.now();
+    await prisma.telegramUser.upsert({
+      where: { id: telegramUserId },
+      update: {
+        firstName: ctx.from?.first_name || null,
+        lastName: ctx.from?.last_name || null,
+        username: ctx.from?.username || null,
+        lastSeenAt: now,
+        updatedAt: now,
+      },
+      create: {
+        id: telegramUserId,
+        firstName: ctx.from?.first_name || null,
+        lastName: ctx.from?.last_name || null,
+        username: ctx.from?.username || null,
+        role: 'user',
+        lastSeenAt: now,
+        createdAt: now,
+        updatedAt: now,
       },
     });
-    
-    if (customMessage && customMessage.isActive) {
-      welcomeMessage = customMessage.content;
-    }
-  } catch (error) {
-    console.error('[telegram-bot] Error fetching custom welcome message:', error);
+  } catch (dbError) {
+    console.error('[telegram-bot] Could not create/update user:', dbError);
   }
   
-  // Fallback to default message if no custom message found
-  if (!welcomeMessage) {
-    welcomeMessage = [
-      `👋 <b>Hi ${name}!</b>`,
-      '',
-      hasAI
-        ? '🤖 I\'m an AI assistant that can help you manage your Planka tasks right from Telegram.'
-        : 'I can help you manage your Planka tasks right from Telegram.',
-      '',
-      '🔧 <b>Available Commands:</b>',
-      '',
-      '📋 <b>Planka:</b>',
-      '🔗 /link_planka - Connect your Planka account',
-      '📊 /planka_status - Check Planka connection',
-      '🔓 /planka_unlink - Disconnect Planka',
-      '',
-      '🍽️ <b>Rastar (Food Menu):</b>',
-      '🔗 /link_rastar - Connect your Rastar account',
-      '📊 /rastar_status - Check Rastar connection',
-      '🔓 /rastar_unlink - Disconnect Rastar',
-      '',
-      ...(hasAI
-        ? [
-            '💬 /new_chat - Start a new conversation',
-            '📚 /history - View your chat sessions',
-            '🗑️ /clear_chat - Clear current conversation',
-          ]
-        : []),
-      '',
-      '💡 <b>Getting Started:</b>',
-      hasAI
-        ? 'Just send me a message to start chatting! I can help you with Planka tasks once you connect your account with /link_planka'
-        : 'Start by running /link_planka to connect your account!',
-      '',
-      '⌨️ <b>Quick Access:</b> Use the buttons below to quickly access common features!',
-    ].join('\n');
-  } else {
-    // Replace {name} placeholder in custom message
-    welcomeMessage = welcomeMessage.replace(/\{name\}/g, name);
-  }
+  // Build reply keyboard with user's language
+  const keyboard = getMainMenuKeyboard(language);
+  
+  // Get welcome message from user's pack or default pack
+  const { getWelcomeMessage } = await import('../config/welcome-messages');
+  const welcomeMessage = await getWelcomeMessage(language, telegramUserId, name);
   
   await ctx.reply(welcomeMessage, { parse_mode: 'HTML', reply_markup: keyboard });
 }

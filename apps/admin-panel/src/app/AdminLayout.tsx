@@ -2,24 +2,35 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useLanguage } from '@/contexts/LanguageContext';
 import LogoutButton from './LogoutButton';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { language, setLanguage, t, dir } = useLanguage();
   
   const navItems = [
-    { name: 'تنظیمات', path: '/', icon: '⚙️' },
-    { name: 'کاربران', path: '/users', icon: '👥' },
-    { name: 'پک‌های شخصیتی', path: '/packs', icon: '🎭' },
+    { name: t.nav.settings, path: '/', icon: '⚙️' },
+    { name: t.nav.users, path: '/users', icon: '👥' },
+    { name: t.nav.packs, path: '/packs', icon: '🎭' },
   ];
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white/10 backdrop-blur-md border-r border-white/20 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-gray-900 flex" dir={dir}>
+      {/* Sidebar - Sticky */}
+      <aside className="w-64 bg-white/10 backdrop-blur-md border-r border-white/20 flex flex-col sticky top-0 h-screen">
         <div className="p-6 border-b border-white/20">
-          <h1 className="text-2xl font-bold text-white">🤖 پنل مدیریت</h1>
-          <p className="text-slate-300 text-sm mt-1">ربات تلگرام Rad</p>
+          <div className="flex items-center justify-between mb-2">
+            <h1 className="text-2xl font-bold text-white">{t.nav.title}</h1>
+            <button
+              onClick={() => setLanguage(language === 'fa' ? 'en' : 'fa')}
+              className="px-3 py-1.5 text-xs font-medium text-white bg-white/10 hover:bg-white/20 rounded-lg transition-all"
+              title={language === 'fa' ? 'Switch to English' : 'تغییر به فارسی'}
+            >
+              {language === 'fa' ? 'EN' : 'فا'}
+            </button>
+          </div>
+          <p className="text-slate-300 text-sm">{t.nav.subtitle}</p>
         </div>
         
         <nav className="flex-1 p-4">

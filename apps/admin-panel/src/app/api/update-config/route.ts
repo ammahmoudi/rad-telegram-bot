@@ -12,6 +12,7 @@ export async function POST(request: Request) {
     const maxToolCalls = formData.get('maxToolCalls');
     const mcpProjectScanLimit = formData.get('mcpProjectScanLimit');
     const mcpProjectScanDelay = formData.get('mcpProjectScanDelay');
+    const useHardcodedPrompts = formData.get('useHardcodedPrompts');
 
     if (!plankaBaseUrl || typeof plankaBaseUrl !== 'string') {
       return NextResponse.json({ error: 'Invalid URL' }, { status: 400 });
@@ -62,6 +63,9 @@ export async function POST(request: Request) {
         }
       }
     }
+
+    // Update hardcoded prompts setting
+    await setSystemConfig('USE_HARDCODED_PROMPTS', useHardcodedPrompts === 'on' ? 'true' : 'false');
 
     // Redirect back to home page with success parameter
     const url = new URL('/', request.url);

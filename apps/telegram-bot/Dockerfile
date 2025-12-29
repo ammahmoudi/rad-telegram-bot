@@ -84,6 +84,7 @@ COPY --chown=nodejs:nodejs apps/telegram-bot/src/locales ./apps/telegram-bot/src
 # Copy entrypoint script
 COPY --chown=nodejs:nodejs scripts/docker-entrypoint.sh /app/docker-entrypoint.sh
 COPY --chown=nodejs:nodejs scripts/create-admin.ts /app/scripts/create-admin.ts
+COPY --chown=nodejs:nodejs scripts/create-default-pack.ts /app/scripts/create-default-pack.ts
 RUN chmod +x /app/docker-entrypoint.sh
 
 # Install tsx for running TypeScript in entrypoint

@@ -34,7 +34,7 @@ import {
 // Health Check Server
 // ============================================================================
 
-const PORT = Number(process.env.PORT || 3001);
+const PORT = Number(process.env.TELEGRAM_BOT_PORT || 3003);
 const app = express();
 
 app.get('/health', (_req, res) => {
@@ -44,6 +44,7 @@ app.get('/health', (_req, res) => {
 app.listen(PORT, () => {
   console.log(`[telegram-bot] Health check server listening on port ${PORT}`);
 });
+
 import {
   handleSettingsCommand,
   handleLanguageSelectionCallback,

@@ -136,6 +136,16 @@ export async function getSystemPrompt(language: 'fa' | 'en' = 'en', telegramUser
   try {
     const prisma = getPrisma();
     
+    // Check if we should use hardcoded prompts
+    const useHardcodedConfig = await prisma.systemConfig.findUnique({
+      where: { key: 'USE_HARDCODED_PROMPTS' },
+    });
+    
+    if (useHardcodedConfig?.value === 'true') {
+      console.log('[system-prompt] Using hardcoded DEFAULT_SYSTEM_PROMPT');
+      return DEFAULT_SYSTEM_PROMPT;
+    }
+    
     let packId: string | undefined;
     
     // Check if user has a custom pack assigned

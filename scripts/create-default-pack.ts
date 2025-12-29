@@ -16,15 +16,27 @@ async function createDefaultPack() {
     // Check if default pack already exists
     const existingDefault = await prisma.characterPack.findFirst({
       where: { isDefault: true },
+      include: { messages: true },
     });
     
     if (existingDefault) {
       console.log('✅ Default pack already exists:', existingDefault.name);
       console.log('   ID:', existingDefault.id);
-      return;
+      console.log('   Messages:', existingDefault.messages.length);
+      
+      if (existingDefault.messages.length === 0) {
+        console.log('\n⚠️  Pack has no messages! Populating now...');
+        // Continue to populate
+      } else {
+        console.log('\n📋 Existing messages:');
+        existingDefault.messages.forEach(msg => {
+          console.log(`   - ${msg.language} ${msg.messageType}: ${msg.content.substring(0, 50)}...`);
+        });
+        return;
+      }
+    } else {
+      console.log('Creating default character pack...');
     }
-    
-    console.log('Creating default character pack...');
     
     // Read hardcoded system prompt from config file
     console.log('Reading hardcoded system prompt...');
@@ -65,19 +77,22 @@ async function createDefaultPack() {
     
     console.log(`✅ Extracted welcome messages (EN: ${defaultWelcomeEn.length} chars, FA: ${defaultWelcomeFa.length} chars)`);
     
-    // Create default pack
+    // Create default pack or use existing one
     const now = Date.now();
-    const defaultPack = await prisma.characterPack.create({
-      data: {
-        name: 'Default Pack',
-        description: 'Default pack with standard settings',
-        isDefault: true,
-        createdAt: now,
-        updatedAt: now,
-      },
-    });
+    let defaultPack = existingDefault;
     
-    console.log('✅ Created default pack:', defaultPack.id);
+    if (!existingDefault) {
+      defaultPack = await prisma.characterPack.create({
+        data: {
+          name: 'Default Pack',
+          description: 'Default pack with standard settings',
+          isDefault: true,
+          createdAt: now,
+          updatedAt: now,
+        },
+      });
+      console.log('✅ Created default pack:', defaultPack.id);
+    }
     
     // Create pack messages with extracted prompts and welcome messages
     console.log('\nPopulating pack with default messages...');

@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react';
+import { LanguageProvider } from '@/contexts/LanguageContext';
+import { Toaster } from 'react-hot-toast';
 
 export const runtime = 'nodejs';
 
@@ -54,7 +56,35 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           body { font-family: 'Inter', system-ui, sans-serif; }
         `}</style>
       </head>
-      <body className="min-h-screen bg-slate-50 dark:bg-slate-950">{children}</body>
+      <body className="min-h-screen bg-slate-50 dark:bg-slate-950">
+        <LanguageProvider>
+          {children}
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 3000,
+              style: {
+                background: 'rgba(30, 41, 59, 0.95)',
+                color: '#fff',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                backdropFilter: 'blur(10px)',
+              },
+              success: {
+                iconTheme: {
+                  primary: '#10b981',
+                  secondary: '#fff',
+                },
+              },
+              error: {
+                iconTheme: {
+                  primary: '#ef4444',
+                  secondary: '#fff',
+                },
+              },
+            }}
+          />
+        </LanguageProvider>
+      </body>
     </html>
   );
 }
