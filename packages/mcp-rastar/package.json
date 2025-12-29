@@ -1,19 +1,22 @@
 {
-  "name": "@rastar/mcp-rastar",
+  "name": "@rad/mcp-rastar",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
-    ".": "./dist/index.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
   },
   "bin": {
     "mcp-rastar": "dist/index.js"
   },
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc --build tsconfig.json",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",

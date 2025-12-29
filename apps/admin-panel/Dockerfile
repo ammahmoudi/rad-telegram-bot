@@ -25,6 +25,9 @@ COPY apps/admin-panel ./apps/admin-panel
 # Generate Prisma client
 RUN npm run prisma:generate
 
+# Build shared package first (needed by admin-panel)
+RUN npm run build -w packages/shared
+
 # Build Next.js with standalone output
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run admin:build

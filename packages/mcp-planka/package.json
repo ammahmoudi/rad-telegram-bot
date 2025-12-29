@@ -6,15 +6,21 @@
   "main": "dist/planka.js",
   "types": "dist/planka.d.ts",
   "exports": {
-    ".": "./dist/planka.js",
-    "./planka": "./dist/planka.js"
+    ".": {
+      "types": "./dist/planka.d.ts",
+      "default": "./dist/planka.js"
+    },
+    "./planka": {
+      "types": "./dist/planka.d.ts",
+      "default": "./dist/planka.js"
+    }
   },
   "bin": {
     "mcp-planka": "dist/index.js"
   },
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc --build tsconfig.json",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
