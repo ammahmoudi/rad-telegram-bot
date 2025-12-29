@@ -1,4 +1,4 @@
-import { getSystemConfig, listPlankaTokens } from '@rastar/shared';
+import { getSystemConfig, listPlankaTokens } from '@rad/shared';
 import { ModelSelector } from '@/components/ModelSelector';
 
 export const runtime = 'nodejs';

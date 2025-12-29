@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { OpenRouterModel } from '@rastar/shared';
+import type { OpenRouterModel } from '@rad/shared';
 
 interface ModelSelectorProps {
   defaultValue: string;

@@ -9,7 +9,7 @@
     "start": "node dist/server.js"
   },
   "dependencies": {
-    "@rastar/shared": "*",
+    "@rad/shared": "*",
     "dotenv": "^16.4.7",
     "express": "^4.21.2"
   },
