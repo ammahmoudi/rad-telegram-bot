@@ -160,11 +160,23 @@ async function main() {
     
     const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3100;
 
-    // Create Express app with DNS rebinding protection
-    // Allow connections from telegram-bot container via Docker service names
+    // Strict DNS rebinding protection - all hosts must be explicitly configured
+    // Only Docker service name is allowed by default for internal container communication
+    // Add all other hosts (localhost, production domains, etc.) via ALLOWED_HOSTS env var
+    const baseHosts = ['mcp-planka'];
+    const envHosts = process.env.ALLOWED_HOSTS;
+    if (!envHosts) {
+      console.warn('[MCP Planka] WARNING: ALLOWED_HOSTS not set. Only internal Docker access allowed.');
+      console.warn('[MCP Planka] Set ALLOWED_HOSTS env var to allow external access (e.g., "localhost,planka-mcp.rastar.dev")');
+    }
+    const additionalHosts = envHosts ? envHosts.split(',').map(h => h.trim()).filter(Boolean) : [];
+    const allowedHosts = [...baseHosts, ...additionalHosts];
+    
+    console.error(`[MCP Planka] Allowed hosts: ${allowedHosts.join(', ')}`);
+    
     const app = createMcpExpressApp({ 
       host: '0.0.0.0',
-      allowedHosts: ['mcp-planka', 'localhost', '127.0.0.1'] 
+      allowedHosts
     });
 
   console.error('[MCP Planka] Starting Streamable HTTP server...');

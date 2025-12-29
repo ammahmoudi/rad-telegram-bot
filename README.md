@@ -24,6 +24,24 @@ TypeScript monorepo that contains:
 - Runs at `http://localhost:3000` in `npm run dev`.
 - Protected by HTTP Basic Auth via `ADMIN_BASIC_AUTH_USER` / `ADMIN_BASIC_AUTH_PASS`.
 
+## Service Ports
+
+All services use consistent port configuration across code defaults, environment variables, and Docker:
+
+| Service | Port | Description |
+|---------|------|-------------|
+| **Admin Panel** | `3000` | Next.js admin dashboard with Basic Auth |
+| **Telegram Bot** | `3001` | Health check server (bot runs via polling) |
+| **Link Portal** | `3002` | OAuth callback handler and token exchange |
+| **MCP Planka** | `3100` | MCP server for Planka integration (HTTP mode) |
+| **MCP Rastar** | `3101` | MCP server for Rastar food ordering (HTTP mode) |
+
+Each service:
+- ✅ Has `PORT` default in source code
+- ✅ Has `PORT` configured in Dockerfile ENV
+- ✅ Has `EXPOSE` declaration in Dockerfile
+- ✅ Uses `process.env.PORT` for runtime override
+
 ## Security notes
 - Never paste passwords/tokens into chat.
 - The link portal stores only the Planka access token (encrypted at rest) and never stores the password.

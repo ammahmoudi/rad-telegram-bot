@@ -89,6 +89,7 @@ USER nodejs
 
 # Set environment variables
 ENV NODE_ENV=production \
+    PORT=3001 \
     DATABASE_URL="file:/app/data/rastar.db"
 
 # Health check

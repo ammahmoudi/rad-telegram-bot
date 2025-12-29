@@ -26,7 +26,7 @@ import {
 
 import { t } from './i18n.js';
 
-const PORT = Number(process.env.PORT || 8787);
+const PORT = Number(process.env.PORT || 3002);
 
 const app = express();
 app.use(express.urlencoded({ extended: false }));

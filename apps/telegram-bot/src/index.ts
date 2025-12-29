@@ -14,6 +14,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 console.log('[telegram-bot] Environment loaded');
 
+import express from 'express';
 import { initializeMcpServers } from './mcp-client.js';
 import {
   handleStartCommand,
@@ -28,6 +29,21 @@ import {
   handleRastarUnlinkCommand,
   handleMenuCommand,
 } from './handlers/commands.js';
+
+// ============================================================================
+// Health Check Server
+// ============================================================================
+
+const PORT = Number(process.env.PORT || 3001);
+const app = express();
+
+app.get('/health', (_req, res) => {
+  res.status(200).json({ status: 'ok', service: 'telegram-bot' });
+});
+
+app.listen(PORT, () => {
+  console.log(`[telegram-bot] Health check server listening on port ${PORT}`);
+});
 import {
   handleSettingsCommand,
   handleLanguageSelectionCallback,
