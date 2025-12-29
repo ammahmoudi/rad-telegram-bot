@@ -32,6 +32,8 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
+import express from 'express';
+import { hostHeaderValidation } from '@modelcontextprotocol/sdk/server/middleware/hostHeaderValidation.js';
 import { z } from 'zod';
 
 import { authTools, menuTools, handleToolCall } from './tools/index.js';
@@ -209,21 +211,24 @@ async function main() {
     console.error(`[MCP Rastar] Final allowed hosts configuration: ${JSON.stringify(allowedHosts)}`);
     console.error(`[MCP Rastar] Requests from these hostnames will be accepted.`);
     
-    const app = createMcpExpressApp({ 
-      host: '0.0.0.0',
-      allowedHosts
+    // Create Express app manually to add debug middleware BEFORE host validation
+    const app = express();
+    app.use(express.json());
+    
+    // Debug middleware - FIRST, so it logs even rejected requests
+    app.use((req, res, next) => {
+      console.error(`[MCP Rastar] Incoming request:`);
+      console.error(`[MCP Rastar] - Method: ${req.method}`);
+      console.error(`[MCP Rastar] - Path: ${req.path}`);
+      console.error(`[MCP Rastar] - Host header: ${req.headers.host}`);
+      console.error(`[MCP Rastar] - X-Forwarded-Host: ${req.headers['x-forwarded-host']}`);
+      console.error(`[MCP Rastar] - X-Forwarded-Proto: ${req.headers['x-forwarded-proto']}`);
+      console.error(`[MCP Rastar] - All headers: ${JSON.stringify(req.headers)}`);
+      next();
     });
-
-  // Debug middleware - log all incoming requests with their Host headers
-  app.use((req, _res, next) => {
-    console.error(`[MCP Rastar] Incoming request:`);
-    console.error(`[MCP Rastar] - Method: ${req.method}`);
-    console.error(`[MCP Rastar] - Path: ${req.path}`);
-    console.error(`[MCP Rastar] - Host header: ${req.headers.host}`);
-    console.error(`[MCP Rastar] - X-Forwarded-Host: ${req.headers['x-forwarded-host']}`);
-    console.error(`[MCP Rastar] - X-Forwarded-Proto: ${req.headers['x-forwarded-proto']}`);
-    next();
-  });
+    
+    // Now add host validation
+    app.use(hostHeaderValidation(allowedHosts));
 
   // Health check endpoint
   app.get('/health', (_req, res) => {

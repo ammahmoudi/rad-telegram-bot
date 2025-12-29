@@ -15,6 +15,8 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
+import express from 'express';
+import { hostHeaderValidation } from '@modelcontextprotocol/sdk/server/middleware/hostHeaderValidation.js';
 import {
   authTools,
   projectTools,
@@ -181,21 +183,24 @@ async function main() {
     console.error(`[MCP Planka] Final allowed hosts configuration: ${JSON.stringify(allowedHosts)}`);
     console.error(`[MCP Planka] Requests from these hostnames will be accepted.`);
     
-    const app = createMcpExpressApp({ 
-      host: '0.0.0.0',
-      allowedHosts
+    // Create Express app manually to add debug middleware BEFORE host validation
+    const app = express();
+    app.use(express.json());
+    
+    // Debug middleware - FIRST, so it logs even rejected requests
+    app.use((req, res, next) => {
+      console.error(`[MCP Planka] Incoming request:`);
+      console.error(`[MCP Planka] - Method: ${req.method}`);
+      console.error(`[MCP Planka] - Path: ${req.path}`);
+      console.error(`[MCP Planka] - Host header: ${req.headers.host}`);
+      console.error(`[MCP Planka] - X-Forwarded-Host: ${req.headers['x-forwarded-host']}`);
+      console.error(`[MCP Planka] - X-Forwarded-Proto: ${req.headers['x-forwarded-proto']}`);
+      console.error(`[MCP Planka] - All headers: ${JSON.stringify(req.headers)}`);
+      next();
     });
-
-  // Debug middleware - log all incoming requests with their Host headers
-  app.use((req, _res, next) => {
-    console.error(`[MCP Planka] Incoming request:`);
-    console.error(`[MCP Planka] - Method: ${req.method}`);
-    console.error(`[MCP Planka] - Path: ${req.path}`);
-    console.error(`[MCP Planka] - Host header: ${req.headers.host}`);
-    console.error(`[MCP Planka] - X-Forwarded-Host: ${req.headers['x-forwarded-host']}`);
-    console.error(`[MCP Planka] - X-Forwarded-Proto: ${req.headers['x-forwarded-proto']}`);
-    next();
-  });
+    
+    // Now add host validation
+    app.use(hostHeaderValidation(allowedHosts));
 
   console.error('[MCP Planka] Starting Streamable HTTP server...');
 
