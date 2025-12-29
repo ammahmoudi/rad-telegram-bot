@@ -41,8 +41,30 @@ export async function handleStartCommand(ctx: Context) {
   // Build reply keyboard with user's language
   const keyboard = getMainMenuKeyboard(language);
   
-  await ctx.reply(
-    [
+  // Try to get custom welcome message from database
+  let welcomeMessage = '';
+  try {
+    const { getPrisma } = await import('@rad/shared');
+    const prisma = getPrisma();
+    const customMessage = await prisma.systemMessage.findUnique({
+      where: {
+        language_messageType: {
+          language,
+          messageType: 'welcome',
+        },
+      },
+    });
+    
+    if (customMessage && customMessage.isActive) {
+      welcomeMessage = customMessage.content;
+    }
+  } catch (error) {
+    console.error('[telegram-bot] Error fetching custom welcome message:', error);
+  }
+  
+  // Fallback to default message if no custom message found
+  if (!welcomeMessage) {
+    welcomeMessage = [
       `👋 <b>Hi ${name}!</b>`,
       '',
       hasAI
@@ -51,14 +73,14 @@ export async function handleStartCommand(ctx: Context) {
       '',
       '🔧 <b>Available Commands:</b>',
       '',
-      '� <b>Planka:</b>',
+      '📋 <b>Planka:</b>',
       '🔗 /link_planka - Connect your Planka account',
       '📊 /planka_status - Check Planka connection',
       '🔓 /planka_unlink - Disconnect Planka',
       '',
       '🍽️ <b>Rastar (Food Menu):</b>',
-      '� /link_rastar - Connect your Rastar account',
-      '�📊 /rastar_status - Check Rastar connection',
+      '🔗 /link_rastar - Connect your Rastar account',
+      '📊 /rastar_status - Check Rastar connection',
       '🔓 /rastar_unlink - Disconnect Rastar',
       '',
       ...(hasAI
@@ -75,9 +97,13 @@ export async function handleStartCommand(ctx: Context) {
         : 'Start by running /link_planka to connect your account!',
       '',
       '⌨️ <b>Quick Access:</b> Use the buttons below to quickly access common features!',
-    ].join('\n'),
-    { parse_mode: 'HTML', reply_markup: keyboard },
-  );
+    ].join('\n');
+  } else {
+    // Replace {name} placeholder in custom message
+    welcomeMessage = welcomeMessage.replace(/\{name\}/g, name);
+  }
+  
+  await ctx.reply(welcomeMessage, { parse_mode: 'HTML', reply_markup: keyboard });
 }
 
 /**
@@ -119,25 +145,45 @@ export async function handleLinkPlankaCommand(ctx: Context) {
 
   console.log('[telegram-bot] /planka_link - generated URL:', linkUrl);
 
+  const isLocalhost = linkUrl.includes('localhost') || linkUrl.includes('127.0.0.1');
   const keyboard = getPlankaNotConnectedKeyboard(language, linkUrl);
-  await ctx.reply(
-    [
-      t('planka.link_title'),
+  
+  // Different message format for localhost vs production
+  const messageLines = [
+    t('planka.link_title'),
+    '',
+  ];
+  
+  if (isLocalhost) {
+    // For localhost, just show the copyable link
+    messageLines.push(
+      '📋 ' + t('planka.link_copy'),
+      `<code>${linkUrl}</code>`,
       '',
+      '💡 ' + t('planka.link_localhost_note'),
+    );
+  } else {
+    // For production, show clickable link and copyable version
+    messageLines.push(
       t('planka.link_step1'),
       `<a href="${linkUrl}">${t('planka.link_portal')}</a>`,
       '',
       t('planka.link_copy'),
       `<code>${linkUrl}</code>`,
-      '',
-      t('planka.link_step2'),
-      t('planka.link_step3'),
-      '',
-      t('planka.link_expires'),
-      t('planka.link_security'),
-      '',
-      `💡 <i>${t('planka.link_localhost_note')}</i>`,
-    ].join('\n'),
+    );
+  }
+  
+  messageLines.push(
+    '',
+    t('planka.link_step2'),
+    t('planka.link_step3'),
+    '',
+    t('planka.link_expires'),
+    t('planka.link_security'),
+  );
+  
+  await ctx.reply(
+    messageLines.join('\n'),
     { 
       parse_mode: 'HTML',
       link_preview_options: { is_disabled: true },
@@ -432,27 +478,49 @@ export async function handleLinkRastarCommand(ctx: Context) {
 
   console.log('[telegram-bot] /link_rastar - generated URL:', linkUrl);
 
+  const isLocalhost = linkUrl.includes('localhost') || linkUrl.includes('127.0.0.1');
   const keyboard = getRastarNotConnectedKeyboard(language, linkUrl);
-  await ctx.reply(
-    [
-      t('rastar.link_title'),
+  
+  // Different message format for localhost vs production
+  const messageLines = [
+    t('rastar.link_title'),
+    '',
+  ];
+  
+  if (isLocalhost) {
+    // For localhost, just show the copyable link
+    messageLines.push(
+      '📋 ' + t('rastar.link_copy'),
+      `<code>${linkUrl}</code>`,
       '',
+      '💡 ' + t('rastar.link_localhost_note'),
+    );
+  } else {
+    // For production, show clickable link and copyable version
+    messageLines.push(
       t('rastar.link_step1'),
       `<a href="${linkUrl}">${t('rastar.link_portal')}</a>`,
       '',
       t('rastar.link_copy'),
       `<code>${linkUrl}</code>`,
-      '',
-      t('rastar.link_step2'),
-      t('rastar.link_step3'),
-      '',
-      t('rastar.link_expires'),
-      '',
-      t('rastar.after_linking'),
-      t('rastar.feature_menu'),
-      t('rastar.feature_select'),
-      t('rastar.feature_manage'),
-    ].join('\n'),
+    );
+  }
+  
+  messageLines.push(
+    '',
+    t('rastar.link_step2'),
+    t('rastar.link_step3'),
+    '',
+    t('rastar.link_expires'),
+    '',
+    t('rastar.after_linking'),
+    t('rastar.feature_menu'),
+    t('rastar.feature_select'),
+    t('rastar.feature_manage'),
+  );
+  
+  await ctx.reply(
+    messageLines.join('\n'),
     { parse_mode: 'HTML', reply_markup: keyboard },
   );
 }
@@ -505,16 +573,16 @@ export async function handleRastarStatusCommand(ctx: Context) {
     
     await ctx.reply(
       [
-        '⚠️ <b>Token Expired</b>',
+        `⚠️ <b>${t('rastar.token_expired')}</b>`,
         '',
-        `👤 Email: ${token.email}`,
-        `🆔 User ID: ${token.userId}`,
+        `👤 ${t('rastar.email')}: ${token.email}`,
+        `🆔 ${t('rastar.user_id_label')}: ${token.userId}`,
         '',
-        '❌ Your access token has expired and can no longer be used.',
+        `❌ ${t('rastar.token_expired_message')}`,
         '',
-        '🔄 <b>To reconnect:</b>',
-        '1. Run /rastar_unlink to remove the expired token',
-        '2. Then run /link_rastar to get a new token',
+        `🔄 <b>${t('rastar.reconnect_instructions')}</b>`,
+        `1. ${t('rastar.reconnect_step1')}`,
+        `2. ${t('rastar.reconnect_step2')}`,
       ].join('\n'),
       { parse_mode: 'HTML', reply_markup: keyboard },
     );

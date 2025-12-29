@@ -8,13 +8,14 @@ import {
   getSystemConfig,
   getUserLanguage,
   type ChatMessage,
+  getPrisma,
 } from '@rad/shared';
 import type { ChatCompletionTool } from 'openai/resources/chat/completions';
 import { executeMcpTool } from '../planka-tools.js';
 import { executeRastarTool } from '../rastar-tools.js';
 import { getAiClient } from '../services/ai-client.js';
 import { getAiTools } from '../services/tools-manager.js';
-import { SYSTEM_PROMPT } from '../config/system-prompt.js';
+import { getSystemPrompt } from '../config/system-prompt.js';
 import { markdownToTelegramHtml, formatToolName, formatToolArgs } from '../utils/formatting.js';
 import { splitHtmlSafely } from '../utils/html-splitter.js';
 import { LOADING_FRAMES, type ReasoningStep } from '../types/streaming.js';
@@ -57,6 +58,38 @@ export async function handleAiMessage(ctx: Context) {
   console.log('[telegram-bot] AI chat message', { telegramUserId, text: text.slice(0, 50) });
 
   try {
+    // Get user language for system prompt
+    const userLanguage = await getUserLanguage(telegramUserId);
+    const systemPrompt = await getSystemPrompt(userLanguage as 'fa' | 'en', telegramUserId);
+
+    // Update user info in database
+    try {
+      const prisma = getPrisma();
+      const now = Date.now();
+      await prisma.telegramUser.upsert({
+        where: { id: telegramUserId },
+        update: {
+          firstName: ctx.from?.first_name || null,
+          lastName: ctx.from?.last_name || null,
+          username: ctx.from?.username || null,
+          lastSeenAt: now,
+          updatedAt: now,
+        },
+        create: {
+          id: telegramUserId,
+          firstName: ctx.from?.first_name || null,
+          lastName: ctx.from?.last_name || null,
+          username: ctx.from?.username || null,
+          role: 'user',
+          lastSeenAt: now,
+          createdAt: now,
+          updatedAt: now,
+        },
+      });
+    } catch (dbError) {
+      console.log('[telegram-bot] Could not update user info:', dbError);
+    }
+
     // Show typing indicator (ignore network errors)
     try {
       await ctx.replyWithChatAction('typing');
@@ -163,7 +196,7 @@ export async function handleAiMessage(ctx: Context) {
         ctx,
         client,
         trimmedHistory,
-        SYSTEM_PROMPT,
+        systemPrompt,
         tools,
         sentMessage
       );
@@ -226,7 +259,7 @@ export async function handleAiMessage(ctx: Context) {
       console.log('[telegram-bot] Tools were called, executing them...');
       
       // Get full response with tool calls
-      let response = await client.chat(trimmedHistory, { systemPrompt: SYSTEM_PROMPT }, tools);
+      let response = await client.chat(trimmedHistory, { systemPrompt }, tools);
       
       // Handle tool calls
       while (response.toolCalls && response.toolCalls.length > 0 && maxToolCalls > 0) {
@@ -424,7 +457,7 @@ export async function handleAiMessage(ctx: Context) {
         }
 
         // Get next response
-        response = await client.chat(trimConversationHistory(trimmedHistory, 20), { systemPrompt: SYSTEM_PROMPT }, tools);
+        response = await client.chat(trimConversationHistory(trimmedHistory, 20), { systemPrompt }, tools);
         
         if (response.content) {
           finalResponse = response.content;
@@ -484,7 +517,7 @@ export async function handleAiMessage(ctx: Context) {
         });
         
         // Don't pass tools to forced summarization - we just want a text response
-        const forcedResponse = await client.chat([...historyForSummary, summaryPrompt], { systemPrompt: SYSTEM_PROMPT });
+        const forcedResponse = await client.chat([...historyForSummary, summaryPrompt], { systemPrompt });
         
         if (forcedResponse.content) {
           finalResponse = forcedResponse.content;

@@ -1,4 +1,7 @@
-export const SYSTEM_PROMPT = `You are Rad, a helpful AI assistant integrated with Planka (a project management tool) and Rastar (company services including food menu). 
+import { getPrisma } from '@rad/shared';
+
+// Default system prompt (fallback if database is empty)
+const DEFAULT_SYSTEM_PROMPT = `You are Rad, a helpful AI assistant integrated with Planka (a project management tool) and Rastar (company services including food menu). 
 You have access to Planka tools to search, list, create, update projects, boards, cards, tasks, comments, labels, and members.
 You also have access to Rastar tools to view lunch menus, select food items, and manage food reservations.
 
@@ -125,3 +128,75 @@ Which one should I reserve for you?
 ###BUTTONS_START###[{"text":"📅 Week Menu","action":"rastar_view_week"},{"text":"🍴 Select","action":"send_message","message":"select today's food"}]###BUTTONS_END###"
 
 **CRITICAL REMINDER:** Every time you add buttons, you MUST wrap the JSON array in ###BUTTONS_START### and ###BUTTONS_END### markers. Raw JSON without markers will NOT render as clickable buttons!`;
+
+/**
+ * Get system prompt from user's assigned pack or default pack
+ */
+export async function getSystemPrompt(language: 'fa' | 'en' = 'en', telegramUserId?: string): Promise<string> {
+  try {
+    const prisma = getPrisma();
+    
+    let packId: string | undefined;
+    
+    // Check if user has a custom pack assigned
+    if (telegramUserId) {
+      const assignment = await prisma.userPackAssignment.findUnique({
+        where: { telegramUserId },
+      });
+      
+      if (assignment) {
+        packId = assignment.packId;
+      }
+    }
+    
+    // If no custom pack, find default pack
+    if (!packId) {
+      const defaultPack = await prisma.characterPack.findFirst({
+        where: { isDefault: true },
+      });
+      
+      if (defaultPack) {
+        packId = defaultPack.id;
+      }
+    }
+    
+    // Fetch system prompt message from the pack
+    if (packId) {
+      const message = await prisma.packMessage.findUnique({
+        where: {
+          packId_language_messageType: {
+            packId,
+            language,
+            messageType: 'system_prompt',
+          },
+        },
+      });
+      
+      if (message) {
+        return message.content;
+      }
+    }
+    
+    // Fallback to legacy SystemMessage if pack system not set up yet
+    const systemMessage = await prisma.systemMessage.findUnique({
+      where: {
+        language_messageType: {
+          language,
+          messageType: 'system_prompt',
+        },
+      },
+    });
+
+    if (systemMessage && systemMessage.isActive) {
+      return systemMessage.content;
+    }
+
+    return DEFAULT_SYSTEM_PROMPT;
+  } catch (error) {
+    console.error('Error fetching system prompt from database:', error);
+    return DEFAULT_SYSTEM_PROMPT;
+  }
+}
+
+// Export default for backwards compatibility
+export const SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPT;

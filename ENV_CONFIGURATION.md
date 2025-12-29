@@ -30,8 +30,8 @@ Complete reference for all environment variables used in the Rastar Telegram Bot
 | `ADMIN_PANEL_URL` | ✅ Yes | `http://localhost:3000` | Public URL of admin panel |
 | `NEXTAUTH_SECRET` | ✅ Yes | - | NextAuth encryption secret |
 | `NEXTAUTH_URL` | ✅ Yes | `http://localhost:3000` | NextAuth callback URL |
-| `ADMIN_USERNAME` | ✅ Yes | `admin` | Admin login username |
-| `ADMIN_PASSWORD` | ✅ Yes | - | Admin login password |
+| `DEFAULT_ADMIN_USERNAME` | ❌ No | - | Auto-create admin username (Docker only) |
+| `DEFAULT_ADMIN_PASSWORD` | ❌ No | - | Auto-create admin password (Docker only) |
 | `ADMIN_PANEL_PORT` | ❌ No | `3000` | Internal port |
 
 ### 🔗 Link Portal
@@ -122,9 +122,13 @@ echo "NEXTAUTH_SECRET=$(openssl rand -base64 32)" >> .env
 nano .env
 # - TELEGRAM_BOT_TOKEN
 # - OPENROUTER_API_KEY
-# - RASTAR_USERNAME
-# - RASTAR_PASSWORD
-# - ADMIN_PASSWORD
+# - ENCRYPTION_KEY
+# - NEXTAUTH_SECRET
+# - PLANKA_SERVER_URL
+# - RASTAR_SUPABASE_URL
+# - RASTAR_SUPABASE_ANON_KEY
+# - DEFAULT_ADMIN_USERNAME (optional)
+# - DEFAULT_ADMIN_PASSWORD (optional)
 # - Update all URLs with your domain
 
 # 4. Deploy

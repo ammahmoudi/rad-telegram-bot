@@ -118,6 +118,9 @@ services:
       # MCP Server URLs (Streamable HTTP endpoints)
       - MCP_PLANKA_URL=http://mcp-planka:3100/mcp
       - MCP_RASTAR_URL=http://mcp-rastar:3101/mcp
+      # Optional: Create default admin on first startup
+      - DEFAULT_ADMIN_USERNAME=${DEFAULT_ADMIN_USERNAME}
+      - DEFAULT_ADMIN_PASSWORD=${DEFAULT_ADMIN_PASSWORD}
     volumes:
       - ./logs/telegram-bot:/app/logs
     networks:
@@ -190,8 +193,6 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/rastar
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
-      - ADMIN_BASIC_AUTH_USER=${ADMIN_BASIC_AUTH_USER:-admin}
-      - ADMIN_BASIC_AUTH_PASS=${ADMIN_BASIC_AUTH_PASS}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - DEFAULT_AI_MODEL=${DEFAULT_AI_MODEL}
@@ -199,6 +200,9 @@ services:
       - RASTAR_SUPABASE_URL=${RASTAR_SUPABASE_URL}
       - RASTAR_SUPABASE_ANON_KEY=${RASTAR_SUPABASE_ANON_KEY}
       - NEXT_TELEMETRY_DISABLED=1
+      # Optional: Create default admin on first startup
+      - DEFAULT_ADMIN_USERNAME=${DEFAULT_ADMIN_USERNAME}
+      - DEFAULT_ADMIN_PASSWORD=${DEFAULT_ADMIN_PASSWORD}
     ports:
       - "3000:3000"
     volumes:

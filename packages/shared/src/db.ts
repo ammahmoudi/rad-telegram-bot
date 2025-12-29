@@ -1,4 +1,4 @@
-import crypto from 'node:crypto';
+import crypto from 'crypto';
 
 import { decryptString, encryptString } from './crypto.js';
 import { getPrisma } from './prisma.js';

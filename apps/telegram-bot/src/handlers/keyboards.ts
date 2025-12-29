@@ -48,12 +48,13 @@ export function getPlankaConnectedKeyboard(language: string = 'fa') {
 /**
  * Planka status inline keyboard (when not connected)
  * Button opens the portal link URL
- * Note: Telegram may not open localhost URLs on mobile, but works in production
+ * Note: Telegram rejects localhost URLs in inline buttons, so we don't add a button for local development
  */
 export function getPlankaNotConnectedKeyboard(language: string = 'fa', linkUrl?: string) {
   const t = getUserI18n(language);
   
-  if (!linkUrl) {
+  // Don't add button if URL is localhost (Telegram rejects it)
+  if (!linkUrl || linkUrl.includes('localhost') || linkUrl.startsWith('http://127.0.0.1')) {
     return undefined;
   }
   
@@ -90,12 +91,13 @@ export function getRastarConnectedKeyboard(language: string = 'fa') {
 /**
  * Rastar status inline keyboard (when not connected)
  * Button opens the portal link URL
- * Note: Telegram may not open localhost URLs on mobile, but works in production
+ * Note: Telegram rejects localhost URLs in inline buttons, so we don't add a button for local development
  */
 export function getRastarNotConnectedKeyboard(language: string = 'fa', linkUrl?: string) {
   const t = getUserI18n(language);
   
-  if (!linkUrl) {
+  // Don't add button if URL is localhost (Telegram rejects it)
+  if (!linkUrl || linkUrl.includes('localhost') || linkUrl.startsWith('http://127.0.0.1')) {
     return undefined;
   }
   

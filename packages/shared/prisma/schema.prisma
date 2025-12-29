@@ -4,7 +4,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
+
 }
 
 model LinkState {
@@ -35,6 +36,86 @@ model RastarToken {
 model SystemConfig {
   key   String @id
   value String
+}
+
+model Admin {
+  id           String @id @default(cuid())
+  username     String @unique
+  passwordHash String
+  createdAt    BigInt
+  updatedAt    BigInt
+}
+
+model SystemMessage {
+  id           String @id
+  language     String // 'fa' or 'en'
+  messageType  String // 'welcome', 'system_prompt', 'character'
+  content      String
+  isActive     Boolean @default(true)
+  updatedAt    BigInt
+
+  @@unique([language, messageType])
+  @@index([messageType, isActive])
+}
+
+// Character pack - a collection of system prompts, character definitions, and messages
+model CharacterPack {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  isDefault       Boolean  @default(false)
+  createdAt       BigInt
+  updatedAt       BigInt
+  
+  // Relations
+  messages        PackMessage[]
+  userAssignments UserPackAssignment[]
+  
+  @@index([isDefault])
+}
+
+// Messages within a character pack (system prompts, welcome messages, etc.)
+model PackMessage {
+  id           String @id @default(cuid())
+  packId       String
+  language     String // 'fa' or 'en'
+  messageType  String // 'welcome', 'system_prompt', 'character'
+  content      String
+  updatedAt    BigInt
+  
+  pack         CharacterPack @relation(fields: [packId], references: [id], onDelete: Cascade)
+  
+  @@unique([packId, language, messageType])
+  @@index([packId, messageType])
+}
+
+// User-specific character pack assignments
+model UserPackAssignment {
+  id              String @id @default(cuid())
+  telegramUserId  String
+  packId          String
+  assignedAt      BigInt
+  assignedBy      String? // admin username who assigned it
+  
+  pack            CharacterPack @relation(fields: [packId], references: [id], onDelete: Cascade)
+  
+  @@unique([telegramUserId])
+  @@index([packId])
+}
+
+// Telegram user information with roles
+model TelegramUser {
+  id              String  @id // telegram user id
+  firstName       String?
+  lastName        String?
+  username        String?
+  photoUrl        String?
+  role            String  @default("user") // user, manager, admin
+  lastSeenAt      BigInt?
+  createdAt       BigInt
+  updatedAt       BigInt
+  
+  @@index([role])
 }
 
 model UserPreferences {

@@ -1,9 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
-  env: {
-    ADMIN_BASIC_AUTH_USER: process.env.ADMIN_BASIC_AUTH_USER,
-    ADMIN_BASIC_AUTH_PASS: process.env.ADMIN_BASIC_AUTH_PASS,
+  webpack: (config, { isServer }) => {
+    // Handle node: protocol for built-in modules
+    if (isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        crypto: false,
+      };
+    }
+    return config;
   },
 };
 

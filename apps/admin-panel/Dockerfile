@@ -59,6 +59,13 @@ COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
 # Install Prisma CLI at the same version as @prisma/client
 RUN npm install --global --save-exact "prisma@$(node --print 'require("./node_modules/@prisma/client/package.json").version')"
 
+# Copy entrypoint script
+COPY --from=builder --chown=nodejs:nodejs /app/scripts/admin-panel-entrypoint.sh /app/admin-panel-entrypoint.sh
+RUN chmod +x /app/admin-panel-entrypoint.sh
+
+# Install bcryptjs for admin creation
+RUN npm install bcryptjs
+
 # Create data directory for SQLite database
 RUN mkdir -p /app/data && chown -R nodejs:nodejs /app/data
 
@@ -82,5 +89,5 @@ EXPOSE 3000
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
 
-# Run migrations and start Next.js server
-CMD ["sh", "-c", "npx prisma migrate deploy --schema=./packages/shared/prisma/schema.prisma --config=./packages/shared/prisma.config.ts && node apps/admin-panel/server.js"]
+# Use entrypoint script that handles migrations and admin creation
+CMD ["/app/admin-panel-entrypoint.sh"]
