@@ -57,7 +57,7 @@ describe.skipIf(!process.env.INTEGRATION_TEST)('Helper Functions - Integration T
 
   describe('User Tasks', () => {
     it('should get current user cards', async () => {
-      const cards = await getUserCards(auth);
+      const cards = await getUserCards(auth, undefined, {}, { by: 'updatedAt', order: 'desc' }, 20);
 
       expect(cards).toBeDefined();
       expect(Array.isArray(cards)).toBe(true);
@@ -82,7 +82,7 @@ describe.skipIf(!process.env.INTEGRATION_TEST)('Helper Functions - Integration T
 
     it('should filter undone cards', async () => {
 
-      const undoneCards = await getUserCards(auth, undefined, { done: false });
+      const undoneCards = await getUserCards(auth, undefined, { done: false }, { by: 'updatedAt', order: 'desc' }, 20);
 
       expect(undoneCards).toBeDefined();
       expect(Array.isArray(undoneCards)).toBe(true);
@@ -163,7 +163,7 @@ describe.skipIf(!process.env.INTEGRATION_TEST)('Helper Functions - Integration T
       console.log('🔍 Testing getProjectStatus...');
       
       // First get user cards to find a project
-      const cards = await getUserCards(auth);
+      const cards = await getUserCards(auth, undefined, {}, { by: 'updatedAt', order: 'desc' }, 20);
       
       if (cards.length === 0) {
         console.log('   ⏭️  Skipping (no cards found)');
@@ -186,7 +186,7 @@ describe.skipIf(!process.env.INTEGRATION_TEST)('Helper Functions - Integration T
     }, 60000);
 
     it('should get board status when cards exist', async () => {
-      const cards = await getUserCards(auth);
+      const cards = await getUserCards(auth, undefined, {}, { by: 'updatedAt', order: 'desc' }, 20);
       
       if (cards.length === 0) {
         console.log('   ⏭️  Skipping (no cards found)');

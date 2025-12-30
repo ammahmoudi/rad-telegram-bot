@@ -23,16 +23,16 @@ vi.mock('../../api/index.js', () => ({
 
 vi.mock('../../api/users.js', () => ({
   getUsers: vi.fn(),
+  listUsers: vi.fn(),
 }));
 
 vi.mock('../user-tasks.js', () => ({
   getUserCards: vi.fn(),
-  getUserTasks: vi.fn(),
 }));
 
-import { getUsers } from '../../api/users.js';
+import { listUsers } from '../../api/users.js';
 import { listProjects, getProject, getBoard } from '../../api/index.js';
-import { getUserCards, getUserTasks } from '../user-tasks.js';
+import { getUserCards } from '../user-tasks.js';
 
 describe('Search Helpers', () => {
   let auth: PlankaAuth;
@@ -47,7 +47,7 @@ describe('Search Helpers', () => {
 
   describe('searchUsers', () => {
     it('should search users by name (case-insensitive by default)', async () => {
-      vi.mocked(getUsers).mockResolvedValue([
+      vi.mocked(listUsers).mockResolvedValue([
         { id: '1', name: 'John Doe', email: 'john@test.com', username: 'john' },
         { id: '2', name: 'Jane Smith', email: 'jane@test.com', username: 'jane' },
         { id: '3', name: 'Bob Johnson', email: 'bob@test.com', username: 'bob' },
@@ -61,7 +61,7 @@ describe('Search Helpers', () => {
     });
 
     it('should search users case-sensitively when specified', async () => {
-      vi.mocked(getUsers).mockResolvedValue([
+      vi.mocked(listUsers).mockResolvedValue([
         { id: '1', name: 'John Doe', email: 'john@test.com', username: 'john' },
         { id: '2', name: 'jane smith', email: 'jane@test.com', username: 'jane' },
       ] as any);
@@ -73,7 +73,7 @@ describe('Search Helpers', () => {
     });
 
     it('should search by email', async () => {
-      vi.mocked(getUsers).mockResolvedValue([
+      vi.mocked(listUsers).mockResolvedValue([
         { id: '1', name: 'John Doe', email: 'john@test.com', username: 'john' },
         { id: '2', name: 'Jane Smith', email: 'jane@test.com', username: 'jane' },
       ] as any);
@@ -84,7 +84,7 @@ describe('Search Helpers', () => {
     });
 
     it('should use regex when specified', async () => {
-      vi.mocked(getUsers).mockResolvedValue([
+      vi.mocked(listUsers).mockResolvedValue([
         { id: '1', name: 'John Doe', email: 'john@test.com', username: 'john' },
         { id: '2', name: 'Jane Smith', email: 'jane@test.com', username: 'jane' },
         { id: '3', name: 'Bob Smith', email: 'bob@test.com', username: 'bob' },
@@ -190,18 +190,29 @@ describe('Search Helpers', () => {
 
   describe('searchTasks', () => {
     it('should search tasks by name', async () => {
-      vi.mocked(getUserTasks).mockResolvedValue([
+      vi.mocked(getUserCards).mockResolvedValue([
         {
-          id: 't1',
-          name: 'Write unit tests',
-          cardTitle: 'Testing',
+          id: 'c1',
+          name: 'Testing',
           projectName: 'Project 1',
-        },
-        {
-          id: 't2',
-          name: 'Update documentation',
-          cardTitle: 'Docs',
-          projectName: 'Project 1',
+          taskItems: [
+            {
+              id: 't1',
+              name: 'Write unit tests',
+              isCompleted: false,
+              position: 1,
+              taskListId: 'tl1',
+              taskListName: 'Tasks',
+            },
+            {
+              id: 't2',
+              name: 'Update documentation',
+              isCompleted: false,
+              position: 2,
+              taskListId: 'tl1',
+              taskListName: 'Tasks',
+            },
+          ],
         },
       ] as any);
 
@@ -214,7 +225,7 @@ describe('Search Helpers', () => {
 
   describe('globalSearch', () => {
     it('should search across all entity types', async () => {
-      vi.mocked(getUsers).mockResolvedValue([
+      vi.mocked(listUsers).mockResolvedValue([
         { id: '1', name: 'Test User', email: 'test@test.com', username: 'test' },
       ] as any);
 
@@ -232,13 +243,7 @@ describe('Search Helpers', () => {
           id: 'c1',
           name: 'Test Card',
           description: 'Test description',
-        },
-      ] as any);
-
-      vi.mocked(getUserTasks).mockResolvedValue([
-        {
-          id: 't1',
-          name: 'Test Task',
+          taskItems: [{ id: 't1', name: 'Test Task' }],
         },
       ] as any);
 
@@ -251,10 +256,9 @@ describe('Search Helpers', () => {
     });
 
     it('should handle errors gracefully', async () => {
-      vi.mocked(getUsers).mockRejectedValue(new Error('API Error'));
+      vi.mocked(listUsers).mockRejectedValue(new Error('API Error'));
       vi.mocked(listProjects).mockResolvedValue([]);
       vi.mocked(getUserCards).mockResolvedValue([]);
-      vi.mocked(getUserTasks).mockResolvedValue([]);
 
       const results = await globalSearch(auth, 'test');
 

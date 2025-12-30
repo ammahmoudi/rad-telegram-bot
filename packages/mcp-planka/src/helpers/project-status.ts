@@ -26,6 +26,7 @@ export async function getProjectStatus(
     includeCompleted?: boolean;
     includeIncomplete?: boolean;
     userId?: string;
+    maxBoards?: number; // Limit number of boards to process
   } = {}
 ): Promise<ProjectStatus> {
   const {
@@ -34,18 +35,22 @@ export async function getProjectStatus(
     includeCompleted = true,
     includeIncomplete = true,
     userId,
+    maxBoards = 10, // Default limit to prevent timeout
   } = options;
 
   const projectDetails = await getProject(auth, projectId);
   const projectName = (projectDetails as any).name;
   const boards = (projectDetails as any)?.included?.boards ?? [];
 
+  // Limit boards to prevent timeout
+  const boardsToProcess = boards.slice(0, maxBoards);
+
   const boardStatuses: ProjectStatus['boards'] = [];
   let totalCards = 0;
   let totalDoneCards = 0;
   let lastActivityTimestamp: string | undefined;
 
-  for (const board of boards) {
+  for (const board of boardsToProcess) {
     const boardId = board.id;
     const boardName = board.name;
 
@@ -159,12 +164,14 @@ export async function getProjectStatus(
       });
     } catch (error) {
       console.error(`Error fetching board ${boardId}:`, error);
+      // Continue to next board instead of failing
+      continue;
     }
   }
 
-  // Get last board activity
+  // Get last board activity (limit to processed boards only)
   try {
-    for (const board of boards) {
+    for (const board of boardsToProcess.slice(0, 5)) { // Further limit action fetching to 5 boards
       const actions = await getBoardActions(auth, board.id);
       if (actions.length > 0) {
         const latestAction = actions[actions.length - 1];

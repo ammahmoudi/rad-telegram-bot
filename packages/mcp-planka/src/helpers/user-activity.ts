@@ -7,6 +7,7 @@ import { listProjects, getProject, getBoard, getCurrentUser } from '../api/index
 import { getNotifications } from '../api/notifications.js';
 import { getBoardActions, getCardActions } from '../api/actions.js';
 import type { ActivityItem, NotificationItem } from './types.js';
+import { parseDate } from '../utils/date-time.js';
 
 /**
  * Resolve user ID - if "me" or undefined, get current user
@@ -31,18 +32,18 @@ export async function getUserNotifications(
   const resolvedUserId = await resolveUserId(auth, userId);
   const notifications = await getNotifications(auth);
   
+  // Apply default limit to prevent timeout
+  const effectiveLimit = options.limit || 20;
+  
   // Filter by user and read status
   let userNotifications = notifications
     .filter((n: any) => n.userId === resolvedUserId)
-    .filter((n: any) => !options.unreadOnly || !n.isRead);
+    .filter((n: any) => !options.unreadOnly || !n.isRead)
+    .slice(0, effectiveLimit); // Limit early to reduce processing
 
-  // Limit results
-  if (options.limit) {
-    userNotifications = userNotifications.slice(0, options.limit);
-  }
-
-  // Enrich with context
+  // Enrich with context (only for limited notifications)
   const enriched: NotificationItem[] = [];
+  const cardCache = new Map<string, { projectId: string; projectName: string; boardId: string; boardName: string; cardName: string }>();
 
   for (const notification of userNotifications) {
     const enrichedNotification: NotificationItem = {
@@ -54,13 +55,19 @@ export async function getUserNotifications(
       updatedAt: notification.updatedAt,
     };
 
-    // Try to get card context if available
-    if (notification.cardId) {
+    // Try to get card context if available and not cached
+    if (notification.cardId && !cardCache.has(notification.cardId)) {
       try {
-        // We need to find which board/project this card belongs to
+        // Find card in projects (limit search scope)
         const projects = await listProjects(auth);
+        let found = false;
+        let boardsFetched = 0;
+        const maxBoardsToFetch = 10; // Limit total boards to prevent timeout
         
-        for (const project of projects) {
+        // Only search first few projects to avoid timeout
+        for (const project of projects.slice(0, 10)) {
+          if (found || boardsFetched >= maxBoardsToFetch) break;
+          
           const projectId = (project as any).id;
           const projectName = (project as any).name;
           
@@ -69,6 +76,9 @@ export async function getUserNotifications(
             const boards = (projectDetails as any)?.included?.boards ?? [];
             
             for (const board of boards) {
+              if (found || boardsFetched >= maxBoardsToFetch) break;
+              
+              boardsFetched++; // Increment board fetch counter
               const boardId = board.id;
               const boardName = board.name;
               
@@ -78,26 +88,37 @@ export async function getUserNotifications(
                 
                 const card = cards.find((c: any) => c.id === notification.cardId);
                 if (card) {
-                  enrichedNotification.cardName = card.name;
-                  enrichedNotification.boardId = boardId;
-                  enrichedNotification.boardName = boardName;
-                  enrichedNotification.projectId = projectId;
-                  enrichedNotification.projectName = projectName;
+                  cardCache.set(notification.cardId, {
+                    projectId,
+                    projectName,
+                    boardId,
+                    boardName,
+                    cardName: card.name,
+                  });
+                  found = true;
                   break;
                 }
               } catch (error) {
-                // Continue searching
+                // Skip this board
               }
             }
-            
-            if (enrichedNotification.cardName) break;
           } catch (error) {
-            // Continue searching
+            // Skip this project
           }
         }
       } catch (error) {
-        console.error('Error enriching notification:', error);
+        console.error('Error enriching notification with card context:', error);
       }
+    }
+    
+    // Add cached card context if available
+    if (notification.cardId && cardCache.has(notification.cardId)) {
+      const cardContext = cardCache.get(notification.cardId)!;
+      enrichedNotification.cardName = cardContext.cardName;
+      enrichedNotification.boardId = cardContext.boardId;
+      enrichedNotification.boardName = cardContext.boardName;
+      enrichedNotification.projectId = cardContext.projectId;
+      enrichedNotification.projectName = cardContext.projectName;
     }
 
     // Try to get related action if available
@@ -139,8 +160,8 @@ export async function getUserActions(
   auth: PlankaAuth,
   userId?: string,
   options: {
-    startDate?: string; // ISO date string
-    endDate?: string;   // ISO date string
+    startDate?: string; // ISO date string or relative ("today", "2 days ago")
+    endDate?: string;   // ISO date string or relative
     limit?: number;
     projectId?: string;
     boardId?: string;
@@ -149,8 +170,27 @@ export async function getUserActions(
   const resolvedUserId = await resolveUserId(auth, userId);
   const projects = await listProjects(auth);
   const allActivities: ActivityItem[] = [];
+  
+  // Parse date strings to ISO format (handles relative dates like "today", "2 days ago")
+  const startDateISO = options.startDate ? parseDate(options.startDate).iso : undefined;
+  const endDateISO = options.endDate ? parseDate(options.endDate).iso : undefined;
+  
+  // Apply default limit to prevent timeout
+  const effectiveLimit = options.limit || 50;
+  
+  // Cache for board details to avoid redundant fetches
+  const boardDetailsCache = new Map<string, any>();
+  
+  // Limit total boards to fetch
+  let boardsFetched = 0;
+  const maxBoardsToFetch = 10;
 
   for (const project of projects) {
+    // Early exit if we hit limits
+    if (allActivities.length >= effectiveLimit || boardsFetched >= maxBoardsToFetch) {
+      break;
+    }
+    
     const projectId = (project as any).id;
     const projectName = (project as any).name;
 
@@ -162,6 +202,12 @@ export async function getUserActions(
       const users = (projectDetails as any)?.included?.users ?? [];
 
       for (const board of boards) {
+        // Early exit if limits reached
+        if (allActivities.length >= effectiveLimit || boardsFetched >= maxBoardsToFetch) {
+          break;
+        }
+        
+        boardsFetched++; // Increment counter
         const boardId = board.id;
         const boardName = board.name;
 
@@ -171,26 +217,32 @@ export async function getUserActions(
           // Get board actions
           const actions = await getBoardActions(auth, boardId);
           
+          // Fetch board details once and cache it
+          if (!boardDetailsCache.has(boardId)) {
+            const boardDetails = await getBoard(auth, boardId);
+            boardDetailsCache.set(boardId, boardDetails);
+          }
+          const boardDetails = boardDetailsCache.get(boardId);
+          const cards = (boardDetails as any)?.included?.cards ?? [];
+          
           for (const action of actions) {
             // Filter by user
             if (action.userId !== resolvedUserId) continue;
 
             // Filter by date range
             const actionDate = new Date(action.createdAt);
-            if (options.startDate && actionDate < new Date(options.startDate)) continue;
-            if (options.endDate && actionDate > new Date(options.endDate)) continue;
+            if (startDateISO && actionDate < new Date(startDateISO)) continue;
+            if (endDateISO && actionDate > new Date(endDateISO)) continue;
 
             // Get user name
             const user = users.find((u: any) => u.id === action.userId);
             const userName = user?.name ?? 'Unknown User';
 
-            // Get card context if available
+            // Get card context if available (use cached data)
             let cardName: string | undefined;
             let cardId: string | undefined;
 
             if (action.cardId) {
-              const boardDetails = await getBoard(auth, boardId);
-              const cards = (boardDetails as any)?.included?.cards ?? [];
               const card = cards.find((c: any) => c.id === action.cardId);
               if (card) {
                 cardName = card.name;
@@ -215,10 +267,25 @@ export async function getUserActions(
             };
 
             allActivities.push(activity);
+            
+            // Early exit if we've reached the limit
+            if (allActivities.length >= effectiveLimit) {
+              break;
+            }
+          }
+          
+          // Early exit if we've reached the limit
+          if (allActivities.length >= effectiveLimit) {
+            break;
           }
         } catch (error) {
           console.error(`Error fetching actions for board ${boardId}:`, error);
         }
+      }
+      
+      // Early exit if we've reached the limit
+      if (allActivities.length >= effectiveLimit) {
+        break;
       }
     } catch (error) {
       console.error(`Error fetching project ${projectId}:`, error);
@@ -228,12 +295,8 @@ export async function getUserActions(
   // Sort by timestamp descending
   allActivities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
-  // Limit results
-  if (options.limit) {
-    return allActivities.slice(0, options.limit);
-  }
-
-  return allActivities;
+  // Return limited results
+  return allActivities.slice(0, effectiveLimit);
 }
 
 /**
@@ -253,7 +316,7 @@ export async function getUserActivitySummary(
   } = {}
 ): Promise<{
   notifications: NotificationItem[];
-  activity: ActivityItem[];
+  actions: ActivityItem[];
   summary: {
     unreadNotificationsCount: number;
     totalNotificationsCount: number;
@@ -274,6 +337,7 @@ export async function getUserActivitySummary(
       ? getUserActions(auth, userId, {
           startDate: options.startDate,
           endDate: options.endDate,
+          limit: 50, // Default limit to prevent timeout
         })
       : Promise.resolve([]),
   ]);
@@ -285,7 +349,7 @@ export async function getUserActivitySummary(
 
   return {
     notifications,
-    activity,
+    actions: activity, // Rename to match expected API
     summary: {
       unreadNotificationsCount: unreadNotifications.length,
       totalNotificationsCount: notifications.length,

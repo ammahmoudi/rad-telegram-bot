@@ -17,6 +17,7 @@ import { getComments } from '../api/comments.js';
 import { createCard } from '../api/cards.js';
 import type { DailyReportEntry } from './types.js';
 import { getUserActions } from './user-activity.js';
+import { parseDate, now, fromUTC, type DualDate } from '../utils/date-time.js';
 
 /**
  * Resolve user ID - if "me" or undefined, get current user
@@ -507,20 +508,19 @@ export async function generateDailyReportFromTasks(
 }
 
 /**
- * Get today's date in ISO format (local timezone)
+ * Get today's date in dual calendar format
  */
-export function getTodayDate(): string {
-  const today = new Date();
-  return today.toISOString().split('T')[0];
+export function getTodayDate(): DualDate {
+  return now();
 }
 
 /**
- * Get yesterday's date in ISO format (local timezone)
+ * Get yesterday's date in dual calendar format
  */
-export function getYesterdayDate(): string {
+export function getYesterdayDate(): DualDate {
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
-  return yesterday.toISOString().split('T')[0];
+  return fromUTC(yesterday);
 }
 
 /**
@@ -530,8 +530,8 @@ export function getYesterdayDate(): string {
  * @param userId - User ID or "me" for current user, or undefined for current user
  * @param name - Card name (title of the daily report)
  * @param description - Card description (report content)
- * @param date - ISO date string (YYYY-MM-DD) for the report, defaults to today
- * @returns Created card information
+ * @param date - Date string in various formats: "today", "2025-12-30", "1404/10/10", etc.
+ * @returns Created card information with dual calendar dates
  */
 export async function createDailyReportCard(
   auth: PlankaAuth,
@@ -545,9 +545,19 @@ export async function createDailyReportCard(
   listName: string;
   boardName: string;
   projectName: string;
+  date: DualDate;
 }> {
   const resolvedUserId = await resolveUserId(auth, userId);
-  const reportDate = date || getTodayDate();
+  const reportDate = date ? parseDate(date) : getTodayDate();
+  
+  // Enrich card name and description with dual calendar dates
+  const enrichedName = `${name} (${reportDate.gregorian.date} / ${reportDate.persian.date})`;
+  const enrichedDescription = `**تاریخ / Date:**
+📅 ${reportDate.gregorian.formatted}
+📅 ${reportDate.persian.formatted}
+
+---
+${description}`;
   
   // Get all daily report projects
   const projects = await listProjects(auth);
@@ -599,10 +609,10 @@ export async function createDailyReportCard(
       const card = await createCard(
         auth,
         listId,
-        name,
-        description,
+        enrichedName,
+        enrichedDescription,
         undefined, // position - will be added at default position
-        reportDate // dueDate
+        reportDate.iso // dueDate in UTC ISO format
       );
 
       return {
@@ -611,6 +621,7 @@ export async function createDailyReportCard(
         listName,
         boardName,
         projectName,
+        date: reportDate,
       };
     } catch (error) {
       console.error(`Error creating daily report in project ${projectId}:`, error);

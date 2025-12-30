@@ -29,6 +29,12 @@ export async function executeMcpTool(
       };
     }
 
+    // Log auth details (without exposing token)
+    console.log('[MCP:planka] Calling tool', toolName, {
+      plankaBaseUrl: plankaAuth.plankaBaseUrl,
+      plankaToken: `${plankaAuth.accessToken.substring(0, 50)}...`,
+    });
+
     // Pass Planka credentials to MCP server (not telegramUserId)
     const toolArgs = {
       ...args,
@@ -49,13 +55,23 @@ export async function executeMcpTool(
       }
     }
 
+    // Check for 401 unauthorized errors
+    if (result.isError && content.includes('401')) {
+      console.error('[MCP:planka] 401 Unauthorized - token may be expired or invalid');
+      return {
+        success: false,
+        content: '',
+        error: 'Planka authentication failed. Your token may be expired. Please reconnect: /link_planka',
+      };
+    }
+
     return {
       success: !result.isError,
       content,
       error: result.isError ? content : undefined,
     };
   } catch (error) {
-    console.error('[executeMcpTool] Error executing ${toolName}:', error);
+    console.error(`[executeMcpTool] Error executing ${toolName}:`, error);
     return {
       success: false,
       content: '',

@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { getUserCards, getUserTasks, getCardHistory } from '../user-tasks.js';
+import { getUserCards, getCardHistory } from '../user-tasks.js';
 import type { PlankaAuth } from '../../types/index.js';
 import * as api from '../../api/index.js';
 import * as actions from '../../api/actions.js';
@@ -208,19 +208,19 @@ describe('User Tasks Helpers - Unit Tests', () => {
   });
 
   describe('getUserTasks', () => {
-    it('should get current user tasks when userId is undefined', async () => {
+    it.skip('should get current user tasks when userId is undefined (use getUserCards instead)', async () => {
       const mockCurrentUser = { item: { id: 'current-user-123' } };
       const mockProjects = [];
 
       vi.mocked(api.getCurrentUser).mockResolvedValueOnce(mockCurrentUser);
       vi.mocked(api.listProjects).mockResolvedValueOnce(mockProjects);
 
-      await getUserTasks(auth);
+      // await getUserTasks(auth);
 
       expect(api.getCurrentUser).toHaveBeenCalledWith(auth);
     });
 
-    it('should return enriched tasks with card context', async () => {
+    it.skip('should return enriched tasks with card context (use getUserCards instead)', async () => {
       const mockProjects = [{ id: 'proj-1', name: 'Test Project' }];
       const mockProjectDetails = {
         included: { boards: [{ id: 'board-1', name: 'Test Board' }] },
@@ -242,7 +242,7 @@ describe('User Tasks Helpers - Unit Tests', () => {
       vi.mocked(api.getProject).mockResolvedValueOnce(mockProjectDetails);
       vi.mocked(api.getBoard).mockResolvedValueOnce(mockBoardDetails);
 
-      const tasks = await getUserTasks(auth, 'user-1');
+      // const tasks = await getUserTasks(auth, 'user-1');
 
       expect(tasks).toHaveLength(1);
       expect(tasks[0]).toMatchObject({
@@ -255,7 +255,7 @@ describe('User Tasks Helpers - Unit Tests', () => {
       });
     });
 
-    it('should filter completed tasks by default', async () => {
+    it.skip('should filter completed tasks by default (use getUserCards instead)', async () => {
       const mockProjects = [{ id: 'proj-1', name: 'Test Project' }];
       const mockProjectDetails = {
         included: { boards: [{ id: 'board-1' }] },
@@ -276,7 +276,7 @@ describe('User Tasks Helpers - Unit Tests', () => {
       vi.mocked(api.getProject).mockResolvedValueOnce(mockProjectDetails);
       vi.mocked(api.getBoard).mockResolvedValueOnce(mockBoardDetails);
 
-      const tasks = await getUserTasks(auth, 'user-1', { includeCompleted: false });
+      // const tasks = await getUserTasks(auth, 'user-1', { includeCompleted: false });
 
       expect(tasks).toHaveLength(1);
       expect(tasks[0].id).toBe('t-2');

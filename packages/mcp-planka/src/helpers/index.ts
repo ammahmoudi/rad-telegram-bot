@@ -18,3 +18,6 @@ export {
   globalSearch,
 } from './search.js';
 export * from './types.js';
+
+// Export date/time utilities with dual calendar support
+export * from '../utils/date-time.js';

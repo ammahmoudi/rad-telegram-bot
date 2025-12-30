@@ -6,6 +6,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { PlankaAuth } from '../../types/index.js';
 import * as listsApi from '../../api/lists.js';
 import * as boardsApi from '../../api/boards.js';
+import * as projectsApi from '../../api/projects.js';
 import {
   createBoardList,
   getBoardLists,
@@ -20,10 +21,11 @@ import {
 
 vi.mock('../../api/lists.js');
 vi.mock('../../api/boards.js');
+vi.mock('../../api/projects.js');
 
 describe('List Management Helpers', () => {
   const mockAuth: PlankaAuth = {
-    plankaUrl: 'https://planka.test',
+    plankaBaseUrl: 'https://planka.test',
     accessToken: 'test-token',
   };
 
@@ -42,9 +44,14 @@ describe('List Management Helpers', () => {
         },
       };
 
+      vi.mocked(projectsApi.listProjects).mockResolvedValue([{ id: 'project-1', name: 'Test Project' }] as any);
+      vi.mocked(projectsApi.getProject).mockResolvedValue({
+        id: 'project-1',
+        included: { boards: [{ id: 'board-1', name: 'Test Board' }] },
+      } as any);
       vi.mocked(listsApi.createList).mockResolvedValue(mockResponse);
 
-      const result = await createBoardList(mockAuth, 'board-1', 'To Do');
+      const result = await createBoardList(mockAuth, 'project-1', 'board-1', 'To Do');
 
       expect(listsApi.createList).toHaveBeenCalledWith(
         mockAuth,
@@ -72,9 +79,14 @@ describe('List Management Helpers', () => {
         },
       };
 
+      vi.mocked(projectsApi.listProjects).mockResolvedValue([{ id: 'project-1', name: 'Test Project' }] as any);
+      vi.mocked(projectsApi.getProject).mockResolvedValue({
+        id: 'project-1',
+        included: { boards: [{ id: 'board-1', name: 'Test Board' }] },
+      } as any);
       vi.mocked(listsApi.createList).mockResolvedValue(mockResponse);
 
-      const result = await createBoardList(mockAuth, 'board-1', 'Done', {
+      const result = await createBoardList(mockAuth, 'project-1', 'board-1', 'Done', {
         position: 131070,
         color: 'green',
       });
@@ -117,7 +129,11 @@ describe('List Management Helpers', () => {
 
   describe('updateBoardList', () => {
     it('updates list properties', async () => {
-      await updateBoardList(mockAuth, 'list-1', {
+      vi.mocked(boardsApi.getBoard).mockResolvedValue({
+        included: { lists: [{ id: 'list-1', name: 'Old Name' }] },
+      } as any);
+
+      await updateBoardList(mockAuth, 'board-1', 'list-1', {
         name: 'New Name',
         position: 100,
       });
@@ -131,6 +147,10 @@ describe('List Management Helpers', () => {
 
   describe('createMultipleLists', () => {
     it('creates multiple lists with increasing positions', async () => {
+      vi.mocked(projectsApi.listProjects).mockResolvedValue([{ id: 'proj-1' }]);
+      vi.mocked(projectsApi.getProject).mockResolvedValue({
+        included: { boards: [{ id: 'board-1' }] },
+      } as any);
       vi.mocked(listsApi.createList)
         .mockResolvedValueOnce({
           item: { id: 'list-1', name: 'List 1', boardId: 'board-1', position: 65535 },
@@ -139,7 +159,7 @@ describe('List Management Helpers', () => {
           item: { id: 'list-2', name: 'List 2', boardId: 'board-1', position: 131070 },
         });
 
-      const result = await createMultipleLists(mockAuth, 'board-1', ['List 1', 'List 2']);
+      const result = await createMultipleLists(mockAuth, 'proj-1', 'board-1', ['List 1', 'List 2']);
 
       expect(result).toHaveLength(2);
       expect(listsApi.createList).toHaveBeenCalledTimes(2);
@@ -150,27 +170,42 @@ describe('List Management Helpers', () => {
 
   describe('list operations', () => {
     it('archives a list', async () => {
-      await archiveBoardList(mockAuth, 'list-1');
+      vi.mocked(boardsApi.getBoard).mockResolvedValue({
+        included: { lists: [{ id: 'list-1', name: 'Test' }] },
+      } as any);
+      await archiveBoardList(mockAuth, 'board-1', 'list-1');
       expect(listsApi.archiveList).toHaveBeenCalledWith(mockAuth, 'list-1');
     });
 
     it('deletes a list', async () => {
-      await deleteBoardList(mockAuth, 'list-1');
+      vi.mocked(boardsApi.getBoard).mockResolvedValue({
+        included: { lists: [{ id: 'list-1', name: 'Test' }] },
+      } as any);
+      await deleteBoardList(mockAuth, 'board-1', 'list-1');
       expect(listsApi.deleteList).toHaveBeenCalledWith(mockAuth, 'list-1');
     });
 
     it('moves all cards', async () => {
-      await moveAllCards(mockAuth, 'list-1', 'list-2');
+      vi.mocked(boardsApi.getBoard).mockResolvedValue({
+        included: { lists: [{ id: 'list-1', name: 'Test 1' }, { id: 'list-2', name: 'Test 2' }] },
+      } as any);
+      await moveAllCards(mockAuth, 'board-1', 'list-1', 'list-2');
       expect(listsApi.moveCardsFromList).toHaveBeenCalledWith(mockAuth, 'list-1', 'list-2');
     });
 
     it('clears list cards', async () => {
-      await clearListCards(mockAuth, 'list-1');
+      vi.mocked(boardsApi.getBoard).mockResolvedValue({
+        included: { lists: [{ id: 'list-1', name: 'Test' }] },
+      } as any);
+      await clearListCards(mockAuth, 'board-1', 'list-1');
       expect(listsApi.clearList).toHaveBeenCalledWith(mockAuth, 'list-1');
     });
 
     it('sorts list cards', async () => {
-      await sortListCards(mockAuth, 'list-1');
+      vi.mocked(boardsApi.getBoard).mockResolvedValue({
+        included: { lists: [{ id: 'list-1', name: 'Test' }] },
+      } as any);
+      await sortListCards(mockAuth, 'board-1', 'list-1');
       expect(listsApi.sortList).toHaveBeenCalledWith(mockAuth, 'list-1');
     });
   });

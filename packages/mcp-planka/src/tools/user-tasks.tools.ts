@@ -12,7 +12,7 @@ export const userTasksTools = [
       properties: {
         userId: {
           type: 'string',
-          description: 'User ID to get cards for. If omitted, uses current user.',
+          description: 'User ID to get cards for. OPTIONAL: If omitted, gets cards for CURRENT user. Only specify when checking someone else\'s cards (e.g., "show me John\'s tasks").',
         },
         filter: {
           type: 'object',
@@ -85,7 +85,8 @@ export async function handleUserTasksTool(auth: PlankaAuth, toolName: string, ar
       const userId = args.userId || undefined;
       const filter = args.filter as FilterOptions | undefined;
       const sort = args.sort as SortOptions | undefined;
-      return await getUserCards(auth, userId, filter, sort);
+      const limit = args.limit || 50; // Default limit to prevent timeouts
+      return await getUserCards(auth, userId, filter, sort, limit);
     }
 
     case 'planka_get_card_history': {

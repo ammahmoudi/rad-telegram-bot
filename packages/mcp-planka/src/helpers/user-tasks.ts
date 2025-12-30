@@ -21,18 +21,35 @@ async function resolveUserId(auth: PlankaAuth, userId?: string): Promise<string>
 /**
  * Get all cards/tasks for a user with filtering and sorting
  * @param userId - User ID or "me" for current user, or undefined for current user
+ * @param limit - Maximum number of cards to return (default: 100)
  */
 export async function getUserCards(
   auth: PlankaAuth,
   userId?: string,
   options: FilterOptions = {},
-  sort: SortOptions = { by: 'updatedAt', order: 'desc' }
+  sort: SortOptions = { by: 'updatedAt', order: 'desc' },
+  limit?: number
 ): Promise<EnrichedCard[]> {
   const resolvedUserId = await resolveUserId(auth, userId);
   const projects = await listProjects(auth);
   const allCards: EnrichedCard[] = [];
+  
+  // Apply default limit to prevent timeout
+  const effectiveLimit = limit || 100;
+  
+  // Limit projects to process (max 10 to prevent excessive API calls)
+  const projectsToProcess = projects.slice(0, 10);
+  
+  // Track total boards fetched to prevent timeout (max 10 boards total across all projects)
+  let boardsFetched = 0;
+  const maxBoardsToFetch = 10;
 
-  for (const project of projects) {
+  for (const project of projectsToProcess) {
+    // Early exit if we've already reached our card limit OR board fetch limit
+    if (allCards.length >= effectiveLimit || boardsFetched >= maxBoardsToFetch) {
+      break;
+    }
+    
     const projectId = (project as any).id;
     const projectName = (project as any).name;
 
@@ -45,6 +62,11 @@ export async function getUserCards(
       const users = (projectDetails as any)?.included?.users ?? [];
 
       for (const board of boards) {
+        // Early exit before even fetching board details
+        if (allCards.length >= effectiveLimit || boardsFetched >= maxBoardsToFetch) {
+          break;
+        }
+        
         const boardId = board.id;
         const boardName = board.name;
 
@@ -52,6 +74,7 @@ export async function getUserCards(
         if (options.boardId && boardId !== options.boardId) continue;
 
         try {
+          boardsFetched++; // Increment before fetching
           const boardDetails = await getBoard(auth, boardId);
           const lists = (boardDetails as any)?.included?.lists ?? [];
           const cards = (boardDetails as any)?.included?.cards ?? [];
@@ -189,13 +212,32 @@ export async function getUserCards(
             }
 
             allCards.push(enrichedCard);
+            
+            // Early exit if we've reached the limit
+            if (allCards.length >= effectiveLimit) {
+              break;
+            }
+          }
+          
+          // Early exit if we've reached the limit
+          if (allCards.length >= effectiveLimit) {
+            break;
           }
         } catch (error) {
           console.error(`Error fetching board ${boardId}:`, error);
+          // Continue to next board instead of failing
+          continue;
         }
+      }
+      
+      // Early exit if we've reached the limit
+      if (allCards.length >= effectiveLimit) {
+        break;
       }
     } catch (error) {
       console.error(`Error fetching project ${projectId}:`, error);
+      // Continue to next project instead of failing
+      continue;
     }
   }
 
@@ -236,7 +278,8 @@ export async function getUserCards(
     }
   });
 
-  return allCards;
+  // Return only up to the effective limit
+  return allCards.slice(0, effectiveLimit);
 }
 
 /**

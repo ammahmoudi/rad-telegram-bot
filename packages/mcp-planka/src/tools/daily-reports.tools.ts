@@ -18,21 +18,21 @@ export const dailyReportsTools = [
   {
     name: 'planka_get_user_daily_reports',
     description:
-      'Get daily report entries for a user. Extracts content from card name, description, and comments. Optionally includes summary with missing dates.',
+      'PREFERRED: Get user\'s daily report entries in ONE efficient call. Use this when user asks: "my daily report", "today\'s report", "this week\'s reports", "what did I report". Automatically finds reports from Daily Report projects. DON\'T use multiple planka_search_* calls instead. IMPORTANT: When user mentions ANY time period ("today", "last 2 days", "this week"), you MUST pass startDate (and optionally endDate). Do NOT call without dates when user asks for reports from a specific time range.',
     inputSchema: {
       type: 'object',
       properties: {
         userId: {
           type: 'string',
-          description: 'User ID to get reports for. If omitted, uses current user.',
+          description: 'User ID to get reports for. OPTIONAL: If omitted, gets reports for CURRENT user. Only specify when checking someone else\'s reports.',
         },
         startDate: {
           type: 'string',
-          description: 'Filter reports from this date (ISO format, e.g., "2024-01-01")',
+          description: 'REQUIRED when user mentions time period. Examples: For "last 2 days" → "2 days ago", For "today" → "today", For "this week" → "monday this week". Supports: ISO ("2024-01-01"), relative ("7 days ago", "last monday"), natural ("yesterday", "today").',
         },
         endDate: {
           type: 'string',
-          description: 'Filter reports to this date (ISO format)',
+          description: 'End date filter. Usually "today" for current queries. Supports same formats as startDate.',
         },
         projectId: {
           type: 'string',
@@ -54,15 +54,15 @@ export const dailyReportsTools = [
       properties: {
         startDate: {
           type: 'string',
-          description: 'Start date (ISO format, e.g., "2024-01-01")',
+          description: 'Start date (supports: ISO "2024-01-01", relative "7 days ago", natural "last monday"). For "this week", calculate Monday date.',
         },
         endDate: {
           type: 'string',
-          description: 'End date (ISO format, e.g., "2024-01-31")',
+          description: 'End date (supports: ISO, relative, natural). Usually "today" for current queries.',
         },
         userId: {
           type: 'string',
-          description: 'User ID to check for. If omitted, checks ALL users.',
+          description: 'User ID to check for. OPTIONAL: If omitted, checks ALL users. Specify to check only one person.',
         },
         includeWeekends: {
           type: 'boolean',

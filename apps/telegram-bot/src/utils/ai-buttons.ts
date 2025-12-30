@@ -88,13 +88,25 @@ export function createButtonKeyboard(
   for (let i = 0; i < buttons.length; i++) {
     const button = buttons[i];
     
-    // Create callback data (max 64 bytes in Telegram)
-    const callbackData = JSON.stringify({
-      a: button.action, // 'a' for action (shorter key)
-      d: button.data || {}, // 'd' for data
-      u: telegramUserId, // 'u' for user
-      m: button.message, // 'm' for message (optional)
-    });
+    // Create minimal callback data (max 64 bytes in Telegram)
+    // For send_message action, use ultra-short format
+    let callbackData: string;
+    if (button.action === 'send_message' && button.message) {
+      // Ultra-compact: just action type and a short message key
+      // Store first 10 chars only (enough to identify intent)
+      const shortMsg = button.message.substring(0, 10);
+      callbackData = JSON.stringify({
+        a: 'sm', // 'sm' = send_message
+        u: telegramUserId,
+        m: shortMsg,
+      });
+    } else {
+      callbackData = JSON.stringify({
+        a: button.action,
+        d: button.data || {},
+        u: telegramUserId,
+      });
+    }
 
     // Telegram callback_data has 64-byte limit
     if (callbackData.length > 64) {
@@ -128,7 +140,7 @@ export function parseButtonCallback(callbackData: string): {
   try {
     const parsed = JSON.parse(callbackData);
     return {
-      action: parsed.a,
+      action: parsed.a === 'sm' ? 'send_message' : parsed.a, // Map 'sm' back to 'send_message'
       data: parsed.d || {},
       userId: parsed.u,
       message: parsed.m,

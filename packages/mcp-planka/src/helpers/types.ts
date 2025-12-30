@@ -2,6 +2,9 @@
  * Types for helper functions
  */
 
+// Re-export DualDate from date-time utils
+export type { DualDate } from '../utils/date-time.js';
+
 export type FilterOptions = {
   done?: boolean; // true = completed tasks only, false = incomplete only, undefined = all
   dueDate?: {

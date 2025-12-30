@@ -267,15 +267,20 @@ describe('Daily Reports Helpers - Unit Tests', () => {
   describe('Date Helpers', () => {
     it('should get today date', () => {
       const today = getTodayDate();
-      expect(today).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(today).toHaveProperty('gregorian');
+      expect(today).toHaveProperty('persian');
+      expect(today.gregorian.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(today.persian.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     });
 
     it('should get yesterday date', () => {
       const yesterday = getYesterdayDate();
-      expect(yesterday).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(yesterday).toHaveProperty('gregorian');
+      expect(yesterday).toHaveProperty('persian');
+      expect(yesterday.gregorian.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
       
-      const todayDate = new Date(getTodayDate());
-      const yesterdayDate = new Date(yesterday);
+      const todayDate = new Date(getTodayDate().iso);
+      const yesterdayDate = new Date(yesterday.iso);
       const diff = todayDate.getTime() - yesterdayDate.getTime();
       const daysDiff = diff / (1000 * 60 * 60 * 24);
       

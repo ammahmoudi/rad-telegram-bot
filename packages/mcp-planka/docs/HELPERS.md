@@ -7,6 +7,7 @@ Complete guide to helper functions in the Planka MCP server. These provide high-
 ## 📋 Table of Contents
 
 - [Overview](#overview)
+- [Date & Time System](#-date--time-system-with-dual-calendar)
 - [User Tasks & Cards](#-user-tasks--cards)
 - [User Activity](#-user-activity)
 - [Project Status](#-project-status)
@@ -57,7 +58,71 @@ import * as helpers from '@rastar/mcp-planka/helpers';
 
 ---
 
-## 📊 User Tasks & Cards
+## � Date & Time System with Dual Calendar
+
+The Planka MCP includes a comprehensive date/time system that automatically handles timezone conversion and provides dual calendar output (Gregorian + Persian). This removes the burden of calendar/timezone calculations from AI reasoning.
+
+### Key Features
+
+- **🌍 Automatic Timezone Conversion**: Default Tehran (Asia/Tehran) ↔ UTC
+- **📆 Dual Calendar Output**: Every date provided in BOTH Gregorian and Persian (Jalali)
+- **🎯 Flexible Input Parsing**: Natural language, ISO dates, Persian dates
+- **🤖 AI-Friendly**: Code handles conversion, AI just picks which calendar to show
+
+### DualDate Type
+
+```typescript
+interface DualDate {
+  iso: string;              // "2025-12-30T10:30:00.000Z" (UTC for API)
+  timestamp: number;        // Unix timestamp
+  
+  gregorian: {
+    date: string;           // "2025-12-30"
+    dateTime: string;       // "2025-12-30 14:00:00"
+    time: string;           // "14:00:00"
+    timezone: string;       // "Asia/Tehran"
+    formatted: string;      // "December 30, 2025 14:00"
+  };
+  
+  persian: {
+    date: string;           // "1404-10-10"
+    dateTime: string;       // "1404-10-10 14:00:00"
+    formatted: string;      // "۱۴۰۴/۱۰/۱۰ ساعت ۱۴:۰۰"
+    year: number;           // 1404
+    month: number;          // 10
+    day: number;            // 10
+  };
+}
+```
+
+### Quick Examples
+
+```typescript
+import { parseDate, now, today, fromUTC } from '@rastar/mcp-planka/helpers';
+
+// Parse flexible inputs
+const date1 = parseDate('today');
+const date2 = parseDate('yesterday');
+const date3 = parseDate('in 3 days');
+const date4 = parseDate('2025-12-30');
+const date5 = parseDate('1404/10/10');  // Persian date
+
+// Get current date/time
+const currentMoment = now();
+const todayStart = today();
+
+// Convert API dates (UTC → Tehran + dual calendar)
+const apiDate = "2025-12-30T10:30:00.000Z";
+const local = fromUTC(apiDate);
+console.log(local.gregorian.formatted);  // "December 30, 2025 14:00"
+console.log(local.persian.formatted);    // "۱۴۰۴/۱۰/۱۰ ساعت ۱۴:۰۰"
+```
+
+**📖 Full Documentation**: See [DATE_TIME.md](./DATE_TIME.md) for comprehensive guide, examples, and best practices.
+
+---
+
+## �📊 User Tasks & Cards
 
 ### `getUserCards()`
 

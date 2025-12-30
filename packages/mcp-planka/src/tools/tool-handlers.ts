@@ -19,7 +19,6 @@ export async function handleToolCall(request: { params: { name: string; argument
 
     // User Tasks tools
     if (name === 'planka_get_user_cards' || 
-        name === 'planka_get_user_tasks' || 
         name === 'planka_get_card_history') {
       const result = await handleUserTasksTool(auth, name, args);
       return textHelper(JSON.stringify(result, null, 2));
@@ -27,19 +26,15 @@ export async function handleToolCall(request: { params: { name: string; argument
 
     // User Activity tools
     if (name === 'planka_get_user_notifications' || 
-        name === 'planka_get_user_activity' || 
-        name === 'planka_get_user_today_activity' || 
-        name === 'planka_get_user_week_activity' || 
-        name === 'planka_get_user_activity_in_period') {
+        name === 'planka_get_user_actions' ||
+        name === 'planka_get_user_activity_summary') {
       const result = await handleUserActivityTool(auth, name, args);
       return textHelper(JSON.stringify(result, null, 2));
     }
 
     // Project Status tools
     if (name === 'planka_get_project_status' || 
-        name === 'planka_get_board_status' || 
-        name === 'planka_get_project_undone_tasks' || 
-        name === 'planka_get_board_undone_tasks') {
+        name === 'planka_get_board_status') {
       const result = await handleProjectStatusTool(auth, name, args);
       return textHelper(JSON.stringify(result, null, 2));
     }
@@ -47,7 +42,6 @@ export async function handleToolCall(request: { params: { name: string; argument
     // Daily Reports tools
     if (name === 'planka_get_daily_report_projects' || 
         name === 'planka_get_user_daily_reports' || 
-        name === 'planka_get_user_daily_report_summary' || 
         name === 'planka_get_missing_daily_reports') {
       const result = await handleDailyReportsTool(auth, name, args);
       return textHelper(JSON.stringify(result, null, 2));

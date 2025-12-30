@@ -75,6 +75,7 @@ describe('Board Membership Helpers', () => {
         },
       };
 
+      vi.mocked(usersApi.listUsers).mockResolvedValue([{ id: 'user-1', name: 'Test User' }] as any);
       vi.mocked(membershipApi.addBoardMembership).mockResolvedValue(mockResponse);
 
       const result = await addUserToBoard(mockAuth, 'board-1', 'user-1');
@@ -97,6 +98,7 @@ describe('Board Membership Helpers', () => {
         },
       };
 
+      vi.mocked(usersApi.listUsers).mockResolvedValue([{ id: 'user-1', name: 'Test User' }] as any);
       vi.mocked(membershipApi.addBoardMembership).mockResolvedValue(mockResponse);
 
       await addUserToBoard(mockAuth, 'board-1', 'user-1', 'viewer');
