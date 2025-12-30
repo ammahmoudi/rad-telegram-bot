@@ -83,5 +83,6 @@ EXPOSE 3000
 ENTRYPOINT ["dumb-init", "--"]
 
 # Run migrations and start Next.js server
-CMD ["sh", "-c", "npx prisma migrate deploy --schema=./packages/shared/prisma/schema.prisma --config=./packages/shared/prisma.config.ts && && node server.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy --schema=./packages/shared/prisma/schema.prisma --config=./packages/shared/prisma.config.ts && node server.js"]
+
 
