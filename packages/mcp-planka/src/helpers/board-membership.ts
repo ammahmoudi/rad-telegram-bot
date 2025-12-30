@@ -7,6 +7,7 @@ import type { PlankaAuth } from '../types/index.js';
 import { getBoard } from '../api/index.js';
 import { listUsers } from '../api/users.js';
 import { addBoardMembership, updateBoardMembership, deleteBoardMembership } from '../api/board-memberships.js';
+import { resolveUser } from './resolvers.js';
 
 /**
  * Get all members of a board
@@ -43,20 +44,21 @@ export async function getBoardMembers(
 /**
  * Add a user to a board
  * @param boardId - Board ID
- * @param userId - User ID to add
+ * @param userIdentifier - User ID, email, or name
  * @param role - Role ('editor' or 'viewer')
  */
 export async function addUserToBoard(
   auth: PlankaAuth,
   boardId: string,
-  userId: string,
+  userIdentifier: string,
   role: 'editor' | 'viewer' = 'editor'
 ): Promise<{
   membershipId: string;
   userId: string;
   role: string;
 }> {
-  const membership = await addBoardMembership(auth, boardId, userId, role);
+  const user = await resolveUser(auth, userIdentifier);
+  const membership = await addBoardMembership(auth, boardId, user.id, role);
 
   return {
     membershipId: (membership as any).item.id,
@@ -145,19 +147,20 @@ export async function addMultipleUsersToBoard(
 /**
  * Get user's membership info on a board (returns null if not a member)
  * @param boardId - Board ID
- * @param userId - User ID
+ * @param userIdentifier - User ID, email, or name
  */
 export async function getUserBoardMembership(
   auth: PlankaAuth,
   boardId: string,
-  userId: string
+  userIdentifier: string
 ): Promise<{
   membershipId: string;
   role: string;
   canComment: boolean;
 } | null> {
+  const user = await resolveUser(auth, userIdentifier);
   const members = await getBoardMembers(auth, boardId);
-  const membership = members.find(m => m.userId === userId);
+  const membership = members.find(m => m.userId === user.id);
   
   if (!membership) return null;
   

@@ -15,16 +15,19 @@ import {
   getCard,
 } from '../api/cards.js';
 import { getBoard, getCurrentUser } from '../api/index.js';
+import { resolveUser, resolveList } from './resolvers.js';
 
 /**
  * Create a new card in a list
- * @param listId - List ID
+ * @param boardId - Board ID (required for list resolution)
+ * @param listIdentifier - List ID or name
  * @param name - Card name
  * @param options - Optional card details
  */
 export async function createNewCard(
   auth: PlankaAuth,
-  listId: string,
+  boardId: string,
+  listIdentifier: string,
   name: string,
   options?: {
     description?: string;
@@ -39,9 +42,10 @@ export async function createNewCard(
   description?: string;
   dueDate?: string;
 }> {
+  const list = await resolveList(auth, boardId, listIdentifier);
   const card = await createCard(
     auth,
-    listId,
+    list.id,
     name,
     options?.description,
     options?.position,
@@ -149,43 +153,47 @@ export async function copyCard(
 /**
  * Assign a user to a card
  * @param cardId - Card ID
- * @param userId - User ID to assign
+ * @param userIdentifier - User ID, email, or name
  */
 export async function assignUserToCard(
   auth: PlankaAuth,
   cardId: string,
-  userId: string
+  userIdentifier: string
 ): Promise<void> {
-  await assignMemberToCard(auth, cardId, userId);
+  const user = await resolveUser(auth, userIdentifier);
+  await assignMemberToCard(auth, cardId, user.id);
 }
 
 /**
  * Remove a user from a card
  * @param cardId - Card ID
- * @param userId - User ID to remove
+ * @param userIdentifier - User ID, email, or name
  */
 export async function unassignUserFromCard(
   auth: PlankaAuth,
   cardId: string,
-  userId: string
+  userIdentifier: string
 ): Promise<void> {
-  await removeMemberFromCard(auth, cardId, userId);
+  const user = await resolveUser(auth, userIdentifier);
+  await removeMemberFromCard(auth, cardId, user.id);
 }
 
 /**
  * Create multiple cards at once
- * @param listId - List ID
+ * @param boardId - Board ID
+ * @param listIdentifier - List ID or name
  * @param cardNames - Array of card names
  */
 export async function createMultipleCards(
   auth: PlankaAuth,
-  listId: string,
+  boardId: string,
+  listIdentifier: string,
   cardNames: string[]
 ): Promise<Array<{ id: string; name: string }>> {
   const results = [];
   
   for (let i = 0; i < cardNames.length; i++) {
-    const card = await createNewCard(auth, listId, cardNames[i], {
+    const card = await createNewCard(auth, boardId, listIdentifier, cardNames[i], {
       position: (i + 1) * 65535,
     });
     results.push({ id: card.id, name: card.name });
@@ -197,12 +205,12 @@ export async function createMultipleCards(
 /**
  * Get cards in a list
  * @param boardId - Board ID
- * @param listId - List ID
+ * @param listIdentifier - List ID or name
  */
 export async function getCardsInList(
   auth: PlankaAuth,
   boardId: string,
-  listId: string
+  listIdentifier: string
 ): Promise<Array<{
   id: string;
   name: string;
@@ -211,13 +219,14 @@ export async function getCardsInList(
   dueDate?: string;
   assignees: Array<{ id: string; name: string }>;
 }>> {
+  const list = await resolveList(auth, boardId, listIdentifier);
   const boardDetails = await getBoard(auth, boardId);
   const cards = (boardDetails as any)?.included?.cards ?? [];
   const cardMemberships = (boardDetails as any)?.included?.cardMemberships ?? [];
   const users = (boardDetails as any)?.included?.users ?? [];
 
   return cards
-    .filter((c: any) => c.listId === listId)
+    .filter((c: any) => c.listId === list.id)
     .map((card: any) => {
       const memberships = cardMemberships.filter((m: any) => m.cardId === card.id);
       const assignees = memberships.map((m: any) => {

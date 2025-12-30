@@ -6,16 +6,19 @@
 import type { PlankaAuth } from '../types/index.js';
 import { getBoard } from '../api/index.js';
 import { createList, updateList, archiveList, deleteList, moveCardsFromList, clearList, sortList } from '../api/lists.js';
+import { resolveBoard, resolveList } from './resolvers.js';
 
 /**
  * Create a new list in a board
- * @param boardId - Board ID
+ * @param projectIdentifier - Project ID or name
+ * @param boardIdentifier - Board ID or name
  * @param name - List name
  * @param options - Optional settings
  */
 export async function createBoardList(
   auth: PlankaAuth,
-  boardId: string,
+  projectIdentifier: string,
+  boardIdentifier: string,
   name: string,
   options?: {
     position?: number;
@@ -28,9 +31,10 @@ export async function createBoardList(
   position: number;
   color?: string;
 }> {
+  const board = await resolveBoard(auth, projectIdentifier, boardIdentifier);
   const list = await createList(
     auth,
-    boardId,
+    board.id,
     name,
     options?.position,
     options?.color
@@ -76,92 +80,113 @@ export async function getBoardLists(
 
 /**
  * Update list properties (name, position, color)
- * @param listId - List ID
+ * @param boardId - Board ID
+ * @param listIdentifier - List ID or name
  * @param updates - Properties to update
  */
 export async function updateBoardList(
   auth: PlankaAuth,
-  listId: string,
+  boardId: string,
+  listIdentifier: string,
   updates: {
     name?: string;
     position?: number;
     color?: string;
   }
 ): Promise<void> {
-  await updateList(auth, listId, updates);
+  const list = await resolveList(auth, boardId, listIdentifier);
+  await updateList(auth, list.id, updates);
 }
 
 /**
  * Archive a list (closes it)
- * @param listId - List ID
+ * @param boardId - Board ID
+ * @param listIdentifier - List ID or name
  */
 export async function archiveBoardList(
   auth: PlankaAuth,
-  listId: string
+  boardId: string,
+  listIdentifier: string
 ): Promise<void> {
-  await archiveList(auth, listId);
+  const list = await resolveList(auth, boardId, listIdentifier);
+  await archiveList(auth, list.id);
 }
 
 /**
  * Delete a list permanently
- * @param listId - List ID
+ * @param boardId - Board ID
+ * @param listIdentifier - List ID or name
  */
 export async function deleteBoardList(
   auth: PlankaAuth,
-  listId: string
+  boardId: string,
+  listIdentifier: string
 ): Promise<void> {
-  await deleteList(auth, listId);
+  const list = await resolveList(auth, boardId, listIdentifier);
+  await deleteList(auth, list.id);
 }
 
 /**
  * Move all cards from one list to another
- * @param sourceListId - Source list ID
- * @param targetListId - Target list ID
+ * @param boardId - Board ID
+ * @param sourceListIdentifier - Source list ID or name
+ * @param targetListIdentifier - Target list ID or name
  */
 export async function moveAllCards(
   auth: PlankaAuth,
-  sourceListId: string,
-  targetListId: string
+  boardId: string,
+  sourceListIdentifier: string,
+  targetListIdentifier: string
 ): Promise<void> {
-  await moveCardsFromList(auth, sourceListId, targetListId);
+  const sourceList = await resolveList(auth, boardId, sourceListIdentifier);
+  const targetList = await resolveList(auth, boardId, targetListIdentifier);
+  await moveCardsFromList(auth, sourceList.id, targetList.id);
 }
 
 /**
  * Clear all cards from a list (archives them)
- * @param listId - List ID
+ * @param boardId - Board ID
+ * @param listIdentifier - List ID or name
  */
 export async function clearListCards(
   auth: PlankaAuth,
-  listId: string
+  boardId: string,
+  listIdentifier: string
 ): Promise<void> {
-  await clearList(auth, listId);
+  const list = await resolveList(auth, boardId, listIdentifier);
+  await clearList(auth, list.id);
 }
 
 /**
  * Sort cards in a list by name
- * @param listId - List ID
+ * @param boardId - Board ID
+ * @param listIdentifier - List ID or name
  */
 export async function sortListCards(
   auth: PlankaAuth,
-  listId: string
+  boardId: string,
+  listIdentifier: string
 ): Promise<void> {
-  await sortList(auth, listId);
+  const list = await resolveList(auth, boardId, listIdentifier);
+  await sortList(auth, list.id);
 }
 
 /**
  * Create multiple lists at once
- * @param boardId - Board ID
+ * @param projectIdentifier - Project ID or name
+ * @param boardIdentifier - Board ID or name
  * @param names - Array of list names
  */
 export async function createMultipleLists(
   auth: PlankaAuth,
-  boardId: string,
+  projectIdentifier: string,
+  boardIdentifier: string,
   names: string[]
 ): Promise<Array<{ id: string; name: string; position: number }>> {
   const results = [];
   
   for (let i = 0; i < names.length; i++) {
-    const list = await createBoardList(auth, boardId, names[i], {
+    const list = await createBoardList(auth, projectIdentifier, boardIdentifier, names[i], {
       position: (i + 1) * 65535,
     });
     results.push(list);
