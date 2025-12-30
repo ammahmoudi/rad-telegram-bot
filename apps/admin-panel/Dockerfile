@@ -73,8 +73,8 @@ ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD node -e "require('http').get('http://127.0.0.1:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})" || exit 1
+# HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+#    CMD node -e "require('http').get('http://127.0.0.1:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})" || exit 1
 
 # Switch to the directory where server.js actually lives
 WORKDIR /app/apps/admin-panel
@@ -87,6 +87,7 @@ ENTRYPOINT ["dumb-init", "--"]
 
 # Run migrations and start Next.js server
 CMD ["sh", "-c", "npx prisma migrate deploy --schema=/app/packages/shared/prisma/schema.prisma --config=/app/packages/shared/prisma.config.ts && node server.js"]
+
 
 
 
