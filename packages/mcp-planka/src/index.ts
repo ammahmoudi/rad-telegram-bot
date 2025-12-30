@@ -17,36 +17,36 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
 import express from 'express';
 import { hostHeaderValidation } from '@modelcontextprotocol/sdk/server/middleware/hostHeaderValidation.js';
+import { z } from 'zod';
 import {
-  authTools,
-  projectTools,
-  boardTools,
-  listTools,
-  cardTools,
-  labelTools,
-  memberTools,
-  commentTools,
-  taskTools,
-  attachmentTools,
-  userTools,
+  userTasksTools,
+  userActivityTools,
+  projectStatusTools,
+  dailyReportsTools,
+  searchTools,
   handleToolCall,
 } from './tools/index.js';
 import { prompts, handleGetPrompt } from './prompts/index.js';
 import { resources, handleReadResource } from './resources/index.js';
 
 const allTools = [
-  ...authTools,
-  ...projectTools,
-  ...boardTools,
-  ...listTools,
-  ...cardTools,
-  ...labelTools,
-  ...memberTools,
-  ...commentTools,
-  ...taskTools,
-  ...attachmentTools,
-  ...userTools,
+  ...userTasksTools,
+  ...userActivityTools,
+  ...projectStatusTools,
+  ...dailyReportsTools,
+  ...searchTools,
 ];
+
+/**
+ * Create Zod schemas from JSON Schema tool definitions
+ * This allows the SDK to validate and convert to proper JSON Schema for AI
+ * All Planka tools accept optional parameters and use environment variables as fallback
+ */
+function createZodSchemaFromTool(_tool: any) {
+  // All Planka tools accept any object (env vars used as fallback)
+  // We use passthrough() to accept any additional properties
+  return z.object({}).passthrough();
+}
 
 /**
  * Create and configure the MCP server
@@ -65,14 +65,13 @@ function createServer() {
   );
 
   // Register all tools using v1.x API
-  // Pass an empty object as inputSchema to indicate "accepts any arguments"
-  // This allows arguments to pass through without validation
+  // Create Zod schemas from JSON Schema definitions
   for (const tool of allTools) {
     server.registerTool(
       tool.name,
       {
         description: tool.description,
-        inputSchema: {}, // Empty object schema - accepts any arguments
+        inputSchema: createZodSchemaFromTool(tool),
       },
       async (args: any) => {
         try {

@@ -54,3 +54,27 @@ export async function logout(auth: PlankaAuth): Promise<{ success: boolean }> {
     method: 'DELETE',
   });
 }
+
+/**
+ * Get current authenticated user ID from token
+ * @param auth - Planka authentication
+ * @returns Current user ID extracted from JWT token
+ */
+export async function getCurrentUser(auth: PlankaAuth): Promise<{ id: string }> {
+  // Decode JWT token to extract user ID from 'sub' claim
+  const parts = auth.accessToken.split('.');
+  if (parts.length !== 3) {
+    throw new Error('Invalid JWT token format');
+  }
+  
+  try {
+    // Decode base64 payload
+    const payload = JSON.parse(
+      Buffer.from(parts[1], 'base64url').toString('utf-8')
+    );
+    
+    return { id: payload.sub };
+  } catch (error: any) {
+    throw new Error(`Failed to decode JWT token: ${error.message}`);
+  }
+}

@@ -304,12 +304,9 @@ export async function handleAiMessage(ctx: Context) {
 
         // Execute tools
         for (const toolCall of response.toolCalls) {
-          // Convert tool name from OpenAI format (rastar_menu_get_today) to MCP format (rastar.menu.get_today)
-          // Only convert the first two underscores to dots (namespace.category.method_name)
-          const parts = toolCall.name.split('_');
-          const mcpToolName = parts.length >= 3 
-            ? `${parts[0]}.${parts[1]}.${parts.slice(2).join('_')}`
-            : toolCall.name.replace(/_/g, '.');
+          // Tool names are already in the correct format (planka_get_user_cards, rastar_menu_list, etc.)
+          // No conversion needed since MCP tools now use underscore format
+          const mcpToolName = toolCall.name;
           
           // Track tool for summary AND display
           if (!activeTools.has(toolCall.name)) {
@@ -369,7 +366,7 @@ export async function handleAiMessage(ctx: Context) {
           
           // Route tool calls based on prefix
           let toolResult;
-          if (mcpToolName.startsWith('rastar.')) {
+          if (mcpToolName.startsWith('rastar_')) {
             toolResult = await executeRastarTool(
               telegramUserId,
               mcpToolName,

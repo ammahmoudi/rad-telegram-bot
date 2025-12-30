@@ -5,7 +5,7 @@ export async function plankaFetch<T>(auth: PlankaAuth, path: string, init?: Requ
 
   // Add timeout to prevent infinite hangs
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+  const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
 
   try {
     const resp = await fetch(url, {
@@ -29,7 +29,7 @@ export async function plankaFetch<T>(auth: PlankaAuth, path: string, init?: Requ
   } catch (error: any) {
     clearTimeout(timeoutId);
     if (error.name === 'AbortError') {
-      throw new Error('Planka API timeout after 15 seconds');
+      throw new Error('Planka API timeout after 60 seconds');
     }
     throw error;
   }

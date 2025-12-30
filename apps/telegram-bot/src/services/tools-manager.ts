@@ -28,19 +28,19 @@ export async function getAiTools(telegramUserId: string): Promise<ChatCompletion
 
   // Filter out auth tools if user is already authenticated
   const filteredTools = allTools.filter(tool => {
-    // Planka filtering
-    if (tool.name.startsWith('planka.')) {
-      if (tool.name === 'planka.auth.logout') return false;
+    // Planka filtering (new tools use underscore format: planka_xxx)
+    if (tool.name.startsWith('planka_')) {
+      if (tool.name === 'planka_auth_logout') return false;
       if (plankaToken) {
-        if (tool.name === 'planka.auth.login') return false;
-        if (tool.name === 'planka.auth.register') return false;
+        if (tool.name === 'planka_auth_login') return false;
+        if (tool.name === 'planka_auth_register') return false;
       }
     }
     
-    // Rastar filtering
-    if (tool.name.startsWith('rastar.')) {
+    // Rastar filtering (new tools use underscore format: rastar_xxx)
+    if (tool.name.startsWith('rastar_')) {
       // Hide all auth tools (refresh is automatic)
-      if (tool.name.startsWith('rastar.auth.')) return false;
+      if (tool.name.startsWith('rastar_auth_')) return false;
       
       // Hide menu tools if not authenticated
       if (!rastarToken) return false;
@@ -74,7 +74,7 @@ export async function getAiTools(telegramUserId: string): Promise<ChatCompletion
     return {
       type: 'function' as const,
       function: {
-        name: tool.name.replace(/\./g, '_'), // Convert planka.cards.search -> planka_cards_search
+        name: tool.name, // Tool names already use underscore format (planka_get_user_cards)
         description: tool.description || '',
         parameters: inputSchema,
       },
