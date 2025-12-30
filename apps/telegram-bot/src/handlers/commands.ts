@@ -71,8 +71,8 @@ export async function handleStartCommand(ctx: Context) {
   const keyboard = getMainMenuKeyboard(language);
   
   // Get welcome message from user's pack or default pack
-  const { getWelcomeMessage } = await import('../config/welcome-messages');
-  const welcomeMessage = await getWelcomeMessage(language, telegramUserId, name);
+  const { getWelcomeMessage } = await import('../config/welcome-messages.js');
+  const welcomeMessage = await getWelcomeMessage(language as 'fa' | 'en', telegramUserId, name);
   
   await ctx.reply(welcomeMessage, { parse_mode: 'HTML', reply_markup: keyboard });
 }

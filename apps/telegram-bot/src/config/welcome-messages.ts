@@ -110,14 +110,14 @@ export async function getWelcomeMessage(language: 'fa' | 'en' = 'en', telegramUs
     }
     
     // Fallback to default welcome message
-    let message = DEFAULT_WELCOME_MESSAGES[language];
+    let message: string = DEFAULT_WELCOME_MESSAGES[language];
     if (userName) {
       message = message.replace(/\{name\}/g, userName);
     }
     return message;
   } catch (error) {
     console.error('Error fetching welcome message from database:', error);
-    let message = DEFAULT_WELCOME_MESSAGES[language];
+    let message: string = DEFAULT_WELCOME_MESSAGES[language];
     if (userName) {
       message = message.replace(/\{name\}/g, userName);
     }

@@ -45,7 +45,7 @@ Each service:
 ## Security notes
 - Never paste passwords/tokens into chat.
 - The link portal stores only the Planka access token (encrypted at rest) and never stores the password.
-- Rotate `TOKEN_ENCRYPTION_KEY` only if you also rotate/re-encrypt stored secrets.
+- Rotate `ENCRYPTION_KEY` only if you also rotate/re-encrypt stored secrets.
 
 ## AI Chat Features
 The Telegram bot now includes AI-powered chat capabilities using OpenRouter:

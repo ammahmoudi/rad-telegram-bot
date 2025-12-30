@@ -40,7 +40,7 @@ OPENROUTER_API_KEY=sk-or-v1-your-api-key-here
 DEFAULT_AI_MODEL=anthropic/claude-3.5-sonnet
 
 # Required: Encryption key (generate with provided command)
-TOKEN_ENCRYPTION_KEY=your-32-byte-base64-key
+ENCRYPTION_KEY=your-32-byte-base64-key
 
 # Required: Admin panel credentials
 ADMIN_BASIC_AUTH_USER=admin
@@ -53,7 +53,7 @@ ADMIN_BASIC_AUTH_PASS=your-secure-password
 node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 ```
 
-Copy the output to `TOKEN_ENCRYPTION_KEY` in your `.env` file.
+Copy the output to `ENCRYPTION_KEY` in your `.env` file.
 
 ### 4. Initialize Database
 
@@ -191,7 +191,7 @@ rastar-telegram-bot/
 ## Security Notes
 
 1. **Never commit `.env`** - It contains secrets
-2. **Rotate `TOKEN_ENCRYPTION_KEY`** carefully - requires re-encrypting all stored tokens
+2. **Rotate `ENCRYPTION_KEY`** carefully - requires re-encrypting all stored tokens
 3. **Use HTTPS in production** - Especially for the link portal
 4. **Admin panel** - Protect with strong Basic Auth credentials
 5. **API Keys** - Store in system config or environment, never in code
@@ -247,7 +247,7 @@ Set these in your production environment:
 NODE_ENV=production
 TELEGRAM_BOT_TOKEN=...
 OPENROUTER_API_KEY=...
-TOKEN_ENCRYPTION_KEY=...
+ENCRYPTION_KEY=...
 ADMIN_BASIC_AUTH_USER=...
 ADMIN_BASIC_AUTH_PASS=...
 LINK_PORTAL_BASE_URL=https://your-domain.com
