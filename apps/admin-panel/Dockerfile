@@ -49,7 +49,7 @@ COPY --from=builder --chown=nodejs:nodejs /app/apps/admin-panel/.next/standalone
 COPY --from=builder --chown=nodejs:nodejs /app/apps/admin-panel/.next/static ./apps/admin-panel/.next/static
 
 # Copy public directory if it exists (optional)
-# COPY --from=builder --chown=nodejs:nodejs /app/apps/admin-panel/public ./apps/admin-panel/public
+COPY --from=builder --chown=nodejs:nodejs /app/apps/admin-panel/public ./apps/admin-panel/public
 
 # Copy Prisma files and ALL node_modules (standalone mode doesn't include everything needed for migrations)
 COPY --from=builder --chown=nodejs:nodejs /app/packages/shared/prisma ./packages/shared/prisma
@@ -76,6 +76,9 @@ ENV NODE_ENV=production \
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD node -e "require('http').get('http://127.0.0.1:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})" || exit 1
 
+# Switch to the directory where server.js actually lives
+WORKDIR /app/apps/admin-panel
+
 # Expose Next.js port
 EXPOSE 3000
 
@@ -84,5 +87,6 @@ ENTRYPOINT ["dumb-init", "--"]
 
 # Run migrations and start Next.js server
 CMD ["sh", "-c", "npx prisma migrate deploy --schema=./packages/shared/prisma/schema.prisma --config=./packages/shared/prisma.config.ts && node server.js"]
+
 
 
