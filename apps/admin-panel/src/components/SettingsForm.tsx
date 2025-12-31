@@ -2,10 +2,13 @@
 
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ModelSelector } from '@/components/ModelSelector';
+import { useState, useEffect } from 'react';
+import { toast, Toaster } from 'sonner';
 
 interface SettingsFormProps {
   config: {
     PLANKA_BASE_URL: string;
+    PLANKA_AUTH_TOKEN: string;
     OPENROUTER_API_KEY: string;
     DEFAULT_AI_MODEL: string;
     ENV_DEFAULT_MODEL: string;
@@ -24,9 +27,233 @@ interface SettingsFormProps {
 
 export function SettingsForm({ config, hasApiKey, usingEnvApiKey, envPlankaUrl, envApiKey, envDailyReportCategoryId }: SettingsFormProps) {
   const { t, dir } = useLanguage();
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState(config.PLANKA_DAILY_REPORT_CATEGORY_ID || envDailyReportCategoryId || '');
+
+  // Fetch categories when authenticated
+  useEffect(() => {
+    if (config.PLANKA_AUTH_TOKEN) {
+      fetchCategories();
+    }
+  }, [config.PLANKA_AUTH_TOKEN]);
+
+  // Update selected category when config changes
+  useEffect(() => {
+    setSelectedCategory(config.PLANKA_DAILY_REPORT_CATEGORY_ID || envDailyReportCategoryId || '');
+  }, [config.PLANKA_DAILY_REPORT_CATEGORY_ID, envDailyReportCategoryId]);
+
+  const fetchCategories = async () => {
+    setCategoriesLoading(true);
+    try {
+      const response = await fetch('/api/planka-categories');
+      const data = await response.json();
+      if (response.ok && data.categories) {
+        setCategories(data.categories);
+      }
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
+    } finally {
+      setCategoriesLoading(false);
+    }
+  };
+
+  const handlePlankaLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoginLoading(true);
+
+    const formData = new FormData(e.currentTarget);
+    
+    const loadingToast = toast.loading('🔐 Logging in to Planka...');
+
+    try {
+      const response = await fetch('/api/planka-login', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success('✓ Successfully authenticated with Planka!', {
+          id: loadingToast,
+        });
+        (e.target as HTMLFormElement).reset();
+        setShowLoginModal(false);
+        setTimeout(() => window.location.reload(), 1000);
+      } else {
+        toast.error(`✗ ${data.error || 'Login failed'}`, {
+          id: loadingToast,
+        });
+      }
+    } catch (error) {
+      toast.error('✗ Failed to connect to server', {
+        id: loadingToast,
+      });
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const handleSaveSettings = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSaveLoading(true);
+
+    const formData = new FormData(e.currentTarget);
+    
+    const loadingToast = toast.loading('💾 Saving settings...');
+
+    try {
+      const response = await fetch('/api/update-config', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Accept': 'application/json',
+        },
+        redirect: 'manual',
+      });
+
+      // Handle redirects manually
+      if (response.status === 307 || response.status === 308) {
+        const location = response.headers.get('Location');
+        if (location) {
+          const redirectResponse = await fetch(location, {
+            method: 'POST',
+            body: formData,
+            headers: {
+              'Accept': 'application/json',
+            },
+          });
+          const data = await redirectResponse.json();
+          
+          if (redirectResponse.ok) {
+            toast.success('✓ Settings saved successfully!', {
+              id: loadingToast,
+              duration: 2000,
+            });
+            setTimeout(() => window.location.reload(), 1000);
+          } else {
+            toast.error(`✗ ${data.error || 'Failed to save settings'}`, {
+              id: loadingToast,
+              duration: 4000,
+            });
+          }
+          return;
+        }
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType?.includes('application/json')) {
+        throw new Error('Server returned non-JSON response');
+      }
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success('✓ Settings saved successfully!', {
+          id: loadingToast,
+          duration: 3000,
+        });
+      } else {
+        toast.error(`✗ ${data.error || 'Failed to save settings'}`, {
+          id: loadingToast,
+          duration: 4000,
+        });
+      }
+    } catch (error) {
+      console.error('Save settings error:', error);
+      toast.error(`✗ ${error instanceof Error ? error.message : 'Failed to connect to server'}`, {
+        id: loadingToast,
+        duration: 4000,
+      });
+    } finally {
+      setSaveLoading(false);
+    }
+  };
 
   return (
     <>
+      <Toaster position="top-right" theme="dark" richColors />
+      
+      {/* Planka Login Modal */}
+      {showLoginModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowLoginModal(false)}>
+          <div className="bg-gray-900 border border-emerald-500/30 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold text-white flex items-center gap-2">
+                🔐 Login to Planka
+              </h3>
+              <button
+                onClick={() => setShowLoginModal(false)}
+                className="text-gray-400 hover:text-white transition-colors"
+                aria-label="Close modal"
+                type="button"
+              >
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <form onSubmit={handlePlankaLogin} className="space-y-4">
+              <p className="text-sm text-gray-400">
+                Login with your Planka credentials to enable project category fetching.
+              </p>
+              
+              <div className="space-y-2">
+                <label htmlFor="modalPlankaUsername" className="text-sm font-medium text-gray-300 block">
+                  Username or Email
+                </label>
+                <input
+                  id="modalPlankaUsername"
+                  type="text"
+                  name="plankaUsername"
+                  placeholder="username or email@example.com"
+                  className="w-full h-10 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  required
+                  autoFocus
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="modalPlankaPassword" className="text-sm font-medium text-gray-300 block">
+                  Password
+                </label>
+                <input
+                  id="modalPlankaPassword"
+                  type="password"
+                  name="plankaPassword"
+                  placeholder="Enter your Planka password"
+                  className="w-full h-10 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  required
+                />
+              </div>
+              
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowLoginModal(false)}
+                  className="flex-1 px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-lg transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loginLoading}
+                  className="flex-1 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loginLoading ? '🔄 Logging in...' : '🔐 Login'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Info Banner */}
       <div className="mt-4 bg-blue-500/10 border border-blue-500/30 rounded-lg px-4 py-3">
         <p className="text-sm text-blue-200">
@@ -51,7 +278,7 @@ export function SettingsForm({ config, hasApiKey, usingEnvApiKey, envPlankaUrl, 
           </div>
         </div>
         <div className="p-6">
-          <form action="/api/update-config" method="POST" className="space-y-6">
+          <form onSubmit={handleSaveSettings} className="space-y-6">
             {/* Planka Base URL */}
             <div className="space-y-2">
               <label htmlFor="plankaBaseUrl" className="text-sm font-medium text-white block" dir={dir}>
@@ -77,28 +304,91 @@ export function SettingsForm({ config, hasApiKey, usingEnvApiKey, envPlankaUrl, 
               </p>
             </div>
 
-            {/* Planka Daily Report Category ID */}
+          {/* Planka Authentication Button */}
+          <div className="p-4 bg-white/5 rounded-lg border border-emerald-500/30 mt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-medium text-white">
+                  Planka Authentication
+                  {config.PLANKA_AUTH_TOKEN && (
+                    <span className="ml-2 text-xs text-green-400">
+                      ✓ Connected
+                    </span>
+                  )}
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  {config.PLANKA_AUTH_TOKEN 
+                    ? 'You are authenticated. Click to re-login if needed.'
+                    : 'Login to enable project category fetching.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowLoginModal(true)}
+                className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white text-sm font-medium rounded-lg transition-all shadow-lg hover:shadow-xl"
+              >
+                🔐 Login
+              </button>
+            </div>
+          </div>
+
+            {/* Planka Daily Report Category */}
             <div className="space-y-2">
               <label htmlFor="plankaDailyReportCategoryId" className="text-sm font-medium text-white block" dir={dir}>
-                Daily Report Category ID (Optional)
+                Daily Report Category (Optional)
                 {!config.PLANKA_DAILY_REPORT_CATEGORY_ID && envDailyReportCategoryId && (
                   <span className={`${dir === 'rtl' ? 'mr-2' : 'ml-2'} text-xs text-blue-400`}>
                     (using .env: {envDailyReportCategoryId})
                   </span>
                 )}
               </label>
-              <input
-                id="plankaDailyReportCategoryId"
-                type="text"
-                name="plankaDailyReportCategoryId"
-                defaultValue={config.PLANKA_DAILY_REPORT_CATEGORY_ID || envDailyReportCategoryId || ''}
-                placeholder="e.g., 1637176448517146026 (leave empty to filter by project name)"
-                className="w-full h-10 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                dir="ltr"
-              />
+              {config.PLANKA_AUTH_TOKEN ? (
+                <div className="space-y-2">
+                  <select
+                    id="plankaDailyReportCategoryId"
+                    name="plankaDailyReportCategoryId"
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="w-full h-10 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    dir="ltr"
+                    disabled={categoriesLoading}
+                  >
+                    <option value="">-- No category (filter by project name) --</option>
+                    {categoriesLoading ? (
+                      <option disabled>Loading categories...</option>
+                    ) : (
+                      categories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name} (ID: {cat.id})
+                        </option>
+                      ))
+                    )}
+                  </select>
+                  {categories.length > 0 && (
+                    <p className="text-xs text-slate-400" dir={dir}>
+                      {categories.length} categories available. Select one to filter daily report projects.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <input
+                    id="plankaDailyReportCategoryId"
+                    type="text"
+                    name="plankaDailyReportCategoryId"
+                    defaultValue={config.PLANKA_DAILY_REPORT_CATEGORY_ID || envDailyReportCategoryId || ''}
+                    placeholder="e.g., 1637176448517146026"
+                    className="w-full h-10 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    dir="ltr"
+                    disabled
+                  />
+                  <p className="text-xs text-yellow-400" dir={dir}>
+                    ⚠️ Please login to Planka above to select from available categories.
+                  </p>
+                </div>
+              )}
               <p className="text-xs text-slate-400" dir={dir}>
-                If set, daily report tools will filter projects by this category ID instead of by name pattern ("Daily report - ...").
-                Find category IDs in your Planka instance under Project Settings → Category.
+                If set, daily report tools will filter projects by this category instead of by name pattern.
               </p>
             </div>
 
@@ -249,9 +539,10 @@ export function SettingsForm({ config, hasApiKey, usingEnvApiKey, envPlankaUrl, 
             <div className="flex justify-end pt-4 border-t border-white/10">
               <button
                 type="submit"
-                className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-xl"
+                disabled={saveLoading}
+                className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {t.settings.saveSettings}
+                {saveLoading ? '💾 Saving...' : t.settings.saveSettings}
               </button>
             </div>
           </form>

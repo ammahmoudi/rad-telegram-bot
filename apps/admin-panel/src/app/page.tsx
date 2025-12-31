@@ -21,9 +21,11 @@ export default async function DashboardPage() {
   const mcpProjectScanDelay = (await getSystemConfig('mcpProjectScanDelay')) || '100';
   const useHardcodedPrompts = (await getSystemConfig('USE_HARDCODED_PROMPTS')) || 'false';
   const plankaDailyReportCategoryId = (await getSystemConfig('PLANKA_DAILY_REPORT_CATEGORY_ID')) || '';
+  const plankaAuthToken = (await getSystemConfig('PLANKA_AUTH_TOKEN')) || '';
   
   const config = {
     PLANKA_BASE_URL: plankaBaseUrl,
+    PLANKA_AUTH_TOKEN: plankaAuthToken,
     OPENROUTER_API_KEY: openRouterKey,
     DEFAULT_AI_MODEL: defaultModel,
     ENV_DEFAULT_MODEL: process.env.DEFAULT_AI_MODEL || 'anthropic/claude-3.5-sonnet',

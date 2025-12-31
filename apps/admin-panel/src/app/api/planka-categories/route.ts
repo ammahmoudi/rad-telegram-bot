@@ -14,8 +14,9 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get Planka base URL from system config
+    // Get Planka base URL and auth token from system config
     const plankaBaseUrl = await getSystemConfig('PLANKA_BASE_URL');
+    const authToken = await getSystemConfig('PLANKA_AUTH_TOKEN');
     
     if (!plankaBaseUrl) {
       return NextResponse.json({ 
@@ -24,25 +25,39 @@ export async function GET() {
       }, { status: 400 });
     }
 
-    // For now, return empty array since we'd need admin credentials to fetch
-    // In production, you'd either:
-    // 1. Store admin Planka token in system config
-    // 2. Have users authenticate via OAuth
-    // 3. Have a dedicated service account
-    
-    return NextResponse.json({
-      categories: [],
-      message: 'Project categories require Planka admin authentication. Please set category ID manually or authenticate.'
-    });
+    if (!authToken) {
+      return NextResponse.json({
+        error: 'Not authenticated with Planka. Please login in Settings.',
+        categories: []
+      }, { status: 401 });
+    }
 
-    // TODO: Implement actual fetching when admin auth is available
-    // const response = await fetch(`${plankaBaseUrl}/api/project-categories`, {
-    //   headers: {
-    //     'Authorization': `Bearer ${adminToken}`,
-    //   },
-    // });
-    // const categories = await response.json();
-    // return NextResponse.json({ categories });
+    try {
+      // Fetch project categories from Planka API
+      const response = await fetch(`${plankaBaseUrl}/api/project-categories`, {
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Planka API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const categories = data.items || data.item || data || [];
+      
+      return NextResponse.json({ 
+        categories: Array.isArray(categories) ? categories : [categories],
+        success: true 
+      });
+    } catch (fetchError: any) {
+      console.error('[planka-categories] Fetch error:', fetchError);
+      return NextResponse.json({ 
+        error: `Failed to fetch from Planka: ${fetchError.message}`,
+        categories: []
+      }, { status: 500 });
+    }
 
   } catch (error) {
     console.error('[planka-categories] Error:', error);
