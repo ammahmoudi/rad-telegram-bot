@@ -13,6 +13,7 @@ export async function POST(request: Request) {
     const mcpProjectScanLimit = formData.get('mcpProjectScanLimit');
     const mcpProjectScanDelay = formData.get('mcpProjectScanDelay');
     const useHardcodedPrompts = formData.get('useHardcodedPrompts');
+    const plankaDailyReportCategoryId = formData.get('plankaDailyReportCategoryId');
 
     if (!plankaBaseUrl || typeof plankaBaseUrl !== 'string') {
       return NextResponse.json({ error: 'Invalid URL' }, { status: 400 });
@@ -21,6 +22,12 @@ export async function POST(request: Request) {
     // Normalize URL (remove trailing slash)
     const normalizedUrl = plankaBaseUrl.replace(/\/+$/, '');
     await setSystemConfig('PLANKA_BASE_URL', normalizedUrl);
+
+    // Update daily report category ID
+    if (plankaDailyReportCategoryId !== null && typeof plankaDailyReportCategoryId === 'string') {
+      const trimmed = plankaDailyReportCategoryId.trim();
+      await setSystemConfig('PLANKA_DAILY_REPORT_CATEGORY_ID', trimmed);
+    }
 
     // Update AI configuration if provided
     if (openRouterKey && typeof openRouterKey === 'string') {

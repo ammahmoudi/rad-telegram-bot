@@ -20,6 +20,7 @@ export default async function DashboardPage() {
   const mcpProjectScanLimit = (await getSystemConfig('mcpProjectScanLimit')) || '';
   const mcpProjectScanDelay = (await getSystemConfig('mcpProjectScanDelay')) || '100';
   const useHardcodedPrompts = (await getSystemConfig('USE_HARDCODED_PROMPTS')) || 'false';
+  const plankaDailyReportCategoryId = (await getSystemConfig('PLANKA_DAILY_REPORT_CATEGORY_ID')) || '';
   
   const config = {
     PLANKA_BASE_URL: plankaBaseUrl,
@@ -30,6 +31,7 @@ export default async function DashboardPage() {
     mcpProjectScanLimit,
     mcpProjectScanDelay,
     USE_HARDCODED_PROMPTS: useHardcodedPrompts,
+    PLANKA_DAILY_REPORT_CATEGORY_ID: plankaDailyReportCategoryId,
   };
   
   const hasApiKey = openRouterKey.length > 0;
@@ -46,6 +48,7 @@ export default async function DashboardPage() {
           usingEnvApiKey={usingEnvApiKey}
           envPlankaUrl={process.env.PLANKA_SERVER_URL}
           envApiKey={envApiKey}
+          envDailyReportCategoryId={process.env.PLANKA_DAILY_REPORT_CATEGORY_ID}
         />
       </div>
     </AdminLayout>

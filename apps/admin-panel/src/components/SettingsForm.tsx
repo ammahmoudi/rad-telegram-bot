@@ -13,14 +13,16 @@ interface SettingsFormProps {
     mcpProjectScanLimit: string;
     mcpProjectScanDelay: string;
     USE_HARDCODED_PROMPTS: string;
+    PLANKA_DAILY_REPORT_CATEGORY_ID: string;
   };
   hasApiKey: boolean;
   usingEnvApiKey: boolean;
   envPlankaUrl?: string;
   envApiKey?: string;
+  envDailyReportCategoryId?: string;
 }
 
-export function SettingsForm({ config, hasApiKey, usingEnvApiKey, envPlankaUrl, envApiKey }: SettingsFormProps) {
+export function SettingsForm({ config, hasApiKey, usingEnvApiKey, envPlankaUrl, envApiKey, envDailyReportCategoryId }: SettingsFormProps) {
   const { t, dir } = useLanguage();
 
   return (
@@ -72,6 +74,31 @@ export function SettingsForm({ config, hasApiKey, usingEnvApiKey, envPlankaUrl, 
               />
               <p className="text-xs text-slate-400" dir={dir}>
                 This URL will be used for all new Planka account links. Existing links are not affected.
+              </p>
+            </div>
+
+            {/* Planka Daily Report Category ID */}
+            <div className="space-y-2">
+              <label htmlFor="plankaDailyReportCategoryId" className="text-sm font-medium text-white block" dir={dir}>
+                Daily Report Category ID (Optional)
+                {!config.PLANKA_DAILY_REPORT_CATEGORY_ID && envDailyReportCategoryId && (
+                  <span className={`${dir === 'rtl' ? 'mr-2' : 'ml-2'} text-xs text-blue-400`}>
+                    (using .env: {envDailyReportCategoryId})
+                  </span>
+                )}
+              </label>
+              <input
+                id="plankaDailyReportCategoryId"
+                type="text"
+                name="plankaDailyReportCategoryId"
+                defaultValue={config.PLANKA_DAILY_REPORT_CATEGORY_ID || envDailyReportCategoryId || ''}
+                placeholder="e.g., 1637176448517146026 (leave empty to filter by project name)"
+                className="w-full h-10 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                dir="ltr"
+              />
+              <p className="text-xs text-slate-400" dir={dir}>
+                If set, daily report tools will filter projects by this category ID instead of by name pattern ("Daily report - ...").
+                Find category IDs in your Planka instance under Project Settings → Category.
               </p>
             </div>
 

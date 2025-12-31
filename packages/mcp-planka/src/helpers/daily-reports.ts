@@ -12,12 +12,13 @@
  */
 
 import type { PlankaAuth } from '../types/index.js';
-import { listProjects, getProject, getBoard, getCurrentUser, getCard } from '../api/index.js';
+import { listProjects, getProject, getBoard, getCurrentUser, getCard, getUser } from '../api/index.js';
 import { getComments } from '../api/comments.js';
 import { createCard } from '../api/cards.js';
 import type { DailyReportEntry } from './types.js';
 import { getUserActions } from './user-activity.js';
 import { parseDate, now, fromUTC, type DualDate } from '../utils/date-time.js';
+import { getSystemConfig } from '@rad/shared';
 
 /**
  * Resolve user ID - if "me" or undefined, get current user
@@ -41,6 +42,8 @@ export function isDailyReportProject(projectName: string): boolean {
 /**
  * Get all daily report projects with their boards
  * Returns projects with board information (each board represents a person)
+ * Filters by project category if PLANKA_DAILY_REPORT_CATEGORY_ID is set in system config,
+ * otherwise falls back to filtering by name (projects starting with \"Daily report\")
  */
 export async function getDailyReportProjects(auth: PlankaAuth): Promise<Array<{
   id: string;
@@ -51,7 +54,14 @@ export async function getDailyReportProjects(auth: PlankaAuth): Promise<Array<{
   }>;
 }>> {
   const projects = await listProjects(auth);
-  const dailyReportProjects = projects.filter((p: any) => isDailyReportProject(p.name));
+  
+  // Try to get daily report category ID from system config
+  const categoryId = await getSystemConfig('PLANKA_DAILY_REPORT_CATEGORY_ID').catch(() => null);
+  
+  // Filter projects by category if configured, otherwise by name
+  const dailyReportProjects = categoryId
+    ? projects.filter((p: any) => p.categoryId === categoryId)
+    : projects.filter((p: any) => isDailyReportProject(p.name));
   
   const result = [];
   
@@ -667,6 +677,7 @@ export function getYesterdayDate(): DualDate {
  * @param name - Card name (title of the daily report)
  * @param description - Card description (report content)
  * @param date - Date string in various formats: "today", "2025-12-30", "1404/10/10", etc.
+ * @param boardName - Optional board name to search for (helps AI specify which board)
  * @returns Created card information with dual calendar dates
  */
 export async function createDailyReportCard(
@@ -674,7 +685,8 @@ export async function createDailyReportCard(
   userId: string | undefined,
   name: string,
   description: string,
-  date?: string
+  date?: string,
+  boardName?: string
 ): Promise<{
   cardId: string;
   cardName: string;
@@ -703,6 +715,70 @@ ${description}`;
     throw new Error('No daily report projects found');
   }
 
+  // Get current user info
+  const currentUserId = resolvedUserId;
+  const currentUser = await getUser(auth, currentUserId);
+  const userName = currentUser.name || '';
+  
+  // Helper function to normalize names for matching (handles Persian/English, spaces, case)
+  const normalizeName = (name: string): string => {
+    return name
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, '') // Remove all spaces
+      .replace(/[-_]/g, ''); // Remove dashes and underscores
+  };
+  
+  // Helper function to check if board matches search criteria
+  const matchesBoard = (board: any, searchName: string): boolean => {
+    const boardNameStr = board.name.trim();
+    const boardNameLower = boardNameStr.toLowerCase();
+    const normalizedBoardName = normalizeName(boardNameStr);
+    const normalizedSearchName = normalizeName(searchName);
+    const searchNameLower = searchName.toLowerCase();
+    
+    // 1. Exact match (case-insensitive)
+    if (boardNameLower === searchNameLower) return true;
+    
+    // 2. Normalized match (no spaces, no case)
+    if (normalizedBoardName === normalizedSearchName) return true;
+    
+    // 3. Board name contains search name or vice versa
+    if (boardNameLower.includes(searchNameLower) || 
+        searchNameLower.includes(boardNameLower)) return true;
+    
+    // 4. Check if all search name parts are in board name
+    const searchParts = searchName.toLowerCase().trim().split(/\s+/);
+    if (searchParts.length > 1) {
+      const allPartsInBoard = searchParts.every(part => 
+        part.length > 2 && boardNameLower.includes(part)
+      );
+      if (allPartsInBoard) return true;
+    }
+    
+    // 5. Check if board name parts are in search name
+    const boardParts = boardNameStr.toLowerCase().trim().split(/\s+/);
+    if (boardParts.length > 1) {
+      const allPartsInSearch = boardParts.every((part: string) => 
+        part.length > 2 && searchNameLower.includes(part)
+      );
+      if (allPartsInSearch) return true;
+    }
+    
+    return false;
+  };
+  
+  // Helper function to check if user is a member of board
+  const isUserMemberOfBoard = async (boardId: string): Promise<boolean> => {
+    try {
+      const boardDetails = await getBoard(auth, boardId);
+      const boardMemberships = (boardDetails as any)?.included?.boardMemberships ?? [];
+      return boardMemberships.some((m: any) => m.userId === currentUserId);
+    } catch (error) {
+      return false;
+    }
+  };
+  
   // Search for user's board across all daily report projects
   for (const project of dailyReportProjects) {
     const projectId = (project as any).id;
@@ -711,28 +787,39 @@ ${description}`;
     try {
       const projectDetails = await getProject(auth, projectId);
       const boards = (projectDetails as any)?.included?.boards ?? [];
-      const users = (projectDetails as any)?.included?.users ?? [];
 
-      // Find user's board (board name should match user's name)
-      const user = users.find((u: any) => u.id === resolvedUserId);
-      if (!user) continue;
-
-      const userBoard = boards.find((b: any) => 
-        b.name.toLowerCase().includes(user.name.toLowerCase()) ||
-        user.name.toLowerCase().includes(b.name.toLowerCase())
-      );
+      let userBoard;
+      let foundBoardName = '';
+      
+      if (boardName) {
+        // AI provided a board name - search for it
+        userBoard = boards.find((b: any) => matchesBoard(b, boardName));
+      } else if (userName) {
+        // Try to match by user name first
+        userBoard = boards.find((b: any) => matchesBoard(b, userName));
+      }
+      
+      // If no match by name, check board memberships
+      if (!userBoard) {
+        for (const board of boards) {
+          if (await isUserMemberOfBoard(board.id)) {
+            userBoard = board;
+            break;
+          }
+        }
+      }
 
       if (!userBoard) continue;
 
       const boardId = userBoard.id;
-      const boardName = userBoard.name;
+      foundBoardName = userBoard.name;
 
       // Get board details to find lists
       const boardDetails = await getBoard(auth, boardId);
       const lists = (boardDetails as any)?.included?.lists ?? [];
 
       if (lists.length === 0) {
-        throw new Error(`No lists found in board "${boardName}"`);
+        throw new Error(`No lists found in board "${foundBoardName}"`);
       }
 
       // Use the first list (or you can add logic to find the appropriate season/list)
@@ -755,7 +842,7 @@ ${description}`;
         cardId: (card as any).item.id,
         cardName: (card as any).item.name,
         listName,
-        boardName,
+        boardName: foundBoardName,
         projectName,
         date: reportDate,
       };

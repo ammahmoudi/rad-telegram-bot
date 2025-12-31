@@ -7,6 +7,7 @@ export interface PlankaProject {
   id: string;
   name: string;
   description?: string;
+  categoryId?: string;
   createdAt: string;
   updatedAt?: string;
 }

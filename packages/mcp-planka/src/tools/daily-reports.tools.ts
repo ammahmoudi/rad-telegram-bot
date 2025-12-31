@@ -76,17 +76,17 @@ export const dailyReportsTools = [
   {
     name: 'planka_create_daily_report_card',
     description:
-      'Create a daily report card with provided content. Use when user asks: "create my daily report", "write my daily report", "add today\'s report". IMPORTANT: This tool does NOT fetch activity data - you must first use planka_get_user_activity_summary or planka_get_user_actions to get what the user did, then call this tool with the formatted content. This tool only creates the card in the correct daily report project/board/list.',
+      'Create a daily report card with provided content. Use when user asks: "create my daily report", "write my daily report", "add today\'s report". Just pass the content the user provides - the tool will format it properly. Example: User says "امروز روی پروژه X کار کردم" → call with {content: "امروز روی پروژه X کار کردم"}. If you know the board name (e.g., user mentioned their name), you can pass it as boardName to help find the right board faster.',
     inputSchema: {
       type: 'object',
       properties: {
-        name: {
+        content: {
           type: 'string',
-          description: 'Card title/name. Example: "Daily Report", "Work Summary". This will be enriched with dates automatically.',
+          description: 'REQUIRED: The report content. This is what the user did today. Just pass the text the user provides.',
         },
-        description: {
+        boardName: {
           type: 'string',
-          description: 'REQUIRED: The report content (markdown formatted). This is what the user did today. You should gather this from activity tools first, then format it nicely before calling this tool.',
+          description: 'OPTIONAL: Board name to search for (e.g., user\'s name like "امیرحسین محمودی" or "Amirhossein Mahmoudi"). If provided, will search for boards matching this name. If omitted, will try to find the board by checking memberships.',
         },
         date: {
           type: 'string',
@@ -97,7 +97,7 @@ export const dailyReportsTools = [
           description: 'User ID to create report for. OPTIONAL: If omitted, creates for CURRENT user.',
         },
       },
-      required: ['name', 'description'],
+      required: ['content'],
     },
   },
 ];
@@ -129,10 +129,12 @@ export async function handleDailyReportsTool(auth: PlankaAuth, toolName: string,
     }
 
     case 'planka_create_daily_report_card': {
-      if (!args.name || !args.description) {
-        throw new Error('name and description are required');
+      const content = args.content || args.description;
+      if (!content) {
+        throw new Error('content is required');
       }
-      return await createDailyReportCard(auth, args.userId, args.name, args.description, args.date || 'today');
+      const name = args.name || 'Daily Report';
+      return await createDailyReportCard(auth, args.userId, name, content, args.date || 'today', args.boardName);
     }
 
     default:

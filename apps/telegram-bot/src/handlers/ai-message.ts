@@ -494,21 +494,18 @@ export async function handleAiMessage(ctx: Context) {
           
           summaryPrompt = {
             role: 'user',
-            content: `I searched these places and found nothing:\n${searchDetails}\n\n` +
-                     `Tell the user (in their language) exactly what you searched: which projects, boards, queries you tried. ` +
-                     `List the specific search attempts. Then say nothing was found and the name might be spelled differently. ` +
-                     `Be specific about what you looked for. Write 3-4 sentences. ` +
-                     `DO NOT include any "Process Summary", "Reasoning Process", or "Tools used" sections. ` +
-                     `Only provide the final user-facing message.`
+            content: `Your searches found nothing. Tell the user (in their language) exactly what you searched for: which projects/boards/queries you tried. ` +
+                     `Be specific. Then say nothing was found. Write 3-4 sentences. ` +
+                     `CRITICAL: Write ONLY the message the user should see. ` +
+                     `Do NOT include: "Example:", "Your response:", "Process Summary", "Reasoning", "Tools used", or any meta-commentary.`
           };
         } else {
           summaryPrompt = {
             role: 'user',
-            content: `Tell the user (in their language) what you found after searching. ` +
-                     `List the specific projects/boards/items you checked. ` +
-                     `Be specific about where you looked. Write 3-4 sentences. ` +
-                     `DO NOT include any "Process Summary", "Reasoning Process", or "Tools used" sections. ` +
-                     `Only provide the final user-facing message.`
+            content: `You just completed some actions. Now write a final message to the user in their language summarizing what you did. ` +
+                     `Be specific and concise (3-4 sentences). ` +
+                     `CRITICAL: Write ONLY the message the user should see. ` +
+                     `Do NOT include: "Example:", "Your response:", "Process Summary", "Reasoning", "Tools used", or any meta-commentary.`
           };
         }
         
