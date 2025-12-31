@@ -115,6 +115,20 @@ async function handleSendMessage(
     return;
   }
 
+  // Show the user's action in the chat (echo the message as if they sent it)
+  // This makes the conversation flow more natural
+  try {
+    await ctx.api.sendMessage(
+      ctx.chat?.id || 0,
+      message,
+      { 
+        reply_to_message_id: ctx.callbackQuery.message?.message_id 
+      }
+    );
+  } catch (err) {
+    console.log('[handleSendMessage] Could not echo user message:', err);
+  }
+
   // Import the AI message handler dynamically to avoid circular dependency
   const { handleAiMessage } = await import('./ai-message.js');
   

@@ -42,7 +42,8 @@ export async function handleToolCall(request: { params: { name: string; argument
     // Daily Reports tools
     if (name === 'planka_get_daily_report_projects' || 
         name === 'planka_get_user_daily_reports' || 
-        name === 'planka_get_missing_daily_reports') {
+        name === 'planka_get_missing_daily_reports' ||
+        name === 'planka_create_daily_report_card') {
       const result = await handleDailyReportsTool(auth, name, args);
       return textHelper(JSON.stringify(result, null, 2));
     }
