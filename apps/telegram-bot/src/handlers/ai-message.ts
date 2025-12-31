@@ -497,14 +497,18 @@ export async function handleAiMessage(ctx: Context) {
             content: `I searched these places and found nothing:\n${searchDetails}\n\n` +
                      `Tell the user (in their language) exactly what you searched: which projects, boards, queries you tried. ` +
                      `List the specific search attempts. Then say nothing was found and the name might be spelled differently. ` +
-                     `Be specific about what you looked for. Write 3-4 sentences.`
+                     `Be specific about what you looked for. Write 3-4 sentences. ` +
+                     `DO NOT include any "Process Summary", "Reasoning Process", or "Tools used" sections. ` +
+                     `Only provide the final user-facing message.`
           };
         } else {
           summaryPrompt = {
             role: 'user',
             content: `Tell the user (in their language) what you found after searching. ` +
                      `List the specific projects/boards/items you checked. ` +
-                     `Be specific about where you looked. Write 3-4 sentences.`
+                     `Be specific about where you looked. Write 3-4 sentences. ` +
+                     `DO NOT include any "Process Summary", "Reasoning Process", or "Tools used" sections. ` +
+                     `Only provide the final user-facing message.`
           };
         }
         

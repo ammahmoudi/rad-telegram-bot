@@ -7,6 +7,75 @@
 
 import { InlineKeyboard } from 'grammy';
 
+/**
+ * Clean AI response by removing internal reasoning and process summaries
+ * that should not be shown to end users
+ */
+export function cleanAiResponse(text: string): string {
+  let cleaned = text;
+  
+  // Remove system prompt instructions that leaked into the response
+  // These typically start with "If you found..." or "End with..." or "Crucial:" etc.
+  cleaned = cleaned.replace(/^If you found the item[\s\S]*?(?=\n\n[^\n])/gim, '');
+  cleaned = cleaned.replace(/^End with \d+-\d+[\s\S]*?(?=\n\n[^\n])/gim, '');
+  cleaned = cleaned.replace(/^Crucial:[\s\S]*?(?=\n\n[^\n])/gim, '');
+  cleaned = cleaned.replace(/^Language:[\s\S]*?(?=\n\n[^\n])/gim, '');
+  cleaned = cleaned.replace(/^Example formatting[\s\S]*?(?=\n\n[^\n])/gim, '');
+  cleaned = cleaned.replace(/^Specific instructions for this turn:[\s\S]*?(?=(?:Response:|$))/gim, '');
+  
+  // Remove internal AI thinking/reasoning that appears before the actual response
+  // Common patterns: "Wait, I should...", "Actually,", "Let's try...", etc.
+  cleaned = cleaned.replace(/^(?:Wait|Actually|Let's try|Hmm|I should|I will|I'll|I can)[\s\S]*?(?=\n\n[^\n])/gim, '');
+  
+  // Remove "Response:" label that appears before the actual message
+  cleaned = cleaned.replace(/^Response:\s*/gim, '');
+  
+  // Remove Process Summary sections (both blockquote and plain text versions)
+  cleaned = cleaned.replace(/<blockquote[^>]*>💡\s*<b>Process Summary<\/b>[\s\S]*?<\/blockquote>/gi, '');
+  cleaned = cleaned.replace(/💡\s*Process Summary[\s\S]*?(?=\n\n|$)/gi, '');
+  
+  // Remove standalone Reasoning Process sections
+  cleaned = cleaned.replace(/💭\s*<b>Reasoning Process:<\/b>[\s\S]*?(?=(?:<blockquote|💡|###BUTTONS|$))/gi, '');
+  cleaned = cleaned.replace(/💭\s*Reasoning Process:[\s\S]*?(?=\n\n|$)/gi, '');
+  
+  // Remove "Step X:" sections that appear outside blockquotes
+  cleaned = cleaned.replace(/<b>Step \d+:<\/b>[\s\S]*?Tools used:[\s\S]*?(?=(?:<b>Step|💡|###BUTTONS|$))/gi, '');
+  
+  // Remove "Tools used:" sections
+  cleaned = cleaned.replace(/Tools used:[\s\S]*?(?=\n\n|$)/gi, '');
+  cleaned = cleaned.replace(/<b>🛠️ Tools used:<\/b>[\s\S]*?(?=\n\n|$)/gi, '');
+  cleaned = cleaned.replace(/<i>↳ Tools used:<\/i>[\s\S]*?(?=\n\n|$)/gi, '');
+  
+  // Remove forced summarization notices
+  cleaned = cleaned.replace(/ℹ️\s*Used forced summarization due to context limits[\s\S]*?(?=\n|$)/gi, '');
+  
+  // Remove "Search Results:" or similar headers that appear from prompt leakage
+  cleaned = cleaned.replace(/^Search Results?:\s*$/gim, '');
+  cleaned = cleaned.replace(/^\[Result \d+\]\s*$/gim, '');
+  
+  // Remove duplicate content by splitting on common separators and keeping first occurrence
+  // Split on patterns that indicate repeated content
+  const parts = cleaned.split(/\n{3,}/);
+  const seenContent = new Set<string>();
+  const uniqueParts: string[] = [];
+  
+  for (const part of parts) {
+    const normalized = part.trim().substring(0, 200); // Compare first 200 chars
+    if (normalized && !seenContent.has(normalized)) {
+      seenContent.add(normalized);
+      uniqueParts.push(part);
+    }
+  }
+  
+  cleaned = uniqueParts.join('\n\n');
+  
+  // Clean up excess whitespace
+  cleaned = cleaned.replace(/\n{4,}/g, '\n\n\n');
+  cleaned = cleaned.trim();
+  
+  return cleaned;
+}
+
 export interface AiButton {
   text: string;
   action: string;
@@ -28,48 +97,53 @@ export interface ParsedAiResponse {
  * @returns Parsed message and button definitions
  */
 export function parseAiButtons(responseText: string): ParsedAiResponse {
-  const buttonRegex = /###BUTTONS_START###\s*(\[[\s\S]*?\])\s*###BUTTONS_END###/;
-  const match = responseText.match(buttonRegex);
+  // First, clean the response of internal AI content
+  let cleanedText = cleanAiResponse(responseText);
+  
+  // Then parse and remove button markers
+  const buttonRegex = /###BUTTONS_START###\s*(\[[\s\S]*?\])\s*###BUTTONS_END###/g;
+  const matches = [...cleanedText.matchAll(buttonRegex)];
 
-  if (!match) {
+  if (matches.length === 0) {
     return {
-      messageText: responseText,
+      messageText: cleanedText,
       buttons: [],
     };
   }
 
-  try {
-    // HTML-decode the JSON string (Telegram encodes quotes as &quot;)
-    const buttonsJson = match[1]
-      .replace(/&quot;/g, '"')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>');
-    const buttons: AiButton[] = JSON.parse(buttonsJson);
-    
-    // Remove the buttons markers from the message
-    const messageText = responseText.replace(buttonRegex, '').trim();
-
-    // Validate button structure
-    const validButtons = buttons.filter(btn => 
-      btn.text && 
-      btn.action && 
-      typeof btn.text === 'string' && 
-      typeof btn.action === 'string'
-    );
-
-    return {
-      messageText,
-      buttons: validButtons,
-    };
-  } catch (error) {
-    console.error('[parseAiButtons] Failed to parse buttons:', error);
-    // Return original text if parsing fails
-    return {
-      messageText: responseText,
-      buttons: [],
-    };
+  // Collect all buttons from all matches (in case there are multiple button sections)
+  const allButtons: AiButton[] = [];
+  
+  for (const match of matches) {
+    try {
+      // HTML-decode the JSON string (Telegram encodes quotes as &quot;)
+      const buttonsJson = match[1]
+        .replace(/&quot;/g, '"')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>');
+      const buttons: AiButton[] = JSON.parse(buttonsJson);
+      allButtons.push(...buttons);
+    } catch (error) {
+      console.error('[parseAiButtons] Failed to parse button match:', error);
+    }
   }
+  
+  // Remove ALL button markers from the message
+  const messageText = cleanedText.replace(buttonRegex, '').trim();
+
+  // Validate button structure
+  const validButtons = allButtons.filter(btn => 
+    btn.text && 
+    btn.action && 
+    typeof btn.text === 'string' && 
+    typeof btn.action === 'string'
+  );
+
+  return {
+    messageText,
+    buttons: validButtons,
+  };
 }
 
 /**

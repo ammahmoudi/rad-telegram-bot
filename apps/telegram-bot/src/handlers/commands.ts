@@ -24,7 +24,7 @@ import {
   getRastarExpiredKeyboard,
 } from './keyboards.js';
 
-const LINK_PORTAL_BASE_URL = process.env.LINK_PORTAL_BASE_URL || 'http://localhost:8787';
+const LINK_PORTAL_BASE_URL = process.env.LINK_PORTAL_URL || 'http://localhost:3002';
 
 /**
  * Handle /start command
