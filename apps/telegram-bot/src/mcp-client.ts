@@ -193,6 +193,7 @@ export async function initializeMcpServers(): Promise<void> {
     // Spawn MCP servers as child processes
     const plankaServerPath = path.join(repoRoot, 'packages/mcp-planka/dist/index.js');
     const rastarServerPath = path.join(repoRoot, 'packages/mcp-rastar/dist/index.js');
+    const timeServerPath = path.join(repoRoot, 'packages/mcp-time/dist/index.js');
 
     console.log(`[MCP] Connecting to Planka MCP server (stdio)...`);
     await manager.connect({
@@ -215,12 +216,24 @@ export async function initializeMcpServers(): Promise<void> {
         MCP_TRANSPORT: 'stdio',
       },
     });
+
+    console.log(`[MCP] Connecting to Time MCP server (stdio)...`);
+    await manager.connect({
+      name: 'time',
+      command: 'node',
+      args: [timeServerPath],
+      env: {
+        ...(process.env as Record<string, string>),
+        MCP_TRANSPORT: 'stdio',
+      },
+    });
   } else {
     console.log('[MCP] Using Streamable HTTP transport (Docker/production)');
     
     // MCP server URLs (Streamable HTTP endpoints)
     const plankaUrl = process.env.MCP_PLANKA_URL || 'http://mcp-planka:3100/mcp';
     const rastarUrl = process.env.MCP_RASTAR_URL || 'http://mcp-rastar:3101/mcp';
+    const timeUrl = process.env.MCP_TIME_URL || 'http://mcp-time:3102/mcp';
 
     console.log(`[MCP] Connecting to Planka MCP server at ${plankaUrl}...`);
     await manager.connect({
@@ -232,6 +245,12 @@ export async function initializeMcpServers(): Promise<void> {
     await manager.connect({
       name: 'rastar',
       url: rastarUrl,
+    });
+
+    console.log(`[MCP] Connecting to Time MCP server at ${timeUrl}...`);
+    await manager.connect({
+      name: 'time',
+      url: timeUrl,
     });
   }
 

@@ -13,6 +13,7 @@ import {
 import type { ChatCompletionTool } from 'openai/resources/chat/completions';
 import { executeMcpTool } from '../planka-tools.js';
 import { executeRastarTool } from '../rastar-tools.js';
+import { executeTimeTool } from '../time-tools.js';
 import { getAiClient } from '../services/ai-client.js';
 import { getAiTools } from '../services/tools-manager.js';
 import { getSystemPrompt } from '../config/system-prompt.js';
@@ -308,10 +309,9 @@ export async function handleAiMessage(ctx: Context) {
           // No conversion needed since MCP tools now use underscore format
           const mcpToolName = toolCall.name;
           
-          // Track tool for summary AND display
+          // Track tool for display (but don't add to allToolCallsMade - it's already tracked during streaming)
           if (!activeTools.has(toolCall.name)) {
             activeTools.add(toolCall.name);
-            allToolCallsMade.push({ name: toolCall.name, args: toolCall.arguments });
             
             // Add to display list so user sees it with arguments
             const toolDisplayName = formatToolName(toolCall.name);
@@ -372,10 +372,15 @@ export async function handleAiMessage(ctx: Context) {
               mcpToolName,
               JSON.parse(toolCall.arguments),
             );
-          } else {
-            // Default to Planka for backward compatibility
+          } else if (mcpToolName.startsWith('planka_')) {
             toolResult = await executeMcpTool(
               telegramUserId,
+              mcpToolName,
+              JSON.parse(toolCall.arguments),
+            );
+          } else {
+            // Time tools (no prefix) or other MCP servers
+            toolResult = await executeTimeTool(
               mcpToolName,
               JSON.parse(toolCall.arguments),
             );

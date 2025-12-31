@@ -758,9 +758,9 @@ app.post('/link/rastar', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   // eslint-disable-next-line no-console
-  console.log(`[link-portal] listening on http://localhost:${PORT}`);
+  console.log(`[link-portal] listening on http://0.0.0.0:${PORT}`);
 });
 
 async function plankaLogin(baseUrl: string, emailOrUsername: string, password: string): Promise<string> {

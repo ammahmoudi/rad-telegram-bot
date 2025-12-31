@@ -93,6 +93,34 @@ services:
       - "com.rastar.service=mcp-rastar"
       - "com.rastar.version=0.2.0"
 
+  mcp-time:
+    build:
+      context: .
+      dockerfile: ./packages/mcp-time/Dockerfile
+    container_name: rastar-mcp-time
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - PORT=3102
+      - MCP_TRANSPORT=http
+    ports:
+      - "3102:3102"
+    volumes:
+      - ./logs/mcp-time:/app/logs
+    networks:
+      - rastar-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3102/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    labels:
+      - "com.rastar.service=mcp-time"
+      - "com.rastar.version=1.0.0"
+
   # === Main Application Services ===
   
   # Telegram Bot Service
@@ -118,6 +146,7 @@ services:
       # MCP Server URLs (Streamable HTTP endpoints)
       - MCP_PLANKA_URL=http://mcp-planka:3100/mcp
       - MCP_RASTAR_URL=http://mcp-rastar:3101/mcp
+      - MCP_TIME_URL=http://mcp-time:3102/mcp
       # Optional: Create default admin on first startup
       - DEFAULT_ADMIN_USERNAME=${DEFAULT_ADMIN_USERNAME}
       - DEFAULT_ADMIN_PASSWORD=${DEFAULT_ADMIN_PASSWORD}
@@ -154,6 +183,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3002
+      - HOST=0.0.0.0
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/rastar
       - RASTAR_SUPABASE_URL=${RASTAR_SUPABASE_URL}
       - RASTAR_SUPABASE_ANON_KEY=${RASTAR_SUPABASE_ANON_KEY}

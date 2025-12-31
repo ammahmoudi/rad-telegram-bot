@@ -20,11 +20,12 @@ export async function getAiTools(telegramUserId: string): Promise<ChatCompletion
   console.log('[getAiTools] User has Planka token:', !!plankaToken);
   console.log('[getAiTools] User has Rastar token:', !!rastarToken);
 
-  // Get all available tools from both MCP servers
+  // Get all available tools from all MCP servers
   const plankaTools = await mcpManager.listTools('planka');
   const rastarTools = await mcpManager.listTools('rastar');
-  const allTools = [...plankaTools, ...rastarTools];
-  console.log('[getAiTools] Found', allTools.length, 'MCP tools (Planka:', plankaTools.length, ', Rastar:', rastarTools.length, ')');
+  const timeTools = await mcpManager.listTools('time');
+  const allTools = [...plankaTools, ...rastarTools, ...timeTools];
+  console.log('[getAiTools] Found', allTools.length, 'MCP tools (Planka:', plankaTools.length, ', Rastar:', rastarTools.length, ', Time:', timeTools.length, ')');
 
   // Filter out auth tools if user is already authenticated
   const filteredTools = allTools.filter(tool => {

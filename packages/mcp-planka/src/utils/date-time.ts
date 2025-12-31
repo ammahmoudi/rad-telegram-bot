@@ -12,7 +12,7 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc.js';
 import timezone from 'dayjs/plugin/timezone.js';
 import customParseFormat from 'dayjs/plugin/customParseFormat.js';
-import jalaali from 'jalaali-js';
+import moment from 'moment-jalaali';
 
 // Extend dayjs with plugins
 dayjs.extend(utc);
@@ -55,24 +55,8 @@ export interface DualDate {
   };
 }
 
-/**
- * Persian month names
- */
-const PERSIAN_MONTH_NAMES = [
-  'فروردین', 'اردیبهشت', 'خرداد',
-  'تیر', 'مرداد', 'شهریور',
-  'مهر', 'آبان', 'آذر',
-  'دی', 'بهمن', 'اسفند'
-];
-
-/**
- * Persian digit conversion
- */
-const PERSIAN_DIGITS = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
-
-function toPersianDigits(num: number | string): string {
-  return String(num).replace(/\d/g, (d) => PERSIAN_DIGITS[parseInt(d)]);
-}
+// Configure moment-jalaali to use Persian locale
+moment.loadPersian({ dialect: 'persian-modern' });
 
 /**
  * Parse various date/time formats and return DualDate
@@ -129,9 +113,12 @@ export function parseDate(
       }
     } else if (input.match(/^14\d{2}[\/-]\d{1,2}[\/-]\d{1,2}/)) {
       // Persian date format: "1404/10/10" or "1404-10-10"
-      const parts = input.split(/[\/-]/).map(p => parseInt(p));
-      const gregorian = jalaali.toGregorian(parts[0], parts[1], parts[2]);
-      date = dayjs(`${gregorian.gy}-${String(gregorian.gm).padStart(2, '0')}-${String(gregorian.gd).padStart(2, '0')}`).tz(timezone);
+      const jalaliMoment = moment(input, ['jYYYY/jMM/jDD', 'jYYYY-jMM-jDD', 'jYYYY/jM/jD']);
+      if (jalaliMoment.isValid()) {
+        date = dayjs(jalaliMoment.format('YYYY-MM-DD')).tz(timezone);
+      } else {
+        date = dayjs(input).tz(timezone);
+      }
     } else {
       // Try to parse as standard date
       date = dayjs(input).tz(timezone);
@@ -153,12 +140,13 @@ function toDualDate(date: dayjs.Dayjs, timezone: string = DEFAULT_TIMEZONE): Dua
   const utcDate = date.utc();
   const localDate = date.tz(timezone);
   
-  // Convert to Persian calendar
-  const jalali = jalaali.toJalaali(
-    localDate.year(),
-    localDate.month() + 1, // dayjs months are 0-indexed
-    localDate.date()
-  );
+  // Convert to Persian calendar using moment-jalaali
+  const jalaliMoment = moment(localDate.format('YYYY-MM-DD'));
+  const jalaliDate = jalaliMoment.format('jYYYY-jMM-jDD');
+  const jalaliDateTime = `${jalaliDate} ${localDate.format('HH:mm:ss')}`;
+  
+  // Use Persian locale for formatting
+  const jalaliMomentFa = moment(localDate.format('YYYY-MM-DD')).locale('fa');
 
   return {
     iso: utcDate.toISOString(),
@@ -171,13 +159,13 @@ function toDualDate(date: dayjs.Dayjs, timezone: string = DEFAULT_TIMEZONE): Dua
       formatted: localDate.format('MMMM D, YYYY HH:mm'),
     },
     persian: {
-      date: `${jalali.jy}-${String(jalali.jm).padStart(2, '0')}-${String(jalali.jd).padStart(2, '0')}`,
-      dateTime: `${jalali.jy}-${String(jalali.jm).padStart(2, '0')}-${String(jalali.jd).padStart(2, '0')} ${localDate.format('HH:mm:ss')}`,
+      date: jalaliDate,
+      dateTime: jalaliDateTime,
       time: localDate.format('HH:mm:ss'),
-      formatted: `${toPersianDigits(jalali.jy)}/${toPersianDigits(String(jalali.jm).padStart(2, '0'))}/${toPersianDigits(String(jalali.jd).padStart(2, '0'))} ساعت ${toPersianDigits(localDate.format('HH:mm'))}`,
-      year: jalali.jy,
-      month: jalali.jm,
-      day: jalali.jd,
+      formatted: jalaliMomentFa.format('jYYYY/jMM/jDD - jMMMM') + ' ساعت ' + localDate.format('HH:mm'),
+      year: jalaliMoment.jYear(),
+      month: jalaliMoment.jMonth() + 1,
+      day: jalaliMoment.jDate(),
     },
   };
 }
@@ -311,9 +299,11 @@ export function getDateRange(
  */
 export function persianToISO(persianDate: string, timezone: string = DEFAULT_TIMEZONE): string {
   // Format: "1404/10/10" or "1404-10-10"
-  const parts = persianDate.split(/[\/-]/).map(p => parseInt(p));
-  const gregorian = jalaali.toGregorian(parts[0], parts[1], parts[2]);
-  return dayjs(`${gregorian.gy}-${String(gregorian.gm).padStart(2, '0')}-${String(gregorian.gd).padStart(2, '0')}`)
+  const jalaliMoment = moment(persianDate, ['jYYYY/jMM/jDD', 'jYYYY-jMM-jDD', 'jYYYY/jM/jD']);
+  if (!jalaliMoment.isValid()) {
+    throw new Error(`Invalid Persian date format: ${persianDate}`);
+  }
+  return dayjs(jalaliMoment.format('YYYY-MM-DD'))
     .tz(timezone)
     .utc()
     .toISOString();
