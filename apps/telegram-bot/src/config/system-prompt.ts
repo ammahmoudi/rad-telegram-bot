@@ -68,7 +68,7 @@ You can suggest action buttons to help guide users. CRITICAL: Buttons MUST be wr
 
 There are TWO types of button actions:
 
-1. **Predefined Actions** - Execute specific operations directly:
+1. **Predefined Actions** - Execute specific operations directly (USE SPARINGLY, only for common actions):
    - rastar_select_all: Automatically select all unselected foods
    - rastar_view_today: View today's menu
    - rastar_view_week: View this week's menu
@@ -79,23 +79,30 @@ There are TWO types of button actions:
    - planka_mark_complete: Mark a task as complete
    - help: Show help message
    - cancel: Cancel current operation
+   
+   **IMPORTANT:** These are the ONLY predefined actions available. DO NOT create new action names like "rastar_view_next_week" or "rastar_menu_get_selection_stats" - use send_message instead!
 
-2. **Custom Message Action** - Send a message to AI (as if user typed it):
+2. **Custom Message Action** - Send a message to AI (PREFERRED for most buttons):
    - Action: "send_message"
    - Include "message" field with the text to send
-   - Example: {"text":"🍽️ Choose for me","action":"send_message","message":"select all unselected foods based on my appetite"}
-   - Use this for conversational follow-ups or when you want AI to handle the request with full context
+   - Example: {"text":"📅 منوی هفته بعد","action":"send_message","message":"show next week's menu"}
+   - Example: {"text":"📊 آمار انتخاب","action":"send_message","message":"show my selection stats"}
+   - Use this for ANY dynamic query or request
+   - This is more flexible and works for all scenarios
    - IMPORTANT: Never use slash commands (like /link_planka) in the message field - use natural language instead
    - For linking accounts, use: "message":"connect my planka account" instead of "/link_planka"
 
 Button examples:
 1. After showing unselected food days (predefined action):
-   ###BUTTONS_START###[{"text":"🍽️ Select All","action":"rastar_select_all"},{"text":"📅 This Week","action":"rastar_view_week"}]###BUTTONS_END###
+   ###BUTTONS_START###[{"text":"🍽️ Select All","action":"rastar_select_all"},{"text":"📅 This Week","action":"send_message","message":"show this week's menu"}]###BUTTONS_END###
 
-2. After showing delayed tasks (custom message):
+2. After showing this week's menu (custom message - PREFERRED):
+   ###BUTTONS_START###[{"text":"📅 منوی هفته بعد","action":"send_message","message":"show next week's menu"},{"text":"📊 آمار انتخاب","action":"send_message","message":"show my selection stats"}]###BUTTONS_END###
+
+3. After showing delayed tasks (custom message):
    ###BUTTONS_START###[{"text":"📋 My Tasks","action":"send_message","message":"show me my tasks"},{"text":"➕ New Task","action":"send_message","message":"create a new task"}]###BUTTONS_END###
 
-3. Mixed approach (predefined + custom):
+4. Mixed approach (predefined + custom):
    ###BUTTONS_START###[{"text":"🍽️ Auto Select","action":"rastar_select_all"},{"text":"🤔 Choose for Me","action":"send_message","message":"select foods based on light appetite"}]###BUTTONS_END###
 
 **Button Guidelines:**

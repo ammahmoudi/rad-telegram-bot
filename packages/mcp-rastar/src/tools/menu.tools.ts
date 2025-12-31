@@ -6,7 +6,7 @@
 export const menuTools = [
   // Read operations
   {
-    name: 'rastar.menu.get_today',
+    name: 'rastar_menu_get_today',
     description: "Get today's menu with available food options and selection status. Use this when user asks for today's menu.",
     inputSchema: {
       type: 'object',
@@ -24,7 +24,7 @@ export const menuTools = [
     },
   },
   {
-    name: 'rastar.menu.get_tomorrow',
+    name: 'rastar_menu_get_tomorrow',
     description: "Get tomorrow's menu with available food options and selection status. Use this when user asks for tomorrow's menu.",
     inputSchema: {
       type: 'object',
@@ -42,8 +42,8 @@ export const menuTools = [
     },
   },
   {
-    name: 'rastar.menu.get_this_week',
-    description: "Get this week's menu (Monday-Sunday) with available food options and selection status. Use when user asks for this week's menu.",
+    name: 'rastar_menu_get_this_week',
+    description: "Get this week's menu (Saturday-Friday, Iranian calendar) with available food options and selection status. Use when user asks for this week's menu.",
     inputSchema: {
       type: 'object',
       required: ['accessToken', 'userId'],
@@ -60,7 +60,7 @@ export const menuTools = [
     },
   },
   {
-    name: 'rastar.menu.get_next_week',
+    name: 'rastar_menu_get_next_week',
     description: "Get next week's menu with available food options and selection status. Use when user asks for next week's menu.",
     inputSchema: {
       type: 'object',
@@ -78,7 +78,7 @@ export const menuTools = [
     },
   },
   {
-    name: 'rastar.menu.get_selection_stats',
+    name: 'rastar_menu_get_selection_stats',
     description: 'Get comprehensive statistics about food selections including total days, selection rate, upcoming and past unselected days. Use when user asks about selection statistics or progress.',
     inputSchema: {
       type: 'object',
@@ -96,7 +96,7 @@ export const menuTools = [
     },
   },
   {
-    name: 'rastar.menu.get_unselected_days',
+    name: 'rastar_menu_get_unselected_days',
     description: 'Get list of dates where user has not selected food yet. Returns daily menu options for unselected days. Use when user asks about missing selections or days needing selection.',
     inputSchema: {
       type: 'object',
@@ -115,7 +115,7 @@ export const menuTools = [
   },
   // Write operations
   {
-    name: 'rastar.menu.change_selection',
+    name: 'rastar_menu_change_selection',
     description: 'Change food selection for a specific date (atomically deletes old and creates new)',
     inputSchema: {
       type: 'object',
@@ -141,7 +141,7 @@ export const menuTools = [
     },
   },
   {
-    name: 'rastar.menu.select_food_by_date',
+    name: 'rastar_menu_select_food_by_date',
     description: 'Select a food item for a specific date by searching for the food name',
     inputSchema: {
       type: 'object',
@@ -167,7 +167,7 @@ export const menuTools = [
     },
   },
   {
-    name: 'rastar.menu.remove_selection_by_date',
+    name: 'rastar_menu_remove_selection_by_date',
     description: 'Remove food selection for a specific date',
     inputSchema: {
       type: 'object',
@@ -189,7 +189,7 @@ export const menuTools = [
     },
   },
   {
-    name: 'rastar.menu.bulk_select_foods',
+    name: 'rastar_menu_bulk_select_foods',
     description: 'Select multiple food items at once (batch operation) by searching for food names',
     inputSchema: {
       type: 'object',

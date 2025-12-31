@@ -106,6 +106,21 @@ function extractDateFromCard(cardName: string, cardCreatedAt: string): string {
     return `${year}-${month}-${day}`;
   }
 
+  // Try MM/DD/YYYY (US format)
+  const usDateMatch = cardName.match(/(\d{1,2})[\/](\d{1,2})[\/](\d{4})/);
+  if (usDateMatch) {
+    const month = usDateMatch[1].padStart(2, '0');
+    const day = usDateMatch[2].padStart(2, '0');
+    const year = usDateMatch[3];
+    // If month > 12, it's likely day/month not month/day
+    if (parseInt(month) <= 12 && parseInt(day) <= 31) {
+      return `${year}-${month}-${day}`;
+    } else if (parseInt(day) <= 12 && parseInt(month) <= 31) {
+      // Swap if needed
+      return `${year}-${day.padStart(2, '0')}-${month.padStart(2, '0')}`;
+    }
+  }
+
   // Try to parse with Date constructor
   try {
     const date = new Date(cardName);
@@ -160,16 +175,40 @@ export async function getUserDailyReports(
       const boards = (projectDetails as any)?.included?.boards ?? [];
       const users = (projectDetails as any)?.included?.users ?? [];
 
-      // Find user's board (board name should match user's name)
+      // Find user
       const user = users.find((u: any) => u.id === resolvedUserId);
-      if (!user) continue;
+      if (!user) {
+        console.log(`User ${resolvedUserId} not found in project ${projectName}`);
+        continue;
+      }
 
-      const userBoard = boards.find((b: any) => 
+      // Find user's board - try multiple matching strategies
+      let userBoard = boards.find((b: any) => 
         b.name.toLowerCase().includes(user.name.toLowerCase()) ||
         user.name.toLowerCase().includes(b.name.toLowerCase())
       );
 
-      if (!userBoard) continue;
+      // If not found, try exact username match
+      if (!userBoard) {
+        userBoard = boards.find((b: any) => 
+          b.name.toLowerCase().trim() === user.name.toLowerCase().trim()
+        );
+      }
+
+      // If still not found, try username as part of board name
+      if (!userBoard) {
+        const username = user.username?.toLowerCase() || user.name.toLowerCase();
+        userBoard = boards.find((b: any) => 
+          b.name.toLowerCase().includes(username) ||
+          username.includes(b.name.toLowerCase())
+        );
+      }
+
+      if (!userBoard) {
+        console.log(`Board not found for user ${user.name} in project ${projectName}. Available boards:`, 
+          boards.map((b: any) => b.name).join(', '));
+        continue;
+      }
 
       const boardId = userBoard.id;
       const boardName = userBoard.name;
@@ -178,6 +217,8 @@ export async function getUserDailyReports(
       const boardDetails = await getBoard(auth, boardId);
       const lists = (boardDetails as any)?.included?.lists ?? [];
       const cards = (boardDetails as any)?.included?.cards ?? [];
+
+      console.log(`Found ${cards.length} cards in board ${boardName} (project: ${projectName})`);
 
       for (const card of cards) {
         // Extract date from card name or use creation date
@@ -422,7 +463,8 @@ export async function getMissingDailyReports(
 export async function generateDailyReportFromTasks(
   auth: PlankaAuth,
   date: string,
-  userId?: string
+  userId?: string,
+  options?: { includeDetails?: boolean }
 ): Promise<string> {
   const resolvedUserId = await resolveUserId(auth, userId);
   const startDate = new Date(date);
@@ -431,78 +473,172 @@ export async function generateDailyReportFromTasks(
   const endDate = new Date(date);
   endDate.setHours(23, 59, 59, 999);
 
-  // Get user activity for the day
+  // Get comprehensive user activity for the day with increased limits
   const activity = await getUserActions(auth, resolvedUserId, {
     startDate: startDate.toISOString(),
     endDate: endDate.toISOString(),
+    limit: 200, // Increased limit to capture all day's activity
   });
 
-  // Get tasks completed on this day
+  const includeDetails = options?.includeDetails !== false;
+
+  // Organize activities by type
   const completedTasks = activity.filter((a: any) => 
     a.type === 'updateTask' && 
     a.data?.isCompleted === true
   );
 
-  // Get cards created or updated
-  const cardActivities = activity.filter((a: any) => 
-    a.type === 'createCard' || 
-    a.type === 'updateCard' ||
-    a.type === 'createComment'
-  );
+  const createdCards = activity.filter((a: any) => a.type === 'createCard');
+  const updatedCards = activity.filter((a: any) => a.type === 'updateCard');
+  const movedCards = activity.filter((a: any) => a.type === 'moveCard');
+  const comments = activity.filter((a: any) => a.type === 'createComment');
 
-  // Build report
-  let report = `# Daily Report - ${date}\n\n`;
+  // Build structured report with better date formatting
+  let report = `# Daily Report - ${new Date(date).toLocaleDateString('en-US', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  })}\n\n`;
 
+  // Summary section
+  report += `## Summary\n\n`;
+  report += `- **Total Activities:** ${activity.length}\n`;
+  report += `- **Tasks Completed:** ${completedTasks.length}\n`;
+  report += `- **Cards Created:** ${createdCards.length}\n`;
+  report += `- **Cards Updated:** ${updatedCards.length}\n`;
+  report += `- **Cards Moved:** ${movedCards.length}\n`;
+  report += `- **Comments Added:** ${comments.length}\n\n`;
+
+  // Completed Tasks with better organization
   if (completedTasks.length > 0) {
-    report += `## Completed Tasks (${completedTasks.length})\n\n`;
+    report += `## ✅ Completed Tasks (${completedTasks.length})\n\n`;
+    
+    // Group by card for better organization
+    const tasksByCard = new Map<string, any[]>();
     for (const task of completedTasks) {
-      const taskName = task.data?.name || 'Unknown task';
-      const cardName = task.cardName || 'Unknown card';
-      const projectName = task.projectName || 'Unknown project';
-      report += `- ✅ **${taskName}** (Card: ${cardName}, Project: ${projectName})\n`;
+      const cardKey = task.cardName || 'Unknown';
+      if (!tasksByCard.has(cardKey)) {
+        tasksByCard.set(cardKey, []);
+      }
+      tasksByCard.get(cardKey)!.push(task);
+    }
+
+    for (const [cardName, tasks] of tasksByCard) {
+      const projectName = tasks[0]?.projectName || 'Unknown Project';
+      const boardName = tasks[0]?.boardName || '';
+      
+      report += `### ${cardName}`;
+      if (boardName) report += ` (${boardName})`;
+      report += `\n`;
+      if (projectName) report += `*Project: ${projectName}*\n\n`;
+      
+      for (const task of tasks) {
+        const taskName = task.data?.name || 'Unnamed task';
+        report += `- ✅ ${taskName}\n`;
+      }
+      report += '\n';
+    }
+  }
+
+  // Created Cards with project/board/list context
+  if (createdCards.length > 0) {
+    report += `## 🆕 Created Cards (${createdCards.length})\n\n`;
+    for (const activity of createdCards) {
+      const projectName = activity.projectName || 'Unknown Project';
+      const boardName = activity.boardName || '';
+      const listName = (activity as any).listName || '';
+      
+      report += `- **${activity.cardName}**\n`;
+      report += `  - Project: ${projectName}`;
+      if (boardName) report += ` > ${boardName}`;
+      if (listName) report += ` > ${listName}`;
+      report += `\n`;
+      
+      if (includeDetails && activity.description) {
+        report += `  - ${activity.description}\n`;
+      }
+      report += `\n`;
+    }
+  }
+
+  // Updated Cards (deduplicated)
+  if (updatedCards.length > 0) {
+    report += `## 📝 Updated Cards (${updatedCards.length})\n\n`;
+    
+    // Group by card to avoid duplicates
+    const cardUpdates = new Map<string, any>();
+    for (const activity of updatedCards) {
+      const cardKey = activity.cardId || activity.cardName || 'unknown';
+      if (!cardUpdates.has(cardKey)) {
+        cardUpdates.set(cardKey, activity);
+      }
+    }
+
+    for (const activity of cardUpdates.values()) {
+      report += `- **${activity.cardName}**`;
+      if (activity.projectName) report += ` (${activity.projectName})`;
+      report += `\n`;
+      
+      if (includeDetails && activity.description) {
+        report += `  - ${activity.description}\n`;
+      }
     }
     report += '\n';
   }
 
-  if (cardActivities.length > 0) {
-    report += `## Card Activities (${cardActivities.length})\n\n`;
+  // Moved Cards
+  if (movedCards.length > 0) {
+    report += `## 🔄 Moved Cards (${movedCards.length})\n\n`;
+    for (const activity of movedCards) {
+      report += `- **${activity.cardName}**`;
+      if (activity.description) report += ` - ${activity.description}`;
+      report += `\n`;
+    }
+    report += '\n';
+  }
+
+  // Comments grouped by card
+  if (comments.length > 0) {
+    report += `## 💬 Comments & Discussions (${comments.length})\n\n`;
     
-    // Group by type
-    const created = cardActivities.filter((a: any) => a.type === 'createCard');
-    const updated = cardActivities.filter((a: any) => a.type === 'updateCard');
-    const commented = cardActivities.filter((a: any) => a.type === 'createComment');
-
-    if (created.length > 0) {
-      report += `### Created Cards\n`;
-      for (const activity of created) {
-        report += `- 🆕 **${activity.cardName}** in ${activity.projectName}\n`;
+    // Group by card
+    const commentsByCard = new Map<string, any[]>();
+    for (const comment of comments) {
+      const cardKey = comment.cardName || 'Unknown';
+      if (!commentsByCard.has(cardKey)) {
+        commentsByCard.set(cardKey, []);
       }
-      report += '\n';
+      commentsByCard.get(cardKey)!.push(comment);
     }
 
-    if (updated.length > 0) {
-      report += `### Updated Cards\n`;
-      for (const activity of updated) {
-        report += `- 📝 **${activity.cardName}** - ${activity.description}\n`;
-      }
-      report += '\n';
-    }
-
-    if (commented.length > 0) {
-      report += `### Comments\n`;
-      for (const activity of commented) {
-        report += `- 💬 Commented on **${activity.cardName}**\n`;
+    for (const [cardName, cardComments] of commentsByCard) {
+      const projectName = cardComments[0]?.projectName;
+      report += `### ${cardName}`;
+      if (projectName) report += ` (${projectName})`;
+      report += ` - ${cardComments.length} comment(s)\n`;
+      
+      if (includeDetails) {
+        for (const comment of cardComments) {
+          if (comment.data?.text) {
+            const commentText = comment.data.text.length > 100 
+              ? comment.data.text.substring(0, 100) + '...' 
+              : comment.data.text;
+            report += `  - "${commentText}"\n`;
+          }
+        }
       }
       report += '\n';
     }
   }
 
+  // No activity case
   if (activity.length === 0) {
-    report += `No activity recorded for this date.\n`;
+    report += `## No Activity\n\nNo activity recorded for this date.\n`;
   }
 
   report += `\n---\n`;
-  report += `Total activities: ${activity.length}\n`;
+  report += `*Generated on ${new Date().toLocaleString('en-US')}*\n`;
 
   return report;
 }

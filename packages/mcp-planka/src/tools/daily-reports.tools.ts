@@ -3,6 +3,7 @@ import {
   getDailyReportProjects,
   getUserDailyReports,
   getMissingDailyReports,
+  createDailyReportCard,
 } from '../helpers/index.js';
 
 export const dailyReportsTools = [
@@ -18,7 +19,7 @@ export const dailyReportsTools = [
   {
     name: 'planka_get_user_daily_reports',
     description:
-      'PREFERRED: Get user\'s daily report entries in ONE efficient call. Use this when user asks: "my daily report", "today\'s report", "this week\'s reports", "what did I report". Automatically finds reports from Daily Report projects. DON\'T use multiple planka_search_* calls instead. IMPORTANT: When user mentions ANY time period ("today", "last 2 days", "this week"), you MUST pass startDate (and optionally endDate). Do NOT call without dates when user asks for reports from a specific time range.',
+      'PREFERRED: Get user\'s daily report entries in ONE efficient call. Use this when user asks: "my daily report", "today\'s report", "this week\'s reports", "what did I report", "show my daily reports". Searches in Daily Report projects and returns existing report cards. Returns report content from card descriptions and comments. CRITICAL: When user mentions ANY time period ("today", "last 2 days", "this week", "yesterday"), you MUST pass startDate (and optionally endDate). If user asks "what have I done today" or similar, use planka_get_user_activity_summary instead as it shows actual work done, not just reports written.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -28,19 +29,19 @@ export const dailyReportsTools = [
         },
         startDate: {
           type: 'string',
-          description: 'REQUIRED when user mentions time period. Examples: For "last 2 days" → "2 days ago", For "today" → "today", For "this week" → "monday this week". Supports: ISO ("2024-01-01"), relative ("7 days ago", "last monday"), natural ("yesterday", "today").',
+          description: 'REQUIRED when user mentions time period. Start date to filter reports. Examples: For "last 2 days" → "2 days ago", For "today" → "today", For "this week" → "monday this week", For "yesterday" → "yesterday". Supports: ISO ("2024-01-01"), relative ("7 days ago", "last monday"), natural ("yesterday", "today").',
         },
         endDate: {
           type: 'string',
-          description: 'End date filter. Usually "today" for current queries. Supports same formats as startDate.',
+          description: 'End date filter. Usually "today" or "now" for current queries. Supports same formats as startDate. If omitted, defaults to current time.',
         },
         projectId: {
           type: 'string',
-          description: 'Filter to specific daily report project',
+          description: 'Filter to specific daily report project ID',
         },
         includeSummary: {
           type: 'boolean',
-          description: 'Include summary with missing dates (requires startDate and endDate)',
+          description: 'Include summary with missing dates (requires startDate and endDate). Shows which dates have reports and which are missing.',
         },
       },
     },
@@ -72,6 +73,33 @@ export const dailyReportsTools = [
       required: ['startDate', 'endDate'],
     },
   },
+  {
+    name: 'planka_create_daily_report_card',
+    description:
+      'Create a daily report card with provided content. Use when user asks: "create my daily report", "write my daily report", "add today\'s report". IMPORTANT: This tool does NOT fetch activity data - you must first use planka_get_user_activity_summary or planka_get_user_actions to get what the user did, then call this tool with the formatted content. This tool only creates the card in the correct daily report project/board/list.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+          description: 'Card title/name. Example: "Daily Report", "Work Summary". This will be enriched with dates automatically.',
+        },
+        description: {
+          type: 'string',
+          description: 'REQUIRED: The report content (markdown formatted). This is what the user did today. You should gather this from activity tools first, then format it nicely before calling this tool.',
+        },
+        date: {
+          type: 'string',
+          description: 'Date for the report. Examples: "today", "yesterday", "2024-01-15". Defaults to "today" if omitted.',
+        },
+        userId: {
+          type: 'string',
+          description: 'User ID to create report for. OPTIONAL: If omitted, creates for CURRENT user.',
+        },
+      },
+      required: ['name', 'description'],
+    },
+  },
 ];
 
 export async function handleDailyReportsTool(auth: PlankaAuth, toolName: string, args: any): Promise<any> {
@@ -98,6 +126,13 @@ export async function handleDailyReportsTool(auth: PlankaAuth, toolName: string,
         userId: args.userId,
         includeWeekends: args.includeWeekends || false,
       });
+    }
+
+    case 'planka_create_daily_report_card': {
+      if (!args.name || !args.description) {
+        throw new Error('name and description are required');
+      }
+      return await createDailyReportCard(auth, args.userId, args.name, args.description, args.date || 'today');
     }
 
     default:

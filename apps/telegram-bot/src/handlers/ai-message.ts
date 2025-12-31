@@ -366,7 +366,7 @@ export async function handleAiMessage(ctx: Context) {
           
           // Route tool calls based on prefix
           let toolResult;
-          if (mcpToolName.startsWith('rastar_')) {
+          if (mcpToolName.startsWith('rastar.') || mcpToolName.startsWith('rastar_')) {
             toolResult = await executeRastarTool(
               telegramUserId,
               mcpToolName,

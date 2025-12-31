@@ -165,6 +165,7 @@ export async function getUserActions(
     limit?: number;
     projectId?: string;
     boardId?: string;
+    includeCardDetails?: boolean; // Include full card details (default: true)
   } = {}
 ): Promise<ActivityItem[]> {
   const resolvedUserId = await resolveUserId(auth, userId);
@@ -175,15 +176,15 @@ export async function getUserActions(
   const startDateISO = options.startDate ? parseDate(options.startDate).iso : undefined;
   const endDateISO = options.endDate ? parseDate(options.endDate).iso : undefined;
   
-  // Apply default limit to prevent timeout
-  const effectiveLimit = options.limit || 50;
+  // Apply default limit to prevent timeout (increased from 50 to 100 for better coverage)
+  const effectiveLimit = options.limit || 100;
   
   // Cache for board details to avoid redundant fetches
   const boardDetailsCache = new Map<string, any>();
   
-  // Limit total boards to fetch
+  // Increase limit on boards to fetch for better action coverage
   let boardsFetched = 0;
-  const maxBoardsToFetch = 10;
+  const maxBoardsToFetch = 20; // Increased from 10 to 20
 
   for (const project of projects) {
     // Early exit if we hit limits
@@ -313,6 +314,7 @@ export async function getUserActivitySummary(
     unreadNotificationsOnly?: boolean;
     includeActivity?: boolean;  // Default: true
     includeNotifications?: boolean;  // Default: true
+    limit?: number; // Limit for actions (default: 100)
   } = {}
 ): Promise<{
   notifications: NotificationItem[];
@@ -323,6 +325,7 @@ export async function getUserActivitySummary(
     activityCount: number;
     lastActivityAt?: string;
     lastNotificationAt?: string;
+    actionsByType: Record<string, number>;
   };
 }> {
   const includeActivity = options.includeActivity !== false;
@@ -337,7 +340,7 @@ export async function getUserActivitySummary(
       ? getUserActions(auth, userId, {
           startDate: options.startDate,
           endDate: options.endDate,
-          limit: 50, // Default limit to prevent timeout
+          limit: options.limit || 100, // Increased default limit
         })
       : Promise.resolve([]),
   ]);
@@ -346,6 +349,13 @@ export async function getUserActivitySummary(
   const unreadNotifications = notifications.filter((n) => !n.isRead);
   const lastActivity = activity.length > 0 ? activity[0].timestamp : undefined;
   const lastNotification = notifications.length > 0 ? notifications[0].createdAt : undefined;
+  
+  // Count actions by type for better insights
+  const actionsByType: Record<string, number> = {};
+  activity.forEach(act => {
+    const type = act.type || 'unknown';
+    actionsByType[type] = (actionsByType[type] || 0) + 1;
+  });
 
   return {
     notifications,
@@ -356,6 +366,7 @@ export async function getUserActivitySummary(
       activityCount: activity.length,
       lastActivityAt: lastActivity,
       lastNotificationAt: lastNotification,
+      actionsByType,
     },
   };
 }

@@ -48,23 +48,58 @@ const allResources = [...menuResources];
  * This allows the SDK to validate and convert to proper JSON Schema for AI
  */
 function createZodSchemaFromTool(tool: any) {
-  // For tools with accessToken + userId parameters
-  if (tool.inputSchema?.properties?.accessToken && tool.inputSchema?.properties?.userId) {
-    return z.object({
-      accessToken: z.string(),
-      userId: z.string(),
-    }).passthrough(); // Allow other properties too
+  const props = tool.inputSchema?.properties || {};
+  const required = tool.inputSchema?.required || [];
+  
+  // Build Zod object dynamically based on properties
+  const schemaFields: Record<string, z.ZodTypeAny> = {};
+  
+  for (const [key, value] of Object.entries(props)) {
+    const prop = value as any;
+    
+    // Determine if field is required
+    const isRequired = required.includes(key);
+    
+    // Create appropriate Zod type based on JSON Schema type
+    let fieldSchema: z.ZodTypeAny;
+    
+    switch (prop.type) {
+      case 'string':
+        fieldSchema = z.string();
+        break;
+      case 'number':
+        fieldSchema = z.number();
+        break;
+      case 'boolean':
+        fieldSchema = z.boolean();
+        break;
+      case 'array':
+        fieldSchema = z.array(z.any());
+        break;
+      case 'object':
+        fieldSchema = z.object({}).passthrough();
+        break;
+      default:
+        fieldSchema = z.any();
+    }
+    
+    // Make optional if not required
+    if (!isRequired) {
+      fieldSchema = fieldSchema.optional();
+    }
+    
+    // Add description if available
+    if (prop.description) {
+      fieldSchema = fieldSchema.describe(prop.description);
+    }
+    
+    schemaFields[key] = fieldSchema;
   }
   
-  // For tools with just refreshToken
-  if (tool.inputSchema?.properties?.refreshToken) {
-    return z.object({
-      refreshToken: z.string(),
-    });
-  }
-  
-  // Default: accept anything
-  return z.object({}).passthrough();
+  // Return Zod object schema
+  return Object.keys(schemaFields).length > 0 
+    ? z.object(schemaFields).passthrough()
+    : z.object({}).passthrough();
 }
 
 /**

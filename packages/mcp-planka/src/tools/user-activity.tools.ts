@@ -61,7 +61,7 @@ export const userActivityTools = [
   {
     name: 'planka_get_user_activity_summary',
     description:
-      'PREFERRED: Get complete activity summary for a user in ONE efficient call. Includes both actions performed (what they DID) AND notifications received (what happened TO them) plus statistics. Use this instead of calling planka_get_user_actions + planka_get_user_notifications separately. Perfect for: "what did I do today", "my activity this week", "show my work summary", dashboard views.',
+      'PREFERRED: Get complete activity summary for a user in ONE efficient call. This is THE BEST tool for "what did I do" queries. Includes: (1) Actions performed (cards created, comments posted, tasks completed, etc.) AND (2) Notifications received (assignments, mentions, etc.) plus detailed statistics. Use this instead of calling planka_get_user_actions + planka_get_user_notifications separately. Perfect for: "what did I do today", "my activity this week", "show my work summary", "what have I done", dashboard views. IMPORTANT: ALWAYS provide startDate when user mentions ANY time period.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -71,11 +71,11 @@ export const userActivityTools = [
         },
         startDate: {
           type: 'string',
-          description: 'Start date for actions filter. Supports: ISO ("2024-01-01"), relative ("3 days ago", "yesterday"), natural ("today"). For "last week", use "7 days ago". For "this week", use "monday this week" or calculate Monday date.',
+          description: 'REQUIRED when user asks about specific time period. Start date for actions filter. Supports: ISO ("2024-01-01"), relative ("3 days ago", "yesterday", "today", "this week"), natural language. For "last week", use "7 days ago". For "this week", use "monday this week". For "today", use "today".',
         },
         endDate: {
           type: 'string',
-          description: 'End date for actions filter. Supports: ISO, relative, natural. Usually "today" for current period queries.',
+          description: 'End date for actions filter. Supports: ISO, relative, natural. Usually "today" or "now" for current period queries. If omitted, defaults to current time.',
         },
         unreadNotificationsOnly: {
           type: 'boolean',
@@ -88,6 +88,10 @@ export const userActivityTools = [
         includeNotifications: {
           type: 'boolean',
           description: 'Include notifications (default: true)',
+        },
+        limit: {
+          type: 'number',
+          description: 'Maximum number of actions to return (default: 100)',
         },
       },
     },
@@ -120,8 +124,7 @@ export async function handleUserActivityTool(auth: PlankaAuth, toolName: string,
         endDate: args.endDate,
         unreadNotificationsOnly: args.unreadNotificationsOnly,
         includeActivity: args.includeActivity,
-        includeNotifications: args.includeNotifications,
-      });
+        includeNotifications: args.includeNotifications,        limit: args.limit || 100,      });
     }
 
     default:

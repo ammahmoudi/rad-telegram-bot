@@ -19,37 +19,43 @@ export function getTomorrow(): string {
 }
 
 /**
- * Get the start and end of current week (Monday to Sunday)
+ * Get the start and end of current week (Saturday to Friday - Iranian calendar)
+ * In Iran: Week starts Saturday, weekend is Thursday-Friday
  */
 export function getThisWeek(): { start: string; end: string } {
   const now = new Date();
-  const dayOfWeek = now.getDay();
-  const monday = new Date(now);
-  monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+  const dayOfWeek = now.getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
   
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
+  // Calculate days since Saturday
+  // Saturday=6, Sunday=0, Monday=1, ..., Friday=5
+  const daysSinceSaturday = dayOfWeek === 6 ? 0 : (dayOfWeek + 1);
+  
+  const saturday = new Date(now);
+  saturday.setDate(now.getDate() - daysSinceSaturday);
+  
+  const friday = new Date(saturday);
+  friday.setDate(saturday.getDate() + 6);
   
   return {
-    start: monday.toISOString().split('T')[0],
-    end: sunday.toISOString().split('T')[0],
+    start: saturday.toISOString().split('T')[0],
+    end: friday.toISOString().split('T')[0],
   };
 }
 
 /**
- * Get the start and end of next week
+ * Get the start and end of next week (Saturday to Friday - Iranian calendar)
  */
 export function getNextWeek(): { start: string; end: string } {
   const thisWeek = getThisWeek();
-  const nextMonday = new Date(thisWeek.start);
-  nextMonday.setDate(nextMonday.getDate() + 7);
+  const nextSaturday = new Date(thisWeek.start);
+  nextSaturday.setDate(nextSaturday.getDate() + 7);
   
-  const nextSunday = new Date(nextMonday);
-  nextSunday.setDate(nextMonday.getDate() + 6);
+  const nextFriday = new Date(nextSaturday);
+  nextFriday.setDate(nextSaturday.getDate() + 6);
   
   return {
-    start: nextMonday.toISOString().split('T')[0],
-    end: nextSunday.toISOString().split('T')[0],
+    start: nextSaturday.toISOString().split('T')[0],
+    end: nextFriday.toISOString().split('T')[0],
   };
 }
 

@@ -61,6 +61,18 @@ export async function handleAiButtonCallback(ctx: CallbackQueryContext<Context>)
         await handleViewWeekMenu(ctx, telegramUserId, t);
         break;
 
+      case BUTTON_ACTIONS.VIEW_NEXT_WEEK_MENU:
+        await handleViewNextWeekMenu(ctx, telegramUserId, t);
+        break;
+
+      case BUTTON_ACTIONS.VIEW_SELECTION_STATS:
+        await handleViewSelectionStats(ctx, telegramUserId, t);
+        break;
+
+      case BUTTON_ACTIONS.VIEW_UNSELECTED_DAYS:
+        await handleViewUnselectedDays(ctx, telegramUserId, t);
+        break;
+
       case BUTTON_ACTIONS.VIEW_MY_TASKS:
         await handleViewMyTasks(ctx, telegramUserId, t);
         break;
@@ -110,12 +122,20 @@ async function handleSendMessage(
   // The AI will process this as if the user sent the message
   const fakeCtx = {
     ...ctx,
+    from: ctx.from, // Ensure from is properly passed
     message: {
       text: message,
       from: ctx.from,
       chat: ctx.chat,
       message_id: ctx.callbackQuery.message?.message_id || 0,
       date: Date.now(),
+    },
+    // Add reply and other methods that handleAiMessage expects
+    reply: async (text: string, extra?: any) => {
+      return ctx.api.sendMessage(ctx.chat?.id || 0, text, extra);
+    },
+    replyWithChatAction: async (action: string) => {
+      return ctx.api.sendChatAction(ctx.chat?.id || 0, action as any);
     },
   };
 
@@ -135,7 +155,7 @@ async function handleSelectAllFoods(
 
   const result = await executeRastarTool(
     telegramUserId,
-    'rastar.menu.get_unselected_days',
+    'rastar_menu_get_unselected_days',
     {}
   );
 
@@ -160,7 +180,7 @@ async function handleSelectAllFoods(
 
     const bulkResult = await executeRastarTool(
       telegramUserId,
-      'rastar.menu.bulk_select_foods',
+      'rastar_menu_bulk_select_foods',
       { selections }
     );
 
@@ -213,6 +233,42 @@ async function handleViewWeekMenu(
 ) {
   // Use send_message to let AI format the week menu nicely
   return handleSendMessage(ctx, 'show me this week\'s menu', t);
+}
+
+/**
+ * View next week's menu
+ */
+async function handleViewNextWeekMenu(
+  ctx: CallbackQueryContext<Context>,
+  telegramUserId: string,
+  t: any
+) {
+  // Use send_message to let AI format next week's menu nicely
+  return handleSendMessage(ctx, 'show me next week\'s menu', t);
+}
+
+/**
+ * View selection statistics
+ */
+async function handleViewSelectionStats(
+  ctx: CallbackQueryContext<Context>,
+  telegramUserId: string,
+  t: any
+) {
+  // Use send_message to let AI fetch and format selection stats
+  return handleSendMessage(ctx, 'show me my selection statistics', t);
+}
+
+/**
+ * View unselected days
+ */
+async function handleViewUnselectedDays(
+  ctx: CallbackQueryContext<Context>,
+  telegramUserId: string,
+  t: any
+) {
+  // Use send_message to let AI fetch and format unselected days
+  return handleSendMessage(ctx, 'show me unselected days', t);
 }
 
 /**

@@ -234,6 +234,9 @@ export const BUTTON_ACTIONS = {
   SELECT_BY_APPETITE: 'rastar_select_appetite',
   VIEW_TODAY_MENU: 'rastar_view_today',
   VIEW_WEEK_MENU: 'rastar_view_week',
+  VIEW_NEXT_WEEK_MENU: 'rastar_view_next_week',
+  VIEW_SELECTION_STATS: 'rastar_view_stats',
+  VIEW_UNSELECTED_DAYS: 'rastar_view_unselected',
   CHANGE_SELECTION: 'rastar_change_selection',
   REMOVE_SELECTION: 'rastar_remove_selection',
   

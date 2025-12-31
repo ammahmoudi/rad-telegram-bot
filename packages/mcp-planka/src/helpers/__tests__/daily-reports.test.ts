@@ -256,11 +256,23 @@ describe('Daily Reports Helpers - Unit Tests', () => {
 
       const report = await generateDailyReportFromTasks(auth, '2024-12-29');
 
-      expect(report).toContain('# Daily Report - 2024-12-29');
-      expect(report).toContain('## Completed Tasks');
+      // Check new improved format with full date
+      expect(report).toContain('# Daily Report -');
+      expect(report).toContain('December 29, 2024');
+      
+      // Check for new Summary section
+      expect(report).toContain('## Summary');
+      expect(report).toContain('Total Activities:');
+      expect(report).toContain('Tasks Completed:');
+      
+      // Check for improved task section with emoji
+      expect(report).toContain('## ✅ Completed Tasks');
       expect(report).toContain('Fix bug');
-      expect(report).toContain('## Card Activities');
+      
+      // Check for improved card section with emoji
+      expect(report).toContain('## 🆕 Created Cards');
       expect(report).toContain('New feature');
+      expect(report).toContain('Project: Project B');
     });
   });
 
