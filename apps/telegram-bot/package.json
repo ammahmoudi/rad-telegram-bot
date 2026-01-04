@@ -5,16 +5,24 @@
   "type": "module",
   "scripts": {
     "dev": "node --import tsx/esm --watch src/index.ts",
-    "build": "tsc --build tsconfig.json --force",
+    "build": "tsc --build tsconfig.json --force && node -e \"require('fs').cpSync('src/locales', 'dist/locales', {recursive: true})\"",
     "start": "node dist/index.js"
   },
   "dependencies": {
+    "@grammyjs/auto-retry": "^2.0.2",
+    "@grammyjs/conversations": "^1.2.0",
+    "@grammyjs/hydrate": "^1.4.1",
+    "@grammyjs/i18n": "^1.1.0",
+    "@grammyjs/menu": "^1.2.2",
+    "@grammyjs/parse-mode": "^1.10.0",
+    "@grammyjs/ratelimiter": "^1.2.0",
+    "@grammyjs/runner": "^2.0.3",
+    "@grammyjs/types": "^3.15.0",
     "@modelcontextprotocol/sdk": "^1.0.4",
     "@rad/shared": "*",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "grammy": "^1.35.0",
-    "i18next": "^25.7.3",
     "marked": "^17.0.1"
   },
   "devDependencies": {

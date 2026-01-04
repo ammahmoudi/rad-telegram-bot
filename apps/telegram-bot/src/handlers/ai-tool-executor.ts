@@ -1,0 +1,198 @@
+/**
+ * AI tool execution logic
+ * Handles tool calls from AI models and routes them to appropriate MCP servers
+ */
+
+import type { BotContext } from '../bot.js';
+import type { ChatMessage } from '@rad/shared';
+import { addMessage } from '@rad/shared';
+import { executeMcpTool } from '../planka-tools.js';
+import { executeRastarTool } from '../rastar-tools.js';
+import { executeTimeTool } from '../time-tools.js';
+import { markdownToTelegramHtml, formatToolName, formatToolArgs } from '../utils/formatting.js';
+import { splitHtmlSafely } from '../utils/html-splitter.js';
+import { LOADING_FRAMES } from '../types/streaming.js';
+
+export interface ToolExecutionResult {
+  trimmedHistory: ChatMessage[];
+  toolCallsDisplay: string[];
+  allToolCallsMade: Array<{ name: string; args: any }>;
+  allReasoningTexts: string[];
+}
+
+/**
+ * Execute AI tool calls and update message with progress
+ */
+export async function executeAiTools(
+  ctx: BotContext,
+  client: any,
+  trimmedHistory: ChatMessage[],
+  systemPrompt: string,
+  tools: any[],
+  sessionId: string,
+  sentMessage: { chat: { id: number }, message_id: number },
+  maxToolCalls: number
+): Promise<ToolExecutionResult> {
+  const toolCallsDisplay: string[] = [];
+  const activeTools = new Set<string>();
+  const allToolCallsMade: Array<{ name: string; args: any }> = [];
+  const allReasoningTexts: string[] = [];
+  let loadingFrameIndex = 0;
+  
+  console.log('[ai-tools] Starting tool execution...');
+  
+  // Get full response with tool calls
+  let response = await client.chat(trimmedHistory, { systemPrompt }, tools);
+  
+  // Handle tool calls iteratively
+  while (response.toolCalls && response.toolCalls.length > 0 && maxToolCalls > 0) {
+    maxToolCalls--;
+
+    // Add tool calls to history and database
+    for (const toolCall of response.toolCalls) {
+      await addMessage(
+        sessionId,
+        'assistant',
+        '',
+        toolCall.id,
+        toolCall.name,
+        toolCall.arguments,
+      );
+    }
+    
+    // Map reasoning details to tool calls by ID
+    const reasoningByToolCallId = new Map<string, any>();
+    if (response.reasoningDetails && Array.isArray(response.reasoningDetails)) {
+      for (const detail of response.reasoningDetails) {
+        if (detail.id) {
+          if (!reasoningByToolCallId.has(detail.id)) {
+            reasoningByToolCallId.set(detail.id, []);
+          }
+          reasoningByToolCallId.get(detail.id)!.push(detail);
+        }
+      }
+    }
+    
+    const assistantMessages: ChatMessage[] = response.toolCalls.map((tc: any) => ({
+      role: 'assistant',
+      content: '',
+      toolCallId: tc.id,
+      toolName: tc.name,
+      toolArgs: tc.arguments,
+      reasoningDetails: response.reasoningDetails,
+      toolCallReasoningDetails: reasoningByToolCallId.get(tc.id),
+    }));
+    
+    trimmedHistory.push(...assistantMessages);
+
+    // Execute tools
+    for (const toolCall of response.toolCalls) {
+      const mcpToolName = toolCall.name;
+      
+      // Track tool for display
+      if (!activeTools.has(toolCall.name)) {
+        activeTools.add(toolCall.name);
+        allToolCallsMade.push({ name: toolCall.name, args: JSON.parse(toolCall.arguments) });
+        
+        // Add to display list
+        const toolDisplayName = formatToolName(toolCall.name);
+        const formattedArgsForList = formatToolArgs(toolCall.arguments, 50);
+        const toolDisplayWithArgs = `${toolDisplayName}${formattedArgsForList}`;
+        
+        if (!toolCallsDisplay.includes(toolDisplayWithArgs)) {
+          toolCallsDisplay.push(toolDisplayWithArgs);
+          
+          // Update message to show new tool
+          loadingFrameIndex = (loadingFrameIndex + 1) % LOADING_FRAMES.length;
+          const loadingEmoji = LOADING_FRAMES[loadingFrameIndex];
+          
+          let tempReasoningDisplay = '';
+          if (response.reasoningDetails && Array.isArray(response.reasoningDetails)) {
+            const textDetails = response.reasoningDetails
+              .filter((detail: any) => detail.type === 'reasoning.text')
+              .map((detail: any) => detail.text)
+              .join('\n\n');
+            if (textDetails) {
+              allReasoningTexts.push(textDetails);
+              tempReasoningDisplay = '🧠 <b>Reasoning...</b>\n\n<blockquote>' + 
+                markdownToTelegramHtml(textDetails).substring(0, 500) + 
+                (textDetails.length > 500 ? '...' : '') + 
+                '</blockquote>\n\n';
+            }
+          }
+          
+          let tempToolsDisplay = `<b>🛠️ Tools ${loadingEmoji}</b>\n`;
+          tempToolsDisplay += toolCallsDisplay.map(t => `  ${t}`).join('\n') + '\n';
+          tempToolsDisplay += `\n💭 <i>Executing ${toolDisplayName.replace('🔧 ', '')}...</i> ${loadingEmoji}`;
+          
+          // Ensure total content doesn't exceed Telegram's limit
+          let tempContent = tempReasoningDisplay + tempToolsDisplay;
+          if (tempContent.length > 4000) {
+            const chunks = splitHtmlSafely(tempContent, 4000);
+            tempContent = chunks[0];
+          }
+          
+          try {
+            await ctx.api.editMessageText(
+              sentMessage.chat.id,
+              sentMessage.message_id,
+              tempContent,
+              { parse_mode: 'HTML' }
+            );
+          } catch (editError) {
+            // Ignore edit errors
+          }
+        }
+      }
+      
+      // Route tool calls based on prefix
+      let toolResult;
+      if (mcpToolName.startsWith('rastar.') || mcpToolName.startsWith('rastar_')) {
+        toolResult = await executeRastarTool(
+          String(ctx.from?.id ?? ''),
+          mcpToolName,
+          JSON.parse(toolCall.arguments),
+        );
+      } else if (mcpToolName.startsWith('planka_')) {
+        toolResult = await executeMcpTool(
+          String(ctx.from?.id ?? ''),
+          mcpToolName,
+          JSON.parse(toolCall.arguments),
+        );
+      } else {
+        // Time tools or other MCP servers
+        toolResult = await executeTimeTool(
+          mcpToolName,
+          JSON.parse(toolCall.arguments),
+        );
+      }
+      
+      // Add tool result to database
+      await addMessage(
+        sessionId,
+        'tool',
+        toolResult.success ? toolResult.content : `Error: ${toolResult.error}`,
+        toolCall.id,
+        undefined,
+        undefined,
+      );
+      
+      // Add tool result to history
+      trimmedHistory.push({
+        role: 'tool',
+        content: toolResult.success ? toolResult.content : `Error: ${toolResult.error}`,
+        toolCallId: toolCall.id,
+      });
+    }
+    
+    // Get next response from AI
+    response = await client.chat(trimmedHistory, { systemPrompt }, tools);
+  }
+  
+  return {
+    trimmedHistory,
+    toolCallsDisplay,
+    allToolCallsMade,
+    allReasoningTexts
+  };
+}

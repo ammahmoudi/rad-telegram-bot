@@ -19,9 +19,12 @@ import {
   peekLinkState, 
   upsertPlankaToken,
   getPlankaToken,
+  getRastarToken,
   upsertRastarToken,
   storeRastarTokenResponse,
   getUserLanguage,
+  buildMainMenuKeyboard,
+  type KeyboardTranslations,
   type RastarTokenResponse,
 } from '@rad/shared';
 
@@ -385,6 +388,7 @@ app.post('/link/planka', async (req, res) => {
     const isRelink = !!existingToken;
     const language = await getUserLanguage(link.telegramUserId);
     
+    // Send success message
     await sendTelegramMessage(
       link.telegramUserId,
       isRelink
@@ -396,6 +400,28 @@ app.post('/link/planka', async (req, res) => {
           `${t(language, 'notifications.planka.linked_message')}\n` +
           `${t(language, 'notifications.planka.base_url', { url: escapeHtml(normalizeBaseUrl(baseUrl)) })}\n\n` +
           t(language, 'notifications.planka.check_status'),
+    );
+    
+    // Send updated keyboard
+    const rastarToken = await getRastarToken(link.telegramUserId);
+    const translations: Partial<KeyboardTranslations> = {
+      'keyboards.my-cards': t(language, 'keyboards.my-cards'),
+      'keyboards.delayed-tasks': t(language, 'keyboards.delayed-tasks'),
+      'keyboards.my-boards': t(language, 'keyboards.my-boards'),
+      'keyboards.create-task': t(language, 'keyboards.create-task'),
+      'keyboards.planka-status': t(language, 'keyboards.planka-status'),
+      'keyboards.todays-menu': t(language, 'keyboards.todays-menu'),
+      'keyboards.unselected-days': t(language, 'keyboards.unselected-days'),
+      'keyboards.week-menu': t(language, 'keyboards.week-menu'),
+      'keyboards.select-lunch': t(language, 'keyboards.select-lunch'),
+      'keyboards.rastar-status': t(language, 'keyboards.rastar-status'),
+      'keyboards.settings': t(language, 'keyboards.settings'),
+    };
+    const keyboard = buildMainMenuKeyboard(true, !!rastarToken, translations);
+    await sendTelegramMessage(
+      link.telegramUserId,
+      language === 'fa' ? '🎯 منوی اصلی' : '🎯 Main Menu',
+      { reply_markup: keyboard }
     );
 
     res.status(200).send(`<!doctype html>
@@ -729,12 +755,35 @@ app.post('/link/rastar', async (req, res) => {
 
     const language = await getUserLanguage(link.telegramUserId);
 
+    // Send success message
     await sendTelegramMessage(
       link.telegramUserId,
       `✅ <b>${t(language, 'notifications.rastar.linked_title')}</b>\n\n` +
       `${t(language, 'notifications.rastar.linked_message')}\n` +
       `${t(language, 'notifications.rastar.email', { email: escapeHtml(email) })}\n\n` +
       t(language, 'notifications.rastar.check_status'),
+    );
+    
+    // Send updated keyboard
+    const plankaToken = await getPlankaToken(link.telegramUserId);
+    const translations: Partial<KeyboardTranslations> = {
+      'keyboards.my-cards': t(language, 'keyboards.my-cards'),
+      'keyboards.delayed-tasks': t(language, 'keyboards.delayed-tasks'),
+      'keyboards.my-boards': t(language, 'keyboards.my-boards'),
+      'keyboards.create-task': t(language, 'keyboards.create-task'),
+      'keyboards.planka-status': t(language, 'keyboards.planka-status'),
+      'keyboards.todays-menu': t(language, 'keyboards.todays-menu'),
+      'keyboards.unselected-days': t(language, 'keyboards.unselected-days'),
+      'keyboards.week-menu': t(language, 'keyboards.week-menu'),
+      'keyboards.select-lunch': t(language, 'keyboards.select-lunch'),
+      'keyboards.rastar-status': t(language, 'keyboards.rastar-status'),
+      'keyboards.settings': t(language, 'keyboards.settings'),
+    };
+    const keyboard = buildMainMenuKeyboard(!!plankaToken, true, translations);
+    await sendTelegramMessage(
+      link.telegramUserId,
+      language === 'fa' ? '🎯 منوی اصلی' : '🎯 Main Menu',
+      { reply_markup: keyboard }
     );
 
     res.status(200).send(renderSuccessPage('Rastar', email));
@@ -1156,22 +1205,28 @@ function escapeHtml(s: string): string {
 async function sendTelegramMessage(
   chatId: string,
   text: string,
-  options?: { parse_mode?: 'HTML' | 'Markdown' }
+  options?: { parse_mode?: 'HTML' | 'Markdown'; reply_markup?: any }
 ): Promise<void> {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   if (!botToken) return;
 
   try {
+    const body: any = {
+      chat_id: chatId,
+      text,
+      parse_mode: options?.parse_mode || 'HTML',
+    };
+    
+    if (options?.reply_markup) {
+      body.reply_markup = options.reply_markup;
+    }
+    
     await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text,
-        parse_mode: options?.parse_mode || 'HTML',
-      }),
+      body: JSON.stringify(body),
     });
   } catch {
     // Ignore: linking should succeed even if notification fails.

@@ -252,3 +252,22 @@ export const BUTTON_ACTIONS = {
   CANCEL: 'cancel',
   HELP: 'help',
 } as const;
+
+/**
+ * Helper to encode button callback data for menu buttons
+ */
+export function encodeButtonCallback(action: string, userId: string, message?: string): string {
+  if (action === BUTTON_ACTIONS.SEND_MESSAGE && message) {
+    const shortMsg = message.substring(0, 10);
+    return JSON.stringify({
+      a: 'sm',
+      u: userId,
+      m: shortMsg,
+    });
+  }
+  return JSON.stringify({
+    a: action,
+    u: userId,
+    d: {},
+  });
+}

@@ -1,44 +1,44 @@
-import type { Context } from 'grammy';
+import type { BotContext } from '../bot.js';
 import {
   handlePlankaStatusCommand,
   handleRastarStatusCommand,
   handleNewChatCommand,
   handleHistoryCommand,
-} from './commands.js';
+} from './commands/index.js';
 import { handleAiMessage } from './ai-message.js';
 
 /**
  * Handle "📊 Planka Status" keyboard button
  */
-export async function handlePlankaStatusButton(ctx: Context) {
+export async function handlePlankaStatusButton(ctx: BotContext) {
   await handlePlankaStatusCommand(ctx);
 }
 
 /**
  * Handle "🍽️ Rastar Status" keyboard button
  */
-export async function handleRastarStatusButton(ctx: Context) {
+export async function handleRastarStatusButton(ctx: BotContext) {
   await handleRastarStatusCommand(ctx);
 }
 
 /**
  * Handle "💬 New Chat" keyboard button
  */
-export async function handleNewChatButton(ctx: Context) {
+export async function handleNewChatButton(ctx: BotContext) {
   await handleNewChatCommand(ctx);
 }
 
 /**
  * Handle "📚 History" keyboard button
  */
-export async function handleHistoryButton(ctx: Context) {
+export async function handleHistoryButton(ctx: BotContext) {
   await handleHistoryCommand(ctx);
 }
 
 /**
  * Handle "Show today's menu" keyboard button
  */
-export async function handleTodayMenuButton(ctx: Context) {
+export async function handleTodayMenuButton(ctx: BotContext) {
   // Just pass through to AI - it's already a natural message
   await handleAiMessage(ctx);
 }
@@ -46,7 +46,7 @@ export async function handleTodayMenuButton(ctx: Context) {
 /**
  * Handle "Which days haven't I selected food?" keyboard button
  */
-export async function handleUnselectedDaysButton(ctx: Context) {
+export async function handleUnselectedDaysButton(ctx: BotContext) {
   // Just pass through to AI - it's already a natural message
   await handleAiMessage(ctx);
 }
@@ -54,7 +54,7 @@ export async function handleUnselectedDaysButton(ctx: Context) {
 /**
  * Handle "Show my delayed tasks" keyboard button
  */
-export async function handleDelayedTasksButton(ctx: Context) {
+export async function handleDelayedTasksButton(ctx: BotContext) {
   // Just pass through to AI - it's already a natural message
   await handleAiMessage(ctx);
 }
@@ -62,7 +62,7 @@ export async function handleDelayedTasksButton(ctx: Context) {
 /**
  * Handle "List my Planka boards" keyboard button
  */
-export async function handleMyBoardsButton(ctx: Context) {
+export async function handleMyBoardsButton(ctx: BotContext) {
   // Just pass through to AI - it's already a natural message
   await handleAiMessage(ctx);
 }
@@ -70,7 +70,7 @@ export async function handleMyBoardsButton(ctx: Context) {
 /**
  * Handle "What's for lunch this week?" keyboard button
  */
-export async function handleWeekMenuButton(ctx: Context) {
+export async function handleWeekMenuButton(ctx: BotContext) {
   // Just pass through to AI - it's already a natural message
   await handleAiMessage(ctx);
 }
@@ -78,7 +78,7 @@ export async function handleWeekMenuButton(ctx: Context) {
 /**
  * Handle "Create a new task" keyboard button
  */
-export async function handleCreateTaskButton(ctx: Context) {
+export async function handleCreateTaskButton(ctx: BotContext) {
   // Just pass through to AI - it's already a natural message
   await handleAiMessage(ctx);
 }
@@ -86,7 +86,7 @@ export async function handleCreateTaskButton(ctx: Context) {
 /**
  * Handle "My cards" keyboard button
  */
-export async function handleMyCardsButton(ctx: Context) {
+export async function handleMyCardsButton(ctx: BotContext) {
   // Just pass through to AI - it's already a natural message
   await handleAiMessage(ctx);
 }
@@ -94,7 +94,7 @@ export async function handleMyCardsButton(ctx: Context) {
 /**
  * Handle "Select today's lunch" keyboard button
  */
-export async function handleSelectLunchButton(ctx: Context) {
+export async function handleSelectLunchButton(ctx: BotContext) {
   // Just pass through to AI - it's already a natural message
   await handleAiMessage(ctx);
 }
@@ -102,7 +102,7 @@ export async function handleSelectLunchButton(ctx: Context) {
 /**
  * Handle "Who hasn't written their daily report today?" keyboard button
  */
-export async function handleMissingDailyReportsButton(ctx: Context) {
+export async function handleMissingDailyReportsButton(ctx: BotContext) {
   // Just pass through to AI - it's already a natural message
   await handleAiMessage(ctx);
 }
@@ -110,7 +110,7 @@ export async function handleMissingDailyReportsButton(ctx: Context) {
 /**
  * Handle "List names who didn't write report today" keyboard button
  */
-export async function handleListNoReportNamesButton(ctx: Context) {
+export async function handleListNoReportNamesButton(ctx: BotContext) {
   // Just pass through to AI - it's already a natural message
   await handleAiMessage(ctx);
 }
@@ -118,7 +118,7 @@ export async function handleListNoReportNamesButton(ctx: Context) {
 /**
  * Handle "My assigned tasks" keyboard button
  */
-export async function handleMyAssignedTasksButton(ctx: Context) {
+export async function handleMyAssignedTasksButton(ctx: BotContext) {
   // Just pass through to AI - it's already a natural message
   await handleAiMessage(ctx);
 }
@@ -126,7 +126,7 @@ export async function handleMyAssignedTasksButton(ctx: Context) {
 /**
  * Handle "Humanity QC cards" keyboard button
  */
-export async function handleHumanityQcCardsButton(ctx: Context) {
+export async function handleHumanityQcCardsButton(ctx: BotContext) {
   // Just pass through to AI - it's already a natural message
   await handleAiMessage(ctx);
 }

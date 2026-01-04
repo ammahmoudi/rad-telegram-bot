@@ -9,6 +9,7 @@ import { LOADING_FRAMES } from '../types/streaming.js';
 
 /**
  * Handle streaming AI response with live updates to Telegram message
+ * Supports topics in private chats via message_thread_id parameter
  */
 export async function handleStreamingResponse(
   ctx: Context,
@@ -39,6 +40,13 @@ export async function handleStreamingResponse(
   
   let toolCallsDisplay: string[] = [];
   let activeTools = new Set<string>();
+
+  // Extract topic information if available (Grammy Bot API 9.3+ support)
+  const messageThreadId = ctx.message?.message_thread_id || ctx.msg?.message_thread_id;
+  
+  console.log('[message-streaming] Topic info:', {
+    messageThreadId,
+  });
 
   // Helper to update message (with rate limiting)
   const updateMessage = async (force: boolean = false) => {
@@ -109,7 +117,13 @@ export async function handleStreamingResponse(
     }
     
     try {
-      await ctx.api.editMessageText(sentMessage.chat.id, sentMessage.message_id, content, { parse_mode: 'HTML' });
+      // Pass message_thread_id if available (for topics in private chats)
+      const editOptions: Record<string, any> = { parse_mode: 'HTML' };
+      if (messageThreadId) {
+        editOptions.message_thread_id = messageThreadId;
+      }
+      
+      await ctx.api.editMessageText(sentMessage.chat.id, sentMessage.message_id, content, editOptions);
     } catch (error) {
       // Ignore errors from too frequent updates or identical content
     }

@@ -6,3 +6,4 @@ export * from './openrouter.js';
 export * from './rastar.js';
 export * from './planka.js';
 export * from './user-preferences.js';
+export * from './keyboards.js';
