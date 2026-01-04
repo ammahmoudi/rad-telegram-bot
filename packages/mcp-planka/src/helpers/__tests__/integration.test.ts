@@ -26,6 +26,9 @@ import {
   getTodayDate,
 } from '../daily-reports.js';
 
+// Helper to add delay between API calls to avoid server overload
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 // Skip these tests unless INTEGRATION_TEST env var is set
 describe.skipIf(!process.env.INTEGRATION_TEST)('Helper Functions - Integration Tests', () => {
   let auth: PlankaAuth;
@@ -57,6 +60,7 @@ describe.skipIf(!process.env.INTEGRATION_TEST)('Helper Functions - Integration T
 
   describe('User Tasks', () => {
     it('should get current user cards', async () => {
+      await delay(2000); // Add delay before API call
       const cards = await getUserCards(auth, undefined, {}, { by: 'updatedAt', order: 'desc' }, 20);
 
       expect(cards).toBeDefined();
@@ -78,11 +82,31 @@ describe.skipIf(!process.env.INTEGRATION_TEST)('Helper Functions - Integration T
       } else {
         console.log('   ℹ️  No cards found for user');
       }
-    }, 30000);
+    }, 60000);
 
     it('should filter undone cards', async () => {
-
-      const undoneCards = await getUserCards(auth, undefined, { done: false }, { by: 'updatedAt', order: 'desc' }, 20);
+      await delay(5000); // Increased delay to avoid rate limiting
+      
+      let undoneCards;
+      let lastError;
+      
+      // Retry logic for transient 500 errors
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          undoneCards = await getUserCards(auth, undefined, { done: false }, { by: 'updatedAt', order: 'desc' }, 20);
+          break; // Success, exit retry loop
+        } catch (error) {
+          lastError = error;
+          if (attempt < 3) {
+            console.log(`   ⚠ Attempt ${attempt}/3 failed, retrying in 5 seconds...`);
+            await delay(5000);
+          }
+        }
+      }
+      
+      if (!undoneCards) {
+        throw lastError; // All retries failed
+      }
 
       expect(undoneCards).toBeDefined();
       expect(Array.isArray(undoneCards)).toBe(true);
@@ -92,12 +116,13 @@ describe.skipIf(!process.env.INTEGRATION_TEST)('Helper Functions - Integration T
       });
 
       console.log(`   ✅ Found ${undoneCards.length} undone cards`);
-    }, 30000);
+    }, 90000);
   });
 
   describe('User Activity', () => {
     it('should get user notifications', async () => {
       console.log('🔍 Testing getUserNotifications...');
+      await delay(3000); // Add delay before API call
       const notifications = await getUserNotifications(auth, undefined, { limit: 10 });
 
       expect(notifications).toBeDefined();
@@ -113,9 +138,10 @@ describe.skipIf(!process.env.INTEGRATION_TEST)('Helper Functions - Integration T
       } else {
         console.log('   ℹ️  No notifications found');
       }
-    }, 30000);
+    }, 90000);
 
     it('should get user actions for today', async () => {
+      await delay(3000); // Add delay before API call
       const today = getTodayDate();
       const activities = await getUserActions(auth, undefined, {
         startDate: `${today}T00:00:00Z`,
@@ -136,9 +162,10 @@ describe.skipIf(!process.env.INTEGRATION_TEST)('Helper Functions - Integration T
       } else {
         console.log(`   ℹ️  No actions today (${today})`);
       }
-    }, 30000);
+    }, 90000);
 
     it('should get activity summary for past week', async () => {
+      await delay(3000); // Add delay before API call
       const endDate = new Date();
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - 7);
@@ -155,12 +182,13 @@ describe.skipIf(!process.env.INTEGRATION_TEST)('Helper Functions - Integration T
       expect(Array.isArray(summary.notifications)).toBe(true);
 
       console.log(`   ✅ Found ${summary.actions.length} actions and ${summary.notifications.length} notifications this week`);
-    }, 30000);
+    }, 90000);
   });
 
   describe('Project Status', () => {
     it('should get project status when cards exist', async () => {
       console.log('🔍 Testing getProjectStatus...');
+      await delay(3000); // Add delay before API call
       
       // First get user cards to find a project
       const cards = await getUserCards(auth, undefined, {}, { by: 'updatedAt', order: 'desc' }, 20);
@@ -170,6 +198,7 @@ describe.skipIf(!process.env.INTEGRATION_TEST)('Helper Functions - Integration T
         return;
       }
 
+      await delay(2000); // Add delay between API calls
       const projectId = cards[0].projectId;
       const status = await getProjectStatus(auth, projectId);
 
@@ -183,9 +212,10 @@ describe.skipIf(!process.env.INTEGRATION_TEST)('Helper Functions - Integration T
       console.log(`   ✅ Project: ${status.projectName}`);
       console.log(`   📊 Progress: ${status.completionPercentage.toFixed(1)}%`);
       console.log(`   📝 Cards: ${status.doneCards}/${status.totalCards} done`);
-    }, 60000);
+    }, 90000);
 
     it('should get board status when cards exist', async () => {
+      await delay(3000); // Add delay before API call
       const cards = await getUserCards(auth, undefined, {}, { by: 'updatedAt', order: 'desc' }, 20);
       
       if (cards.length === 0) {
@@ -193,6 +223,7 @@ describe.skipIf(!process.env.INTEGRATION_TEST)('Helper Functions - Integration T
         return;
       }
 
+      await delay(2000); // Add delay between API calls
       const boardId = cards[0].boardId;
       const status = await getBoardStatus(auth, boardId);
 
@@ -205,11 +236,12 @@ describe.skipIf(!process.env.INTEGRATION_TEST)('Helper Functions - Integration T
       console.log(`   ✅ Board: ${status.boardName}`);
       console.log(`   📊 Progress: ${status.completionPercentage.toFixed(1)}%`);
       console.log(`   📋 Lists: ${status.lists.length}`);
-    }, 60000);
+    }, 90000);
   });
 
   describe('Daily Reports', () => {
     it('should get daily report projects', async () => {
+      await delay(3000); // Add delay before API call
       const projects = await getDailyReportProjects(auth);
 
       expect(projects).toBeDefined();
@@ -223,10 +255,11 @@ describe.skipIf(!process.env.INTEGRATION_TEST)('Helper Functions - Integration T
       } else {
         console.log('   ℹ️  No daily report projects found');
       }
-    }, 30000);
+    }, 60000);
 
     it('should get user daily reports with summary', async () => {
       console.log('🔍 Testing getUserDailyReports with summary...');
+      await delay(3000); // Add delay before API call
       
       const dailyProjects = await getDailyReportProjects(auth);
       
@@ -241,6 +274,7 @@ describe.skipIf(!process.env.INTEGRATION_TEST)('Helper Functions - Integration T
         console.log(`      - ${b.name}`);
       });
 
+      await delay(2000); // Add delay between API calls
       const result = await getUserDailyReports(auth, undefined, {
         projectId: dailyProjects[0].id,
         startDate: '2024-12-01',
@@ -269,10 +303,11 @@ describe.skipIf(!process.env.INTEGRATION_TEST)('Helper Functions - Integration T
       } else {
         console.log('   ℹ️  No daily reports found in date range');
       }
-    }, 60000);
+    }, 90000);
 
     it('should check for missing daily reports', async () => {
       console.log('🔍 Testing getMissingDailyReports...');
+      await delay(3000); // Add delay before API call
       
       const dailyProjects = await getDailyReportProjects(auth);
       
@@ -287,6 +322,7 @@ describe.skipIf(!process.env.INTEGRATION_TEST)('Helper Functions - Integration T
       startDate.setDate(startDate.getDate() - 7);
       const startDateStr = startDate.toISOString().split('T')[0];
 
+      await delay(2000); // Add delay between API calls
       const missing = await getMissingDailyReports(auth, startDateStr, endDate, {
         includeWeekends: false,
       });
@@ -305,6 +341,6 @@ describe.skipIf(!process.env.INTEGRATION_TEST)('Helper Functions - Integration T
       } else {
         console.log('   ✅ All users have complete reports!');
       }
-    }, 60000);
+    }, 90000);
   });
 });

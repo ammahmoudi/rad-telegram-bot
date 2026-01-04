@@ -134,7 +134,10 @@ export async function getUserCards(
             const taskPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
             // Determine if card is done
-            const isDone = totalTasks > 0 ? taskPercentage === 100 : false;
+            // Priority: Use isDueCompleted from card (Planka's "done" checkbox)
+            // Fallback: Check if in a "done" list OR all tasks complete
+            const isInDoneList = /done|complete|finished|archive/i.test(listName);
+            const isDone = card.isDueCompleted === true || (totalTasks > 0 ? taskPercentage === 100 : isInDoneList);
 
             // Apply done filter
             if (options.done !== undefined) {

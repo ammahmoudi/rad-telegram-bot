@@ -116,7 +116,7 @@ export type NotificationItem = {
   projectName?: string;
   isRead: boolean;
   createdAt: string;
-  updatedAt?: string;
+  updatedAt?: string | null;
   // Related action
   action?: ActivityItem;
 };

@@ -93,55 +93,13 @@ export async function getDailyReportProjects(auth: PlankaAuth): Promise<Array<{
 }
 
 /**
- * Parse date from card name or use card creation date
- * Supports formats like: "2024-12-29", "29/12/2024", "Dec 29, 2024", "1404/09/15", etc.
- * If no date found, returns card's creation date
+ * Extract date for a daily report card
+ * ALWAYS uses the card's creation date (createdAt) as the report date.
+ * Card titles can be in any format and are unreliable for date extraction.
  */
 function extractDateFromCard(cardName: string, cardCreatedAt: string): string {
-  // Try ISO format first: YYYY-MM-DD or YYYY/MM/DD
-  const isoMatch = cardName.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
-  if (isoMatch) {
-    const year = isoMatch[1];
-    const month = isoMatch[2].padStart(2, '0');
-    const day = isoMatch[3].padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
-
-  // Try DD/MM/YYYY or DD-MM-YYYY
-  const dateMatch = cardName.match(/(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);
-  if (dateMatch) {
-    const day = dateMatch[1].padStart(2, '0');
-    const month = dateMatch[2].padStart(2, '0');
-    const year = dateMatch[3];
-    return `${year}-${month}-${day}`;
-  }
-
-  // Try MM/DD/YYYY (US format)
-  const usDateMatch = cardName.match(/(\d{1,2})[\/](\d{1,2})[\/](\d{4})/);
-  if (usDateMatch) {
-    const month = usDateMatch[1].padStart(2, '0');
-    const day = usDateMatch[2].padStart(2, '0');
-    const year = usDateMatch[3];
-    // If month > 12, it's likely day/month not month/day
-    if (parseInt(month) <= 12 && parseInt(day) <= 31) {
-      return `${year}-${month}-${day}`;
-    } else if (parseInt(day) <= 12 && parseInt(month) <= 31) {
-      // Swap if needed
-      return `${year}-${day.padStart(2, '0')}-${month.padStart(2, '0')}`;
-    }
-  }
-
-  // Try to parse with Date constructor
-  try {
-    const date = new Date(cardName);
-    if (!isNaN(date.getTime())) {
-      return date.toISOString().split('T')[0];
-    }
-  } catch {
-    // Failed to parse
-  }
-
-  // Fallback to card creation date
+  // Always use the card's actual creation date
+  // This is the most reliable indicator of when the report was written
   return cardCreatedAt.split('T')[0];
 }
 

@@ -494,18 +494,17 @@ export async function handleAiMessage(ctx: Context) {
           
           summaryPrompt = {
             role: 'user',
-            content: `Your searches found nothing. Tell the user (in their language) exactly what you searched for: which projects/boards/queries you tried. ` +
-                     `Be specific. Then say nothing was found. Write 3-4 sentences. ` +
-                     `CRITICAL: Write ONLY the message the user should see. ` +
-                     `Do NOT include: "Example:", "Your response:", "Process Summary", "Reasoning", "Tools used", or any meta-commentary.`
+            content: `Tell the user what you searched for and that nothing was found. Be specific about which projects/boards you checked. ` +
+                     `Write in the same language the user used. Keep it natural and helpful (3-4 sentences). ` +
+                     `Write ONLY the actual message - no instructions, no "Example:", no meta-text.`
           };
         } else {
           summaryPrompt = {
             role: 'user',
-            content: `You just completed some actions. Now write a final message to the user in their language summarizing what you did. ` +
-                     `Be specific and concise (3-4 sentences). ` +
-                     `CRITICAL: Write ONLY the message the user should see. ` +
-                     `Do NOT include: "Example:", "Your response:", "Process Summary", "Reasoning", "Tools used", or any meta-commentary.`
+            content: `You just completed some tool operations. Based on the results, write a clear summary message for the user. ` +
+                     `CRITICAL: Your response must be ONLY the user-facing text. ` +
+                     `DO NOT include: system prompts, instructions, examples, "Process Summary", "Reasoning", or any meta-commentary. ` +
+                     `Write naturally in the user's language (Persian or English). Be helpful and concise.`
           };
         }
         

@@ -58,6 +58,10 @@ export interface DualDate {
 // Configure moment-jalaali to use Persian locale
 moment.loadPersian({ dialect: 'persian-modern' });
 
+const PERSIAN_DIGITS = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'] as const;
+
+const toPersianDigits = (value: string): string => value.replace(/\d/g, digit => PERSIAN_DIGITS[Number(digit)]);
+
 /**
  * Parse various date/time formats and return DualDate
  * 
@@ -162,7 +166,9 @@ function toDualDate(date: dayjs.Dayjs, timezone: string = DEFAULT_TIMEZONE): Dua
       date: jalaliDate,
       dateTime: jalaliDateTime,
       time: localDate.format('HH:mm:ss'),
-      formatted: jalaliMomentFa.format('jYYYY/jMM/jDD - jMMMM') + ' ساعت ' + localDate.format('HH:mm'),
+      formatted: toPersianDigits(
+        jalaliMomentFa.format('jYYYY/jMM/jDD - jMMMM') + ' ساعت ' + localDate.format('HH:mm')
+      ),
       year: jalaliMoment.jYear(),
       month: jalaliMoment.jMonth() + 1,
       day: jalaliMoment.jDate(),
