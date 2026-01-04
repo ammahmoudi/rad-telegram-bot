@@ -1,0 +1,301 @@
+/**
+ * Integration tests for api-optimized endpoints
+ * 
+ * These tests run against a live Planka instance.
+ * They will SKIP if the optimized endpoints are not yet implemented on the backend.
+ * 
+ * Run with: INTEGRATION_TEST=1 npm run test
+ */
+
+import { describe, it, expect, beforeAll } from 'vitest';
+import { filterCards } from '../cards.js';
+import { getUserActions, getHistory, getFeed } from '../activity.js';
+import { searchUsers, searchProjects, searchBoards, searchCards, globalSearch } from '../search.js';
+import { checkOptimizedEndpointsAvailable } from '../index.js';
+import type { PlankaAuth } from '../../planka.js';
+
+const isIntegrationTest = process.env.INTEGRATION_TEST === '1';
+
+describe.skipIf(!isIntegrationTest)('API Optimized - Integration Tests', () => {
+  let auth: PlankaAuth;
+  let optimizedAvailable: boolean;
+
+  beforeAll(async () => {
+    const baseUrl = process.env.PLANKA_BASE_URL;
+    const token = process.env.PLANKA_AUTH_TOKEN;
+
+    if (!baseUrl || !token) {
+      throw new Error('PLANKA_BASE_URL and PLANKA_AUTH_TOKEN must be set');
+    }
+
+    auth = {
+      plankaBaseUrl: baseUrl,
+      accessToken: token,
+    };
+
+    // Check if optimized endpoints are available
+    optimizedAvailable = await checkOptimizedEndpointsAvailable(auth);
+    console.log(`\n⚠️  Optimized endpoints available: ${optimizedAvailable}\n`);
+  });
+
+  describe('Endpoint Availability', () => {
+    it('should check if optimized endpoints are implemented', async () => {
+      const available = await checkOptimizedEndpointsAvailable(auth);
+      console.log(`Optimized API endpoints: ${available ? '✅ Available' : '❌ Not implemented yet'}`);
+      
+      if (!available) {
+        console.log('\n📝 Note: Optimized endpoints not implemented on backend yet.');
+        console.log('   Tests will be skipped. Use helpers/ instead for now.\n');
+      }
+    });
+  });
+
+  describe('Cards - GET /cards/filter', () => {
+    it('should filter cards with basic parameters', async () => {
+      if (!optimizedAvailable) {
+        console.log('⏭️  Skipping - endpoint not available');
+        return;
+      }
+      const result = await filterCards(auth, {
+        status: 'open',
+        page: 1,
+        pageSize: 10,
+      });
+
+      expect(result).toHaveProperty('items');
+      expect(result).toHaveProperty('pagination');
+      expect(result).toHaveProperty('included');
+      expect(Array.isArray(result.items)).toBe(true);
+      expect(result.pagination.page).toBe(1);
+      expect(result.pagination.pageSize).toBe(10);
+    });
+
+    it('should filter cards by assigned user', async () => {
+      if (!optimizedAvailable) {
+        console.log('⏭️  Skipping - endpoint not available');
+        return;
+      }
+      const result = await filterCards(auth, {
+        assignedToUserId: 'me', // Assuming 'me' works, adjust if needed
+        status: 'open',
+      });
+
+      expect(result.items).toBeDefined();
+      // Each card should have the user in assignedUsers (if backend returns this)
+    });
+
+    it('should filter cards by date range', async () => {
+      if (!optimizedAvailable) {
+        console.log('⏭️  Skipping - endpoint not available');
+        return;
+      }
+      const result = await filterCards(auth, {
+        dueDateFrom: '2026-01-01T00:00:00Z',
+        dueDateTo: '2026-12-31T23:59:59Z',
+      });
+
+      expect(result.items).toBeDefined();
+    });
+
+    it('should sort cards by dueDate', async () => {
+      if (!optimizedAvailable) {
+        console.log('⏭️  Skipping - endpoint not available');
+        return;
+      }
+      const result = await filterCards(auth, {
+        sortBy: 'dueDate',
+        sortOrder: 'asc',
+        pageSize: 5,
+      });
+
+      expect(result.items).toBeDefined();
+      // Verify sorting if we have items
+      if (result.items.length > 1) {
+        for (let i = 1; i < result.items.length; i++) {
+          const prev = result.items[i - 1].dueDate;
+          const curr = result.items[i].dueDate;
+          if (prev && curr) {
+            expect(new Date(prev).getTime()).toBeLessThanOrEqual(new Date(curr).getTime());
+          }
+        }
+      }
+    });
+  });
+
+  describe('Activity - GET /users/{id}/actions', () => {
+    it('should get user actions', async () => {
+      if (!optimizedAvailable) {
+        console.log('⏭️  Skipping - endpoint not available');
+        return;
+      }
+      // You'll need to know a valid userId or use 'me' if supported
+      const userId = process.env.TEST_USER_ID || 'me';
+      
+      const result = await getUserActions(auth, {
+        userId,
+        pageSize: 10,
+      });
+
+      expect(result).toHaveProperty('items');
+      expect(result).toHaveProperty('pagination');
+      expect(result).toHaveProperty('included');
+      expect(Array.isArray(result.items)).toBe(true);
+    });
+
+    it('should filter actions by type', async () => {
+      if (!optimizedAvailable) {
+        console.log('⏭️  Skipping - endpoint not available');
+        return;
+      }
+      const userId = process.env.TEST_USER_ID || 'me';
+      
+      const result = await getUserActions(auth, {
+        userId,
+        actionTypes: ['createCard', 'moveCard'],
+        pageSize: 10,
+      });
+
+      expect(result.items).toBeDefined();
+    });
+  });
+
+  describe('History - GET /history', () => {
+    it('should get system history', async () => {
+      if (!optimizedAvailable) {
+        console.log('⏭️  Skipping - endpoint not available');
+        return;
+      }
+      const result = await getHistory(auth, {
+        pageSize: 10,
+      });
+
+      expect(result).toHaveProperty('items');
+      expect(result).toHaveProperty('pagination');
+      expect(result).toHaveProperty('included');
+      expect(Array.isArray(result.items)).toBe(true);
+    });
+
+    it('should filter history by type', async () => {
+      if (!optimizedAvailable) {
+        console.log('⏭️  Skipping - endpoint not available');
+        return;
+      }
+      const result = await getHistory(auth, {
+        types: ['action'],
+        pageSize: 10,
+      });
+
+      expect(result.items).toBeDefined();
+    });
+  });
+
+  describe('Feed - GET /feed', () => {
+    it('should get combined feed', async () => {
+      if (!optimizedAvailable) {
+        console.log('⏭️  Skipping - endpoint not available');
+        return;
+      }
+      const result = await getFeed(auth, {
+        pageSize: 10,
+      });
+
+      expect(result).toHaveProperty('items');
+      expect(result).toHaveProperty('pagination');
+      expect(result).toHaveProperty('included');
+      expect(Array.isArray(result.items)).toBe(true);
+    });
+
+    it('should filter feed by type', async () => {
+      if (!optimizedAvailable) {
+        console.log('⏭️  Skipping - endpoint not available');
+        return;
+      }
+      const result = await getFeed(auth, {
+        types: ['action'],
+        pageSize: 10,
+      });
+
+      expect(result.items).toBeDefined();
+      result.items.forEach(item => {
+        expect(item.type).toBe('action');
+      });
+    });
+  });
+
+  describe('Search Endpoints', () => {
+    it('should search users', async () => {
+      if (!optimizedAvailable) {
+        console.log('⏭️  Skipping - endpoint not available');
+        return;
+      }
+      const result = await searchUsers(auth, 'test', 5);
+      
+      expect(Array.isArray(result)).toBe(true);
+    });
+
+    it('should search projects', async () => {
+      if (!optimizedAvailable) {
+        console.log('⏭️  Skipping - endpoint not available');
+        return;
+      }
+      const result = await searchProjects(auth, 'test', 5);
+      
+      expect(Array.isArray(result)).toBe(true);
+    });
+
+    it('should search boards', async () => {
+      if (!optimizedAvailable) {
+        console.log('⏭️  Skipping - endpoint not available');
+        return;
+      }
+      const result = await searchBoards(auth, 'test', 5);
+      
+      expect(Array.isArray(result)).toBe(true);
+    });
+
+    it('should search cards', async () => {
+      if (!optimizedAvailable) {
+        console.log('⏭️  Skipping - endpoint not available');
+        return;
+      }
+      const result = await searchCards(auth, 'test', 5);
+      
+      expect(Array.isArray(result)).toBe(true);
+    });
+
+    it('should perform global search', async () => {
+      if (!optimizedAvailable) {
+        console.log('⏭️  Skipping - endpoint not available');
+        return;
+      }
+      const result = await globalSearch(auth, {
+        query: 'test',
+        limit: 5,
+      });
+
+      expect(result).toBeDefined();
+      // Should have at least one of these properties
+      const hasResults = 
+        result.projects || 
+        result.boards || 
+        result.cards || 
+        result.users;
+      expect(hasResults).toBeDefined();
+    });
+
+    it('should filter global search by types', async () => {
+      if (!optimizedAvailable) {
+        console.log('⏭️  Skipping - endpoint not available');
+        return;
+      }
+      const result = await globalSearch(auth, {
+        query: 'test',
+        types: ['project', 'card'],
+        limit: 3,
+      });
+
+      expect(result).toBeDefined();
+      // Should only have projects and cards if results exist
+    });
+  });
+});
