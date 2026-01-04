@@ -107,7 +107,7 @@ export async function handleAiMessage(ctx: BotContext): Promise<void> {
     console.log('[ai-message] Available tools:', tools.length);
     
     // Send initial "Thinking..." message
-    const sentMessage = await ctx.reply('💭 Thinking...');
+    const sentMessage = await ctx.reply(ctx.t('ai-thinking'));
     
     // Handle streaming response
     let streamResult;

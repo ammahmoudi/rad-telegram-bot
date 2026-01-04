@@ -12,6 +12,11 @@ commands-history = تاریخچه
 commands-clear-chat = پاک کردن گفتگو
 commands-settings = تنظیمات
 
+# AI Status
+ai-thinking = 💭 در حال فکر کردن...
+ai-generating = ✨ در حال تولید پاسخ...
+ai-processing = ⚙️ در حال پردازش...
+
 # Buttons
 buttons-planka-status = 📊 وضعیت پلانکا
 buttons-rastar-status = 🍽️ وضعیت رستار

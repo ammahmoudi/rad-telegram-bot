@@ -12,6 +12,11 @@ commands-history = History
 commands-clear-chat = Clear Chat
 commands-settings = Settings
 
+# AI Status
+ai-thinking = 💭 Thinking...
+ai-generating = ✨ Generating response...
+ai-processing = ⚙️ Processing...
+
 # Buttons
 buttons-planka-status = 📊 Planka Status
 buttons-rastar-status = 🍽️ Rastar Status

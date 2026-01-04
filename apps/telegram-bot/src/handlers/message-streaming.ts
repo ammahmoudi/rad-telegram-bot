@@ -9,6 +9,7 @@ import { LOADING_FRAMES } from '../types/streaming.js';
 
 /**
  * Handle streaming AI response with live updates to Telegram message
+ * Uses native Telegram sendMessageDraft API for smooth streaming (Bot API 8.1+)
  * Supports topics in private chats via message_thread_id parameter
  */
 export async function handleStreamingResponse(
@@ -27,6 +28,7 @@ export async function handleStreamingResponse(
   reasoningDetails?: unknown;
 }> {
   let lastUpdateTime = Date.now();
+  let lastTypingTime = Date.now();
   let reasoningActive = false;
   let reasoningText = '';
   let allReasoningTexts: string[] = [];
@@ -40,13 +42,34 @@ export async function handleStreamingResponse(
   
   let toolCallsDisplay: string[] = [];
   let activeTools = new Set<string>();
+  
+  // Generate unique draft_id for this streaming session
+  const draftId = sentMessage.message_id;
+  let useNativeStreaming = true;
 
   // Extract topic information if available (Grammy Bot API 9.3+ support)
   const messageThreadId = ctx.message?.message_thread_id || ctx.msg?.message_thread_id;
   
   console.log('[message-streaming] Topic info:', {
     messageThreadId,
+    draftId,
+    useNativeStreaming,
   });
+  
+  // Send typing action periodically (for compatibility)
+  const sendTypingAction = async () => {
+    const now = Date.now();
+    if (now - lastTypingTime > 4000) { // Telegram typing indicator lasts ~5 seconds
+      try {
+        await ctx.api.sendChatAction(ctx.chat!.id, 'typing', {
+          message_thread_id: messageThreadId,
+        });
+        lastTypingTime = now;
+      } catch (error) {
+        // Ignore errors from typing action
+      }
+    }
+  };
 
   // Helper to update message (with rate limiting)
   const updateMessage = async (force: boolean = false) => {
@@ -54,6 +77,9 @@ export async function handleStreamingResponse(
     if (!force && now - lastUpdateTime < 500) return; // Rate limit: 2 updates per second
     
     lastUpdateTime = now;
+    
+    // Send typing indicator for fallback
+    await sendTypingAction();
     
     let content = '';
     
@@ -117,13 +143,38 @@ export async function handleStreamingResponse(
     }
     
     try {
-      // Pass message_thread_id if available (for topics in private chats)
-      const editOptions: Record<string, any> = { parse_mode: 'HTML' };
-      if (messageThreadId) {
-        editOptions.message_thread_id = messageThreadId;
+      // Try native streaming first (sendMessageDraft) - Bot API 8.1+
+      if (useNativeStreaming && ctx.chat?.id) {
+        try {
+          await ctx.api.sendMessageDraft(
+            ctx.chat.id,
+            draftId,
+            content,
+            {
+              parse_mode: 'HTML',
+              ...(messageThreadId ? { message_thread_id: messageThreadId } : {}),
+            }
+          );
+        } catch (error: any) {
+          // Fallback to editMessageText if sendMessageDraft not supported
+          if (error?.error_code === 400 || error?.description?.includes('supported only for bots with forum topic mode')) {
+            useNativeStreaming = false;
+            console.log('[message-streaming] Native streaming not available, using fallback');
+          } else {
+            throw error;
+          }
+        }
       }
       
-      await ctx.api.editMessageText(sentMessage.chat.id, sentMessage.message_id, content, editOptions);
+      // Fallback: use traditional editMessageText
+      if (!useNativeStreaming) {
+        const editOptions: Record<string, any> = { parse_mode: 'HTML' };
+        if (messageThreadId) {
+          editOptions.message_thread_id = messageThreadId;
+        }
+        
+        await ctx.api.editMessageText(sentMessage.chat.id, sentMessage.message_id, content, editOptions);
+      }
     } catch (error) {
       // Ignore errors from too frequent updates or identical content
     }
