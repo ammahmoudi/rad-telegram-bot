@@ -1,9 +1,10 @@
 import type { PlankaAuth } from '../planka.js';
-import { handleUserTasksTool } from './user-tasks.tools.js';
 import { handleUserActivityTool } from './user-activity.tools.js';
 import { handleProjectStatusTool } from './project-status.tools.js';
 import { handleDailyReportsTool } from './daily-reports.tools.js';
-import { handleSearchTool } from './search.tools.js';
+import { handleCardsFilterTool } from './cards-filter.tools.js';
+import { handleAdvancedSearchTool } from './advanced-search.tools.js';
+import { handleActivityFeedTool } from './activity-feed.tools.js';
 import { requireAuth, text as textHelper } from './helpers.js';
 
 type ToolResponse = {
@@ -17,16 +18,32 @@ export async function handleToolCall(request: { params: { name: string; argument
     // Get auth from args (handles environment vars via requireAuth)
     const auth = await requireAuth(args);
 
-    // User Tasks tools
-    if (name === 'planka_get_user_cards' || 
-        name === 'planka_get_card_history') {
-      const result = await handleUserTasksTool(auth, name, args);
+    // Cards Filter tool
+    if (name === 'planka_filter_cards') {
+      const result = await handleCardsFilterTool(auth, name, args);
+      return textHelper(JSON.stringify(result, null, 2));
+    }
+
+    // Advanced Search tools
+    if (name === 'planka_search_users_advanced' ||
+        name === 'planka_search_projects_advanced' ||
+        name === 'planka_search_boards_advanced' ||
+        name === 'planka_search_cards_advanced' ||
+        name === 'planka_global_search_advanced') {
+      const result = await handleAdvancedSearchTool(auth, name, args);
+      return textHelper(JSON.stringify(result, null, 2));
+    }
+
+    // Activity Feed tools
+    if (name === 'planka_get_user_actions_feed' ||
+        name === 'planka_get_system_history' ||
+        name === 'planka_get_activity_feed') {
+      const result = await handleActivityFeedTool(auth, name, args);
       return textHelper(JSON.stringify(result, null, 2));
     }
 
     // User Activity tools
-    if (name === 'planka_get_user_notifications' || 
-        name === 'planka_get_user_actions' ||
+    if (name === 'planka_get_user_notifications' ||
         name === 'planka_get_user_activity_summary') {
       const result = await handleUserActivityTool(auth, name, args);
       return textHelper(JSON.stringify(result, null, 2));
@@ -45,17 +62,6 @@ export async function handleToolCall(request: { params: { name: string; argument
         name === 'planka_get_missing_daily_reports' ||
         name === 'planka_create_daily_report_card') {
       const result = await handleDailyReportsTool(auth, name, args);
-      return textHelper(JSON.stringify(result, null, 2));
-    }
-
-    // Search tools
-    if (name === 'planka_search_users' || 
-        name === 'planka_search_projects' || 
-        name === 'planka_search_boards' || 
-        name === 'planka_search_cards' || 
-        name === 'planka_search_tasks' || 
-        name === 'planka_global_search') {
-      const result = await handleSearchTool(auth, name, args);
       return textHelper(JSON.stringify(result, null, 2));
     }
 

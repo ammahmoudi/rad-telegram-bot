@@ -19,22 +19,24 @@ import express from 'express';
 import { hostHeaderValidation } from '@modelcontextprotocol/sdk/server/middleware/hostHeaderValidation.js';
 import { z } from 'zod';
 import {
-  userTasksTools,
   userActivityTools,
   projectStatusTools,
   dailyReportsTools,
-  searchTools,
+  cardsFilterTools,
+  advancedSearchTools,
+  activityFeedTools,
   handleToolCall,
 } from './tools/index.js';
 import { prompts, handleGetPrompt } from './prompts/index.js';
 import { resources, handleReadResource } from './resources/index.js';
 
 const allTools = [
-  ...userTasksTools,
   ...userActivityTools,
   ...projectStatusTools,
   ...dailyReportsTools,
-  ...searchTools,
+  ...cardsFilterTools,
+  ...advancedSearchTools,
+  ...activityFeedTools,
 ];
 
 /**

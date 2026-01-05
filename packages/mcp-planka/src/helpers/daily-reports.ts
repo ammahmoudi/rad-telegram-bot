@@ -15,6 +15,7 @@ import type { PlankaAuth } from '../types/index.js';
 import { listProjects, getProject, getBoard, getCurrentUser, getCard, getUser } from '../api/index.js';
 import { getComments } from '../api/comments.js';
 import { createCard } from '../api/cards.js';
+import { filterCards } from '../api-optimized/cards.js';
 import type { DailyReportEntry } from './types.js';
 import { getUserActions } from './user-activity.js';
 import { parseDate, now, fromUTC, type DualDate } from '../utils/date-time.js';

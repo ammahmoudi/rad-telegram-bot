@@ -6,6 +6,7 @@ import type { PlankaAuth } from '../types/index.js';
 import { listProjects, getProject, getBoard, getCurrentUser } from '../api/index.js';
 import { getNotifications } from '../api/notifications.js';
 import { getBoardActions, getCardActions } from '../api/actions.js';
+import { getUserActions as getUserActionsOptimized } from '../api-optimized/activity.js';
 import type { ActivityItem, NotificationItem } from './types.js';
 import { parseDate } from '../utils/date-time.js';
 
@@ -154,6 +155,8 @@ export async function getUserNotifications(
  * For notifications (things that happened TO the user), use getUserNotifications()
  * For both combined, use getUserActivitySummary()
  * 
+ * NOW USES OPTIMIZED API - Single API call instead of 20+ calls!
+ * 
  * @param userId - User ID or "me" for current user, or undefined for current user
  */
 export async function getUserActions(
@@ -169,135 +172,37 @@ export async function getUserActions(
   } = {}
 ): Promise<ActivityItem[]> {
   const resolvedUserId = await resolveUserId(auth, userId);
-  const projects = await listProjects(auth);
-  const allActivities: ActivityItem[] = [];
   
-  // Parse date strings to ISO format (handles relative dates like "today", "2 days ago")
-  const startDateISO = options.startDate ? parseDate(options.startDate).iso : undefined;
-  const endDateISO = options.endDate ? parseDate(options.endDate).iso : undefined;
+  // Use optimized API - single call instead of fetching all projects/boards
+  const result = await getUserActionsOptimized(auth, {
+    userId: resolvedUserId,
+    actionTypes: undefined, // Get all types
+    projectIds: options.projectId ? [options.projectId] : undefined,
+    boardIds: options.boardId ? [options.boardId] : undefined,
+    from: options.startDate ? parseDate(options.startDate).iso : undefined,
+    to: options.endDate ? parseDate(options.endDate).iso : undefined,
+    page: 1,
+    pageSize: options.limit || 100,
+  });
   
-  // Apply default limit to prevent timeout (increased from 50 to 100 for better coverage)
-  const effectiveLimit = options.limit || 100;
+  // Transform to ActivityItem format
+  const activities: ActivityItem[] = result.items.map((action: any) => ({
+    id: action.id,
+    type: action.type,
+    timestamp: action.createdAt,
+    userId: action.userId,
+    userName: '', // Not available in optimized API response
+    projectId: action.projectId,
+    projectName: '', // Not available in optimized API response
+    boardId: action.boardId,
+    boardName: '', // Not available in optimized API response
+    cardId: action.cardId,
+    cardName: '', // Not available in optimized API response
+    data: action.data,
+    description: formatActionDescription(action),
+  }));
   
-  // Cache for board details to avoid redundant fetches
-  const boardDetailsCache = new Map<string, any>();
-  
-  // Increase limit on boards to fetch for better action coverage
-  let boardsFetched = 0;
-  const maxBoardsToFetch = 20; // Increased from 10 to 20
-
-  for (const project of projects) {
-    // Early exit if we hit limits
-    if (allActivities.length >= effectiveLimit || boardsFetched >= maxBoardsToFetch) {
-      break;
-    }
-    
-    const projectId = (project as any).id;
-    const projectName = (project as any).name;
-
-    if (options.projectId && projectId !== options.projectId) continue;
-
-    try {
-      const projectDetails = await getProject(auth, projectId);
-      const boards = (projectDetails as any)?.included?.boards ?? [];
-      const users = (projectDetails as any)?.included?.users ?? [];
-
-      for (const board of boards) {
-        // Early exit if limits reached
-        if (allActivities.length >= effectiveLimit || boardsFetched >= maxBoardsToFetch) {
-          break;
-        }
-        
-        boardsFetched++; // Increment counter
-        const boardId = board.id;
-        const boardName = board.name;
-
-        if (options.boardId && boardId !== options.boardId) continue;
-
-        try {
-          // Get board actions
-          const actions = await getBoardActions(auth, boardId);
-          
-          // Fetch board details once and cache it
-          if (!boardDetailsCache.has(boardId)) {
-            const boardDetails = await getBoard(auth, boardId);
-            boardDetailsCache.set(boardId, boardDetails);
-          }
-          const boardDetails = boardDetailsCache.get(boardId);
-          const cards = (boardDetails as any)?.included?.cards ?? [];
-          
-          for (const action of actions) {
-            // Filter by user
-            if (action.userId !== resolvedUserId) continue;
-
-            // Filter by date range
-            const actionDate = new Date(action.createdAt);
-            if (startDateISO && actionDate < new Date(startDateISO)) continue;
-            if (endDateISO && actionDate > new Date(endDateISO)) continue;
-
-            // Get user name
-            const user = users.find((u: any) => u.id === action.userId);
-            const userName = user?.name ?? 'Unknown User';
-
-            // Get card context if available (use cached data)
-            let cardName: string | undefined;
-            let cardId: string | undefined;
-
-            if (action.cardId) {
-              const card = cards.find((c: any) => c.id === action.cardId);
-              if (card) {
-                cardName = card.name;
-                cardId = card.id;
-              }
-            }
-
-            const activity: ActivityItem = {
-              id: action.id,
-              type: action.type,
-              timestamp: action.createdAt,
-              userId: action.userId,
-              userName,
-              cardId,
-              cardName,
-              boardId,
-              boardName,
-              projectId,
-              projectName,
-              data: action.data,
-              description: formatActionDescription(action),
-            };
-
-            allActivities.push(activity);
-            
-            // Early exit if we've reached the limit
-            if (allActivities.length >= effectiveLimit) {
-              break;
-            }
-          }
-          
-          // Early exit if we've reached the limit
-          if (allActivities.length >= effectiveLimit) {
-            break;
-          }
-        } catch (error) {
-          console.error(`Error fetching actions for board ${boardId}:`, error);
-        }
-      }
-      
-      // Early exit if we've reached the limit
-      if (allActivities.length >= effectiveLimit) {
-        break;
-      }
-    } catch (error) {
-      console.error(`Error fetching project ${projectId}:`, error);
-    }
-  }
-
-  // Sort by timestamp descending
-  allActivities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
-  // Return limited results
-  return allActivities.slice(0, effectiveLimit);
+  return activities;
 }
 
 /**
