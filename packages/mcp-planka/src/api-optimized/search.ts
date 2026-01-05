@@ -8,79 +8,90 @@ import type { PlankaAuth } from '../planka.js';
 import { plankaFetch } from '../api/client.js';
 import type { PlankaUser, PlankaProject, PlankaBoard, PlankaList, PlankaCard } from '../types/index.js';
 
+// Common search response structure
+interface SearchResponse<T> {
+  items: T[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
 // ============= Search Users =============
 
 /**
  * Search users by name, username, or email
- * Endpoint: GET /users/search
+ * Endpoint: GET /api/users/search
  */
 export async function searchUsers(
   auth: PlankaAuth,
   query: string,
   limit: number = 20
-): Promise<PlankaUser[]> {
+): Promise<SearchResponse<PlankaUser>> {
   const params = new URLSearchParams({ q: query, limit: limit.toString() });
-  return await plankaFetch<PlankaUser[]>(auth, `/users/search?${params}`);
+  return await plankaFetch<SearchResponse<PlankaUser>>(auth, `/api/users/search?${params}`);
 }
 
 // ============= Search Projects =============
 
 /**
  * Search projects by name or description
- * Endpoint: GET /projects/search
+ * Endpoint: GET /api/projects/search
  */
 export async function searchProjects(
   auth: PlankaAuth,
   query: string,
   limit: number = 20
-): Promise<PlankaProject[]> {
+): Promise<SearchResponse<PlankaProject>> {
   const params = new URLSearchParams({ q: query, limit: limit.toString() });
-  return await plankaFetch<PlankaProject[]>(auth, `/projects/search?${params}`);
+  return await plankaFetch<SearchResponse<PlankaProject>>(auth, `/api/projects/search?${params}`);
 }
 
 // ============= Search Boards =============
 
 /**
  * Search boards by name
- * Endpoint: GET /boards/search
+ * Endpoint: GET /api/boards/search
  */
 export async function searchBoards(
   auth: PlankaAuth,
   query: string,
   limit: number = 20
-): Promise<PlankaBoard[]> {
+): Promise<SearchResponse<PlankaBoard>> {
   const params = new URLSearchParams({ q: query, limit: limit.toString() });
-  return await plankaFetch<PlankaBoard[]>(auth, `/boards/search?${params}`);
+  return await plankaFetch<SearchResponse<PlankaBoard>>(auth, `/api/boards/search?${params}`);
 }
 
 // ============= Search Lists =============
 
 /**
  * Search lists by name
- * Endpoint: GET /lists/search
+ * Endpoint: GET /api/lists/search
  */
 export async function searchLists(
   auth: PlankaAuth,
   query: string,
   limit: number = 20
-): Promise<PlankaList[]> {
+): Promise<SearchResponse<PlankaList>> {
   const params = new URLSearchParams({ q: query, limit: limit.toString() });
-  return await plankaFetch<PlankaList[]>(auth, `/lists/search?${params}`);
+  return await plankaFetch<SearchResponse<PlankaList>>(auth, `/api/lists/search?${params}`);
 }
 
 // ============= Search Cards =============
 
 /**
  * Search cards by name, description, or comments
- * Endpoint: GET /cards/search
+ * Endpoint: GET /api/cards/search
  */
 export async function searchCards(
   auth: PlankaAuth,
   query: string,
   limit: number = 20
-): Promise<PlankaCard[]> {
+): Promise<SearchResponse<PlankaCard>> {
   const params = new URLSearchParams({ q: query, limit: limit.toString() });
-  return await plankaFetch<PlankaCard[]>(auth, `/cards/search?${params}`);
+  return await plankaFetch<SearchResponse<PlankaCard>>(auth, `/api/cards/search?${params}`);
 }
 
 // ============= Global Search =============
@@ -118,5 +129,5 @@ export async function globalSearch(
     params.append('limit', options.limit.toString());
   }
 
-  return await plankaFetch<GlobalSearchResponse>(auth, `/search?${params}`);
+  return await plankaFetch<GlobalSearchResponse>(auth, `/api/search?${params}`);
 }

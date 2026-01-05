@@ -58,7 +58,7 @@ describe('API Optimized - Cards', () => {
 
       expect(plankaFetch).toHaveBeenCalledWith(
         mockAuth,
-        expect.stringContaining('/cards/filter?')
+        expect.stringContaining('/api/cards/filter?')
       );
 
       const callUrl = vi.mocked(plankaFetch).mock.calls[0][1] as string;
@@ -87,7 +87,7 @@ describe('API Optimized - Cards', () => {
 
       await filterCards(mockAuth, {});
 
-      expect(plankaFetch).toHaveBeenCalledWith(mockAuth, '/cards/filter');
+      expect(plankaFetch).toHaveBeenCalledWith(mockAuth, '/api/cards/filter');
     });
   });
 });
@@ -123,7 +123,7 @@ describe('API Optimized - Activity', () => {
       });
 
       const callUrl = vi.mocked(plankaFetch).mock.calls[0][1] as string;
-      expect(callUrl).toContain('/users/user123/actions?');
+      expect(callUrl).toContain('/api/users/user123/actions?');
       expect(callUrl).toContain('actionTypes=createCard%2CmoveCard');
       expect(callUrl).toContain('projectIds=proj1');
       expect(callUrl).toContain('boardIds=board1');
@@ -152,7 +152,7 @@ describe('API Optimized - Activity', () => {
       });
 
       const callUrl = vi.mocked(plankaFetch).mock.calls[0][1] as string;
-      expect(callUrl).toContain('/history?');
+      expect(callUrl).toContain('/api/history?');
       expect(callUrl).toContain('types=project-history%2Caction');
     });
   });
@@ -177,7 +177,7 @@ describe('API Optimized - Activity', () => {
       });
 
       const callUrl = vi.mocked(plankaFetch).mock.calls[0][1] as string;
-      expect(callUrl).toContain('/feed?');
+      expect(callUrl).toContain('/api/feed?');
       expect(callUrl).toContain('types=action%2Cnotification');
       expect(callUrl).toContain('cardIds=card1');
     });
@@ -201,7 +201,7 @@ describe('API Optimized - Search', () => {
       await searchUsers(mockAuth, 'john', 10);
 
       const callUrl = vi.mocked(plankaFetch).mock.calls[0][1] as string;
-      expect(callUrl).toContain('/users/search?');
+      expect(callUrl).toContain('/api/users/search?');
       expect(callUrl).toContain('q=john');
       expect(callUrl).toContain('limit=10');
     });
@@ -223,7 +223,7 @@ describe('API Optimized - Search', () => {
       });
 
       const callUrl = vi.mocked(plankaFetch).mock.calls[0][1] as string;
-      expect(callUrl).toContain('/search?');
+      expect(callUrl).toContain('/api/search?');
       expect(callUrl).toContain('q=test');
       expect(callUrl).toContain('types=project%2Ccard');
       expect(callUrl).toContain('limit=5');
@@ -249,7 +249,7 @@ describe('API Optimized - Availability Check', () => {
     expect(available).toBe(true);
     expect(plankaFetch).toHaveBeenCalledWith(
       mockAuth,
-      expect.stringContaining('/cards/filter')
+      expect.stringContaining('/api/cards/filter')
     );
   });
 

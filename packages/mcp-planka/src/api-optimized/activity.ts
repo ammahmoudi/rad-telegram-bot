@@ -9,12 +9,13 @@
 
 import type { PlankaAuth } from '../planka.js';
 import { plankaFetch } from '../api/client.js';
+import { getCurrentUser } from '../api/access-tokens.js';
 import type { PlankaAction, PlankaNotification, PlankaUser, PlankaBoard, PlankaCard, PlankaProject } from '../types/index.js';
 
 // ============= User Actions =============
 
 export interface GetUserActionsOptions {
-  userId: string; // User ID (required)
+  userId: string; // User ID (required) - use 'me' for current authenticated user
   actionTypes?: string[]; // e.g., ['createCard', 'moveCard', 'addMemberToCard']
   projectIds?: string[]; // Comma-separated project IDs
   boardIds?: string[]; // Comma-separated board IDs
@@ -44,13 +45,22 @@ export interface GetUserActionsResponse {
  * Endpoint: GET /users/{id}/actions
  * All parameters from api-docs.json included
  * 
+ * Supports 'me' as userId to get current user's actions
+ * 
  * @param auth - Authentication credentials
- * @param options - Filter options with required userId
+ * @param options - Filter options with required userId (can be 'me' for current user)
  */
 export async function getUserActions(
   auth: PlankaAuth,
   options: GetUserActionsOptions
 ): Promise<GetUserActionsResponse> {
+  // Convert 'me' to actual user ID (backend doesn't support 'me' alias yet)
+  let userId = options.userId;
+  if (userId === 'me') {
+    const currentUser = await getCurrentUser(auth);
+    userId = currentUser.id;
+  }
+
   const params = new URLSearchParams();
   
   if (options.actionTypes && options.actionTypes.length > 0) {
@@ -68,7 +78,7 @@ export async function getUserActions(
   if (options.pageSize) params.append('pageSize', options.pageSize.toString());
 
   const queryString = params.toString();
-  const endpoint = `/users/${options.userId}/actions${queryString ? `?${queryString}` : ''}`;
+  const endpoint = `/api/users/${userId}/actions${queryString ? `?${queryString}` : ''}`;
 
   return await plankaFetch<GetUserActionsResponse>(auth, endpoint);
 }
@@ -141,7 +151,7 @@ export async function getHistory(
   if (options.pageSize) params.append('pageSize', options.pageSize.toString());
 
   const queryString = params.toString();
-  const endpoint = `/history${queryString ? `?${queryString}` : ''}`;
+  const endpoint = `/api/history${queryString ? `?${queryString}` : ''}`;
 
   return await plankaFetch<GetHistoryResponse>(auth, endpoint);
 }
@@ -218,7 +228,7 @@ export async function getFeed(
   if (options.pageSize) params.append('pageSize', options.pageSize.toString());
 
   const queryString = params.toString();
-  const endpoint = `/feed${queryString ? `?${queryString}` : ''}`;
+  const endpoint = `/api/feed${queryString ? `?${queryString}` : ''}`;
 
   return await plankaFetch<GetFeedResponse>(auth, endpoint);
 }

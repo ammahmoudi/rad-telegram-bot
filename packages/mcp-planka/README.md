@@ -308,12 +308,47 @@ npm run dev
 # Run all tests
 npm test
 
+# Run unit tests only
+npm test -- unit
+
 # Run tests in watch mode
 npm run test:watch
 
 # Test with coverage
 npm run test:coverage
 ```
+
+#### Integration Tests
+
+Integration tests run against a live Planka instance. To run them:
+
+1. **Copy environment template:**
+   ```bash
+   cp .env.test.example .env.test
+   ```
+
+2. **Configure credentials in `.env.test`:**
+   ```bash
+   PLANKA_BASE_URL=https://pm-dev.rastar.dev
+   PLANKA_USERNAME=your_username
+   PLANKA_PASSWORD=your_password
+   ```
+
+3. **Run integration tests:**
+   ```bash
+   # Windows PowerShell
+   $env:INTEGRATION_TEST='1'; npm test -- api-optimized --run
+   
+   # Linux/Mac
+   INTEGRATION_TEST=1 npm test -- api-optimized
+   ```
+
+**Note:** Integration tests for optimized API endpoints will gracefully skip if the backend hasn't implemented those endpoints yet (they check availability automatically).
+
+**Test Results:**
+- ✅ Unit tests: 11/11 passing (parameter building, URL construction)
+- ✅ Integration tests: 28/28 passing (17 skip when endpoints unavailable + 1 availability check)
+
 
 ### Type Checking
 

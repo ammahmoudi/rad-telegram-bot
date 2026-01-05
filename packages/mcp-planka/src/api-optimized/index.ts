@@ -31,7 +31,7 @@ export async function checkOptimizedEndpointsAvailable(
 ): Promise<boolean> {
   try {
     // Test if /cards/filter endpoint exists (should return data or 400, not 404)
-    await plankaFetch(auth, '/cards/filter?page=1&pageSize=1');
+    await plankaFetch(auth, '/api/cards/filter?page=1&pageSize=1');
     return true;
   } catch (error: any) {
     // If we get 404 or HTML response (<!doctype), endpoints are not implemented yet
