@@ -7,7 +7,6 @@ import path from 'node:path';
 import {
   handlePlankaStatusButton,
   handleRastarStatusButton,
-  handleNewChatButton,
   handleHistoryButton,
   handleTodayMenuButton,
   handleUnselectedDaysButton,
@@ -49,7 +48,10 @@ function getButtonText(bundle: FluentBundle, key: string): string | null {
 const buttonHandlers: Record<string, (ctx: BotContext) => Promise<void>> = {
   'buttons-planka-status': handlePlankaStatusButton,
   'buttons-rastar-status': handleRastarStatusButton,
-  'buttons-new-chat': handleNewChatButton,
+  'buttons-clear-chat': async (ctx) => {
+    const { handleClearChatCommand } = await import('./commands/chat-management.js');
+    await handleClearChatCommand(ctx);
+  },
   'buttons-history': handleHistoryButton,
   'buttons-settings': handleSettingsCommand,
   'buttons-today-menu': handleTodayMenuButton,

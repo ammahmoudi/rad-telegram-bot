@@ -3,6 +3,34 @@ import { buildMainMenuKeyboard, type KeyboardTranslations } from '@rad/shared';
 import { t } from '../utils/i18n-helper.js';
 
 /**
+ * Get quick action inline buttons for threads
+ * Reply keyboards don't work in threads, so we provide inline buttons instead
+ */
+export function getThreadQuickActionsKeyboard(language: string = 'fa', options?: { plankaLinked?: boolean; rastarLinked?: boolean }) {
+  const keyboard = new InlineKeyboard();
+  
+  if (options?.plankaLinked) {
+    keyboard
+      .text(t(language, 'buttons-my-cards'), 'thread_action:my_cards')
+      .text(t(language, 'buttons-delayed-tasks'), 'thread_action:delayed_tasks')
+      .row();
+  }
+  
+  if (options?.rastarLinked) {
+    keyboard
+      .text(t(language, 'buttons-today-menu'), 'thread_action:today_menu')
+      .text(t(language, 'buttons-select-lunch'), 'thread_action:select_lunch')
+      .row();
+  }
+  
+  keyboard
+    .text(t(language, 'buttons-clear-chat'), 'thread_action:clear_chat')
+    .text(t(language, 'buttons-settings'), 'thread_action:settings');
+  
+  return keyboard;
+}
+
+/**
  * Main menu keyboard shown in /start and /menu
  * Shows only status/link buttons and settings
  */
@@ -23,6 +51,7 @@ export function getMainMenuKeyboard(language: string = 'fa', options?: { plankaL
     'keyboards.select-lunch': t(language, 'buttons-select-lunch'),
     'keyboards.rastar-status': t(language, 'buttons-rastar-status'),
     'keyboards.settings': t(language, 'buttons-settings'),
+    'keyboards.clear-chat': t(language, 'buttons-clear-chat'),
   };
   
   // Use shared keyboard builder

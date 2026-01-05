@@ -11,6 +11,7 @@ import {
   getUserLanguage,
   validatePlankaToken,
 } from '@rad/shared';
+import { t } from '../utils/i18n-helper.js';
 import { getAiClient } from '../services/ai-client.js';
 import { stripTrailingSlash } from '../utils/formatting.js';
 import {
@@ -164,7 +165,7 @@ export async function handleLinkPlankaCommand(ctx: BotContext) {
 /**
  * Handle /planka_status command
  */
-export async function handlePlankaStatusCommand(ctx: Context) {
+export async function handlePlankaStatusCommand(ctx: BotContext) {
   const telegramUserId = String(ctx.from?.id ?? '');
   if (!telegramUserId) {
     await ctx.reply('Could not identify your Telegram user.');
@@ -174,7 +175,7 @@ export async function handlePlankaStatusCommand(ctx: Context) {
   console.log('[telegram-bot] /planka_status', { telegramUserId });
 
   const language = await getUserLanguage(telegramUserId);
-  const t = getUserI18n(language);
+  // Translation helper (t) imported from i18n-helper.ts
   const token = await getPlankaToken(telegramUserId);
   
   if (!token) {
@@ -182,11 +183,11 @@ export async function handlePlankaStatusCommand(ctx: Context) {
     
     await ctx.reply(
       [
-        t('planka.not_connected'),
+        t(language, 'planka.not_connected'),
         '',
-        t('planka.not_connected_message'),
+        t(language, 'planka.not_connected_message'),
         '',
-        t('planka.connect_instruction'),
+        t(language, 'planka.connect_instruction'),
       ].join('\n'),
       { parse_mode: 'HTML', reply_markup: keyboard },
     );
@@ -201,15 +202,15 @@ export async function handlePlankaStatusCommand(ctx: Context) {
     
     await ctx.reply(
       [
-        '⚠️ <b>' + t('planka.token_invalid') + '</b>',
+        '⚠️ <b>' + t(language, 'planka.token_invalid') + '</b>',
         '',
-        `🌐 ${t('planka.base_url', { url: token.plankaBaseUrl })}`,
+        `🌐 ${t(language, 'planka.base_url', { url: token.plankaBaseUrl })}`,
         '',
-        '❌ ' + t('planka.token_invalid_message'),
+        '❌ ' + t(language, 'planka.token_invalid_message'),
         '',
-        '🔄 <b>' + t('planka.reconnect_steps') + '</b>',
-        '1. ' + t('planka.unlink_first'),
-        '2. ' + t('planka.link_again'),
+        '🔄 <b>' + t(language, 'planka.reconnect_steps') + '</b>',
+        '1. ' + t(language, 'planka.unlink_first'),
+        '2. ' + t(language, 'planka.link_again'),
       ].join('\n'),
       { parse_mode: 'HTML', reply_markup: keyboard },
     );
@@ -220,13 +221,13 @@ export async function handlePlankaStatusCommand(ctx: Context) {
 
   await ctx.reply(
     [
-      t('planka.connected'),
+      t(language, 'planka.connected'),
       '',
-      `🌐 ${t('planka.base_url', { url: token.plankaBaseUrl })}`,
+      `🌐 ${t(language, 'planka.base_url', { url: token.plankaBaseUrl })}`,
       '',
-      t('planka.can_use'),
+      t(language, 'planka.can_use'),
       '',
-      t('planka.disconnect_command'),
+      t(language, 'planka.disconnect_command'),
     ].join('\n'),
     { parse_mode: 'HTML', reply_markup: keyboard },
   );
@@ -235,7 +236,7 @@ export async function handlePlankaStatusCommand(ctx: Context) {
 /**
  * Handle /planka_unlink command
  */
-export async function handlePlankaUnlinkCommand(ctx: Context) {
+export async function handlePlankaUnlinkCommand(ctx: BotContext) {
   const telegramUserId = String(ctx.from?.id ?? '');
   if (!telegramUserId) {
     await ctx.reply('Could not identify your Telegram user.');
@@ -245,25 +246,25 @@ export async function handlePlankaUnlinkCommand(ctx: Context) {
   console.log('[telegram-bot] /planka_unlink', { telegramUserId });
 
   const language = await getUserLanguage(telegramUserId);
-  const t = getUserI18n(language);
+  // Translation helper (t) imported from i18n-helper.ts
   const removed = await deletePlankaToken(telegramUserId);
   
   const keyboard = getPlankaNotConnectedKeyboard(language);
   if (removed) {
     await ctx.reply(
       [
-        t('planka.unlinked'),
+        t(language, 'planka.unlinked'),
         '',
-        t('planka.unlinked_message'),
+        t(language, 'planka.unlinked_message'),
         '',
-        t('planka.connect_instruction'),
+        t(language, 'planka.connect_instruction'),
       ].join('\n'),
       { parse_mode: 'HTML', reply_markup: keyboard },
     );
   } else {
     await ctx.reply(
       [
-        t('planka.no_account'),
+        t(language, 'planka.no_account'),
         '',
         'There was no Planka account connected to unlink.',
         '',
@@ -277,20 +278,20 @@ export async function handlePlankaUnlinkCommand(ctx: Context) {
 /**
  * Handle /new_chat command
  */
-export async function handleNewChatCommand(ctx: Context) {
+export async function handleNewChatCommand(ctx: BotContext) {
   const telegramUserId = String(ctx.from?.id ?? '');
   if (!telegramUserId) {
     const language = await getUserLanguage(telegramUserId);
-    const t = getUserI18n(language);
-    await ctx.reply(t('callback_errors.user_not_identified'));
+    // Translation helper (t) imported from i18n-helper.ts
+    await ctx.reply(t(language, 'callback_errors.user_not_identified'));
     return;
   }
 
   const client = await getAiClient();
   if (!client) {
     const language = await getUserLanguage(telegramUserId);
-    const t = getUserI18n(language);
-    await ctx.reply(t('command_errors.ai_not_configured'));
+    // Translation helper (t) imported from i18n-helper.ts
+    await ctx.reply(t(language, 'command_errors.ai_not_configured'));
     return;
   }
 
@@ -310,20 +311,20 @@ export async function handleNewChatCommand(ctx: Context) {
 /**
  * Handle /history command
  */
-export async function handleHistoryCommand(ctx: Context) {
+export async function handleHistoryCommand(ctx: BotContext) {
   const telegramUserId = String(ctx.from?.id ?? '');
   if (!telegramUserId) {
     const language = await getUserLanguage(telegramUserId);
-    const t = getUserI18n(language);
-    await ctx.reply(t('callback_errors.user_not_identified'));
+    // Translation helper (t) imported from i18n-helper.ts
+    await ctx.reply(t(language, 'callback_errors.user_not_identified'));
     return;
   }
 
   const client = await getAiClient();
   if (!client) {
     const language = await getUserLanguage(telegramUserId);
-    const t = getUserI18n(language);
-    await ctx.reply(t('command_errors.ai_not_configured_short'));
+    // Translation helper (t) imported from i18n-helper.ts
+    await ctx.reply(t(language, 'command_errors.ai_not_configured_short'));
     return;
   }
 
@@ -353,28 +354,28 @@ export async function handleHistoryCommand(ctx: Context) {
 /**
  * Handle /clear_chat command
  */
-export async function handleClearChatCommand(ctx: Context) {
+export async function handleClearChatCommand(ctx: BotContext) {
   const telegramUserId = String(ctx.from?.id ?? '');
   if (!telegramUserId) {
     const language = await getUserLanguage(telegramUserId);
-    const t = getUserI18n(language);
-    await ctx.reply(t('callback_errors.user_not_identified'));
+    // Translation helper (t) imported from i18n-helper.ts
+    await ctx.reply(t(language, 'callback_errors.user_not_identified'));
     return;
   }
 
   const client = await getAiClient();
   if (!client) {
     const language = await getUserLanguage(telegramUserId);
-    const t = getUserI18n(language);
-    await ctx.reply(t('command_errors.ai_not_configured_short'));
+    // Translation helper (t) imported from i18n-helper.ts
+    await ctx.reply(t(language, 'command_errors.ai_not_configured_short'));
     return;
   }
 
   await createNewChatSession(telegramUserId);
   
   const language = await getUserLanguage(telegramUserId);
-  const t = getUserI18n(language);
-  await ctx.reply(t('command_errors.chat_cleared'), {
+  // Translation helper (t) imported from i18n-helper.ts
+  await ctx.reply(t(language, 'command_errors.chat_cleared'), {
     parse_mode: 'HTML',
   });
 }
@@ -386,7 +387,7 @@ export async function handleClearChatCommand(ctx: Context) {
 /**
  * Handle /link_rastar command
  */
-export async function handleLinkRastarCommand(ctx: Context) {
+export async function handleLinkRastarCommand(ctx: BotContext) {
   const telegramUserId = String(ctx.from?.id ?? '');
   if (!telegramUserId) {
     await ctx.reply('Could not identify your Telegram user.');
@@ -396,7 +397,7 @@ export async function handleLinkRastarCommand(ctx: Context) {
   console.log('[telegram-bot] /link_rastar', { telegramUserId });
 
   const language = await getUserLanguage(telegramUserId);
-  const t = getUserI18n(language);
+  // Translation helper (t) imported from i18n-helper.ts
   
   // Check if already linked
   const existingToken = await getRastarToken(telegramUserId);
@@ -412,13 +413,13 @@ export async function handleLinkRastarCommand(ctx: Context) {
       const keyboard = getRastarExpiredKeyboard(language);
       await ctx.reply(
         [
-          t('rastar.token_expired'),
+          t(language, 'rastar.token_expired'),
           '',
-          t('rastar.token_expired_message'),
+          t(language, 'rastar.token_expired_message'),
           '',
-          t('rastar.reconnect_title'),
-          t('rastar.reconnect_step1'),
-          t('rastar.reconnect_step2'),
+          t(language, 'rastar.reconnect_title'),
+          t(language, 'rastar.reconnect_step1'),
+          t(language, 'rastar.reconnect_step2'),
         ].join('\n'),
         { parse_mode: 'HTML', reply_markup: keyboard },
       );
@@ -428,14 +429,14 @@ export async function handleLinkRastarCommand(ctx: Context) {
     const keyboard = getRastarConnectedKeyboard(language);
     await ctx.reply(
       [
-        t('rastar.already_linked'),
+        t(language, 'rastar.already_linked'),
         '',
-        `${t('rastar.email')}: ${existingToken.email}`,
-        t('rastar.token_expires_in', { hours: expiresInHours, minutes: expiresInMinutes }),
+        `${t(language, 'rastar.email')}: ${existingToken.email}`,
+        t(language, 'rastar.token_expires_in', { hours: expiresInHours, minutes: expiresInMinutes }),
         '',
-        t('rastar.relink_instructions'),
-        t('rastar.step1'),
-        t('rastar.step2'),
+        t(language, 'rastar.relink_instructions'),
+        t(language, 'rastar.step1'),
+        t(language, 'rastar.step2'),
       ].join('\n'),
       { reply_markup: keyboard },
     );
@@ -452,40 +453,40 @@ export async function handleLinkRastarCommand(ctx: Context) {
   
   // Different message format for localhost vs production
   const messageLines = [
-    t('rastar.link_title'),
+    t(language, 'rastar.link_title'),
     '',
   ];
   
   if (isLocalhost) {
     // For localhost, just show the copyable link
     messageLines.push(
-      '📋 ' + t('rastar.link_copy'),
+      '📋 ' + t(language, 'rastar.link_copy'),
       `<code>${linkUrl}</code>`,
       '',
-      '💡 ' + t('rastar.link_localhost_note'),
+      '💡 ' + t(language, 'rastar.link_localhost_note'),
     );
   } else {
     // For production, show clickable link and copyable version
     messageLines.push(
-      t('rastar.link_step1'),
-      `<a href="${linkUrl}">${t('rastar.link_portal')}</a>`,
+      t(language, 'rastar.link_step1'),
+      `<a href="${linkUrl}">${t(language, 'rastar.link_portal')}</a>`,
       '',
-      t('rastar.link_copy'),
+      t(language, 'rastar.link_copy'),
       `<code>${linkUrl}</code>`,
     );
   }
   
   messageLines.push(
     '',
-    t('rastar.link_step2'),
-    t('rastar.link_step3'),
+    t(language, 'rastar.link_step2'),
+    t(language, 'rastar.link_step3'),
     '',
-    t('rastar.link_expires'),
+    t(language, 'rastar.link_expires'),
     '',
-    t('rastar.after_linking'),
-    t('rastar.feature_menu'),
-    t('rastar.feature_select'),
-    t('rastar.feature_manage'),
+    t(language, 'rastar.after_linking'),
+    t(language, 'rastar.feature_menu'),
+    t(language, 'rastar.feature_select'),
+    t(language, 'rastar.feature_manage'),
   );
   
   await ctx.reply(
@@ -497,7 +498,7 @@ export async function handleLinkRastarCommand(ctx: Context) {
 /**
  * Handle /rastar_status command
  */
-export async function handleRastarStatusCommand(ctx: Context) {
+export async function handleRastarStatusCommand(ctx: BotContext) {
   const telegramUserId = String(ctx.from?.id ?? '');
   if (!telegramUserId) {
     await ctx.reply('Could not identify your Telegram user.');
@@ -507,7 +508,7 @@ export async function handleRastarStatusCommand(ctx: Context) {
   console.log('[telegram-bot] /rastar_status', { telegramUserId });
 
   const language = await getUserLanguage(telegramUserId);
-  const t = getUserI18n(language);
+  // Translation helper (t) imported from i18n-helper.ts
   const token = await getRastarToken(telegramUserId);
   
   if (!token) {
@@ -542,16 +543,16 @@ export async function handleRastarStatusCommand(ctx: Context) {
     
     await ctx.reply(
       [
-        `⚠️ <b>${t('rastar.token_expired')}</b>`,
+        `⚠️ <b>${t(language, 'rastar.token_expired')}</b>`,
         '',
-        `👤 ${t('rastar.email')}: ${token.email}`,
-        `🆔 ${t('rastar.user_id_label')}: ${token.userId}`,
+        `👤 ${t(language, 'rastar.email')}: ${token.email}`,
+        `🆔 ${t(language, 'rastar.user_id_label')}: ${token.userId}`,
         '',
-        `❌ ${t('rastar.token_expired_message')}`,
+        `❌ ${t(language, 'rastar.token_expired_message')}`,
         '',
-        `🔄 <b>${t('rastar.reconnect_instructions')}</b>`,
-        `1. ${t('rastar.reconnect_step1')}`,
-        `2. ${t('rastar.reconnect_step2')}`,
+        `🔄 <b>${t(language, 'rastar.reconnect_instructions')}</b>`,
+        `1. ${t(language, 'rastar.reconnect_step1')}`,
+        `2. ${t(language, 'rastar.reconnect_step2')}`,
       ].join('\n'),
       { parse_mode: 'HTML', reply_markup: keyboard },
     );
@@ -562,19 +563,19 @@ export async function handleRastarStatusCommand(ctx: Context) {
 
   await ctx.reply(
     [
-      t('rastar.connected'),
+      t(language, 'rastar.connected'),
       '',
-      `👤 ${t('rastar.email')}: ${token.email}`,
-      t('rastar.user_id', { userId: token.userId }),
-      t('rastar.token_expires_in', { hours: expiresInHours, minutes: expiresInMinutes }),
+      `👤 ${t(language, 'rastar.email')}: ${token.email}`,
+      t(language, 'rastar.user_id', { userId: token.userId }),
+      t(language, 'rastar.token_expires_in', { hours: expiresInHours, minutes: expiresInMinutes }),
       '',
-      t('rastar.available_features'),
-      t('rastar.feature_menu'),
-      t('rastar.feature_select'),
-      t('rastar.feature_manage'),
+      t(language, 'rastar.available_features'),
+      t(language, 'rastar.feature_menu'),
+      t(language, 'rastar.feature_select'),
+      t(language, 'rastar.feature_manage'),
       '',
-      t('rastar.chat_instruction'),
-      t('rastar.example'),
+      t(language, 'rastar.chat_instruction'),
+      t(language, 'rastar.example'),
     ].join('\n'),
     { parse_mode: 'HTML', reply_markup: keyboard },
   );
@@ -583,7 +584,7 @@ export async function handleRastarStatusCommand(ctx: Context) {
 /**
  * Handle /rastar_unlink command
  */
-export async function handleRastarUnlinkCommand(ctx: Context) {
+export async function handleRastarUnlinkCommand(ctx: BotContext) {
   const telegramUserId = String(ctx.from?.id ?? '');
   if (!telegramUserId) {
     await ctx.reply('Could not identify your Telegram user.');
@@ -593,19 +594,19 @@ export async function handleRastarUnlinkCommand(ctx: Context) {
   console.log('[telegram-bot] /rastar_unlink', { telegramUserId });
 
   const language = await getUserLanguage(telegramUserId);
-  const t = getUserI18n(language);
+  // Translation helper (t) imported from i18n-helper.ts
   const token = await getRastarToken(telegramUserId);
   
   const keyboard = getRastarNotConnectedKeyboard(language);
   if (!token) {
     await ctx.reply(
       [
-        t('rastar.not_connected'),
+        t(language, 'rastar.not_connected'),
         '',
-        t('rastar.not_connected_message'),
+        t(language, 'rastar.not_connected_message'),
         '',
-        t('rastar.connect_instruction'),
-        t('rastar.connect_command'),
+        t(language, 'rastar.connect_instruction'),
+        t(language, 'rastar.connect_command'),
       ].join('\n'),
       { parse_mode: 'HTML', reply_markup: keyboard },
     );
@@ -616,23 +617,23 @@ export async function handleRastarUnlinkCommand(ctx: Context) {
   if (deleted) {
     await ctx.reply(
       [
-        t('rastar.disconnected'),
+        t(language, 'rastar.disconnected'),
         '',
-        t('rastar.disconnected_message', { email: token.email }),
+        t(language, 'rastar.disconnected_message', { email: token.email }),
         '',
-        t('rastar.reconnect_later'),
-        t('rastar.connect_command'),
+        t(language, 'rastar.reconnect_later'),
+        t(language, 'rastar.connect_command'),
       ].join('\n'),
       { parse_mode: 'HTML', reply_markup: keyboard },
     );
   } else {
     await ctx.reply(
       [
-        t('rastar.error'),
+        t(language, 'rastar.error'),
         '',
-        t('rastar.error_message'),
+        t(language, 'rastar.error_message'),
         '',
-        t('rastar.try_again'),
+        t(language, 'rastar.try_again'),
       ].join('\n'),
       { parse_mode: 'HTML', reply_markup: keyboard },
     );
@@ -642,7 +643,7 @@ export async function handleRastarUnlinkCommand(ctx: Context) {
 /**
  * Handle /menu command - Show keyboard menu
  */
-export async function handleMenuCommand(ctx: Context) {
+export async function handleMenuCommand(ctx: BotContext) {
   const telegramUserId = String(ctx.from?.id ?? '');
   const language = await getUserLanguage(telegramUserId);
   const keyboard = getMainMenuKeyboard(language);
@@ -667,3 +668,6 @@ export async function handleMenuCommand(ctx: Context) {
     { parse_mode: 'HTML', reply_markup: keyboard },
   );
 }
+
+
+

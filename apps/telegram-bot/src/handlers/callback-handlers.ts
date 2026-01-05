@@ -158,3 +158,32 @@ export async function handleRastarWeekMenuCallback(ctx: BotContext) {
     await ctx.reply(ctx.t('callback-errors-fetch-week-menu'));
   }
 }
+
+/**
+ * Handle thread action callbacks (from inline quick action buttons in threads)
+ */
+export async function handleThreadActionCallback(ctx: BotContext) {
+  try {
+    const action = ctx.callbackQuery?.data?.split(':')[1];
+    await ctx.answerCallbackQuery();
+    
+    // Map thread actions to message prompts
+    const actionMap: Record<string, string> = {
+      'my_cards': ctx.t('buttons-my-cards'),
+      'delayed_tasks': ctx.t('buttons-delayed-tasks'),
+      'today_menu': ctx.t('buttons-today-menu'),
+      'select_lunch': ctx.t('buttons-select-lunch'),
+      'clear_chat': ctx.t('buttons-clear-chat'),
+      'settings': ctx.t('buttons-settings'),
+    };
+    
+    const messageText = actionMap[action || ''];
+    if (messageText) {
+      const fakeMessageCtx = createMessageContext(ctx, messageText);
+      await handleAiMessage(fakeMessageCtx);
+    }
+  } catch (error) {
+    console.error('[callback] thread_action error:', error);
+    await ctx.reply(ctx.t('errors-generic'));
+  }
+}

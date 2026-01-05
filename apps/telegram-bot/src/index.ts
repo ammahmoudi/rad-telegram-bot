@@ -13,20 +13,23 @@
  * - Production-grade runner with graceful shutdown
  */
 
-console.log('[telegram-bot] Starting modern Grammy bot with runner...');
-
+// Load environment FIRST - before any imports that use Prisma
 import dotenv from 'dotenv';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import express from 'express';
-import { run, sequentialize } from '@grammyjs/runner';
 
-// Load environment
 if (process.env.NODE_ENV !== 'production') {
   const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
-  dotenv.config({ path: path.join(repoRoot, '.env.local') });
+  // Load .env first (defaults), then .env.local (overrides)
   dotenv.config({ path: path.join(repoRoot, '.env') });
+  dotenv.config({ path: path.join(repoRoot, '.env.local'), override: true });
 }
+
+console.log('[telegram-bot] Starting modern Grammy bot with runner...');
+console.log('[telegram-bot] DATABASE_URL:', process.env.DATABASE_URL);
+
+import express from 'express';
+import { run, sequentialize } from '@grammyjs/runner';
 
 import { createBot, setupErrorHandling, replyWithTopic } from './bot.js';
 import { mainMenu, showMainMenu } from './menus/index.js';
@@ -34,18 +37,14 @@ import { linkPlankaConversation, linkRastarConversation, newChatConversation } f
 import { createConversation } from '@grammyjs/conversations';
 import { initializeMcpServers } from './mcp-client.js';
 
-// Import command handlers (some still needed for direct calls)
-import {
-  handleStartCommand,
-  handleMenuCommand,
-  handleNewChatCommand,
-  handleHistoryCommand,
-  handleClearChatCommand,
-  handlePlankaStatusCommand,
-  handleRastarStatusCommand,
-  handlePlankaUnlinkCommand,
-  handleRastarUnlinkCommand,
-} from './handlers/commands/index.js';
+// Import Grammy commands plugin
+import { commands, commandNotFound } from '@grammyjs/commands';
+
+// Import command groups
+import { userCommands, chatCommands, integrationCommands } from './commands/index.js';
+import './commands/user.js';
+import './commands/chat.js';
+import './commands/integrations.js';
 
 import { handleAiMessage } from './handlers/ai-message.js';
 import { handleButtonCallback } from './handlers/button-callback.js';
@@ -94,72 +93,57 @@ bot.use(mainMenu);
 console.log('[grammy] ✓ Menu system registered');
 
 // ============================================================================
-// Command Handlers
+// Register Commands Plugin
 // ============================================================================
 
-// Start command - Show welcome and menu
-bot.command('start', handleStartCommand);
+// Enable commands context shortcut (ctx.setMyCommands)
+bot.use(commands());
 
-// Menu command - Show main menu
-bot.command('menu', handleMenuCommand);
+// Register all command groups
+bot.use(userCommands);
+bot.use(chatCommands);
+bot.use(integrationCommands);
 
-// Settings command - Navigate to settings in menu
-bot.command('settings', async (ctx) => {
-  await ctx.reply('⚙️ <b>Settings</b>', { reply_markup: mainMenu });
-});
+console.log('[grammy] ✓ Command groups registered');
 
-// Link commands - Start conversations
-bot.command('link_planka', async (ctx) => {
-  await ctx.conversation.enter('linkPlankaConversation');
-});
+// ============================================================================
+// Command Menu Sync Middleware
+// ============================================================================
 
-bot.command('link_rastar', async (ctx) => {
-  await ctx.conversation.enter('linkRastarConversation');
-});
+// Import command menu sync middleware
+import { syncCommandMenu } from './middleware/sync-commands.js';
 
-// Status commands - Direct handlers
-bot.command('planka_status', handlePlankaStatusCommand);
-bot.command('rastar_status', handleRastarStatusCommand);
+// Sync command menu based on user's bot language preference
+bot.use(syncCommandMenu);
 
-// Unlink commands - Direct handlers
-bot.command('planka_unlink', handlePlankaUnlinkCommand);
-bot.command('rastar_unlink', handleRastarUnlinkCommand);
+console.log('[grammy] ✓ Command menu sync middleware registered');
 
-// Chat management commands
-bot.command('new_chat', async (ctx) => {
-  await ctx.conversation.enter('newChatConversation');
-});
+// ============================================================================
+// Command Not Found Handler (Did you mean...?)
+// ============================================================================
 
-bot.command('history', handleHistoryCommand);
-bot.command('clear_chat', handleClearChatCommand);
+bot
+  .filter(commandNotFound([userCommands, chatCommands, integrationCommands], {
+    ignoreCase: true,
+    similarityThreshold: 0.4,
+  }))
+  .use(async (ctx) => {
+    if (ctx.commandSuggestion) {
+      await ctx.reply(
+        `🤔 Hmm... I don't know that command.\n\n` +
+        `Did you mean <code>${ctx.commandSuggestion}</code>?`,
+        { parse_mode: 'HTML' }
+      );
+    } else {
+      await ctx.reply(
+        `❌ Unknown command.\n\n` +
+        `Use /help to see all available commands.`,
+        { parse_mode: 'HTML' }
+      );
+    }
+  });
 
-// Help command
-bot.command('help', async (ctx) => {
-  await ctx.reply(
-    `<b>📚 Available Commands</b>\n\n` +
-    `<b>General:</b>\n` +
-    `/start - Start the bot\n` +
-    `/menu - Show main menu\n` +
-    `/settings - Bot settings\n` +
-    `/help - This help message\n\n` +
-    `<b>Chat:</b>\n` +
-    `/new_chat - Start new conversation\n` +
-    `/history - View chat history\n` +
-    `/clear_chat - Clear history\n\n` +
-    `<b>Planka:</b>\n` +
-    `/link_planka - Link your Planka account\n` +
-    `/planka_status - Check connection\n` +
-    `/planka_unlink - Unlink account\n\n` +
-    `<b>Rastar:</b>\n` +
-    `/link_rastar - Link your Rastar account\n` +
-    `/rastar_status - Check connection\n` +
-    `/rastar_unlink - Unlink account\n\n` +
-    `💬 <i>Just send me a message to chat!</i>`
-  );
-});
-
-console.log('[grammy] ✓ Commands registered');
-
+// ============================================================================
 // ============================================================================
 // Keyboard Button Handlers (reply keyboard text buttons)
 // ============================================================================
@@ -264,6 +248,38 @@ try {
   console.log('[telegram-bot] Bot will start without MCP tools');
 }
 
+// ============================================================================
+// Sync Command Menu with Telegram
+// ============================================================================
+
+try {
+  console.log('[telegram-bot] Syncing command menu...');
+  
+  // Combine all commands into one array for Telegram's command menu
+  // Order: User commands (including clear_chat) → Integration commands
+  // Note: chatCommands group is now empty (clear_chat moved to userCommands)
+  const allCommands = [
+    ...userCommands.commands.map(cmd => ({
+      command: cmd.name,
+      description: cmd.description
+    })),
+    ...integrationCommands.commands.map(cmd => ({
+      command: cmd.name,
+      description: cmd.description
+    }))
+  ];
+  
+  // Set all commands at once to Telegram
+  await bot.api.setMyCommands(allCommands);
+  
+  console.log(`[telegram-bot] ✓ Synced ${allCommands.length} commands to Telegram UI:`);
+  console.log(`[telegram-bot]   • User commands (including clear_chat): ${userCommands.commands.length}`);
+  console.log(`[telegram-bot]   • Integration commands: ${integrationCommands.commands.length}`);
+} catch (err) {
+  console.error('[telegram-bot] Failed to sync command menu:', err);
+  console.log('[telegram-bot] Bot will start without menu sync');
+}
+
 // Add concurrency control for session management
 bot.use(sequentialize((ctx) => {
   // Group updates by chat to avoid race conditions
@@ -292,6 +308,7 @@ console.log('[telegram-bot]   • @grammyjs/menu - Dynamic menus');
 console.log('[telegram-bot]   • @grammyjs/hydrate - Editable messages');
 console.log('[telegram-bot]   • @grammyjs/parse-mode - Auto HTML parsing');
 console.log('[telegram-bot]   • @grammyjs/runner - Production runner');
+console.log('[telegram-bot]   • @grammyjs/commands - Advanced command handling');
 console.log('[telegram-bot] ✓ Ready to accept messages!');
 
 // Graceful shutdown handlers
@@ -316,3 +333,4 @@ process.on('uncaughtException', (err) => {
   console.error('[telegram-bot] Uncaught exception:', err);
   process.exit(1);
 });
+

@@ -18,6 +18,9 @@ export interface KeyboardTranslations {
   'keyboards.select-lunch': string;
   'keyboards.rastar-status': string;
   
+  // Chat management
+  'keyboards.clear-chat': string;
+  
   // Settings
   'keyboards.settings': string;
 }
@@ -31,6 +34,11 @@ export function buildMainMenuKeyboard(
   translations: Partial<KeyboardTranslations>
 ) {
   const keyboard: string[][] = [];
+  
+  // Chat management button first (important action)
+  keyboard.push([
+    translations['keyboards.clear-chat'] || '🗑️ Clear Chat',
+  ]);
   
   // Planka buttons
   if (plankaLinked) {
@@ -60,7 +68,7 @@ export function buildMainMenuKeyboard(
     keyboard.push([translations['keyboards.rastar-status'] || '🍽️ Rastar Status']);
   }
   
-  // Settings button (always visible)
+  // Settings button (always visible at bottom)
   keyboard.push([translations['keyboards.settings'] || '⚙️ Settings']);
   
   return {

@@ -6,6 +6,7 @@ import {
   validatePlankaToken,
   createLinkState,
 } from '@rad/shared';
+import { withThreadContext } from '../../utils/thread-helper.js';
 import { stripTrailingSlash } from '../../utils/formatting.js';
 import {
   getPlankaConnectedKeyboard,
@@ -43,7 +44,7 @@ export async function handleLinkPlankaCommand(ctx: BotContext) {
         ctx.t('planka-step1'),
         ctx.t('planka-step2'),
       ].join('\n'),
-      { reply_markup: keyboard },
+      await withThreadContext(ctx, { reply_markup: keyboard }),
     );
     return;
   }

@@ -25,6 +25,13 @@ export async function handleButtonCallback(ctx: BotContext) {
     return;
   }
 
+  // Handle thread action callbacks (from inline quick action buttons in threads)
+  if (callbackData.startsWith('thread_action:')) {
+    const { handleThreadActionCallback } = await import('./callback-handlers.js');
+    await handleThreadActionCallback(ctx);
+    return;
+  }
+
   // Handle menu action buttons (link/unlink) - check before JSON parsing
   if (callbackData === 'planka_link') {
     await ctx.answerCallbackQuery();

@@ -22,6 +22,7 @@ export default async function DashboardPage() {
   const useHardcodedPrompts = (await getSystemConfig('USE_HARDCODED_PROMPTS')) || 'false';
   const plankaDailyReportCategoryId = (await getSystemConfig('PLANKA_DAILY_REPORT_CATEGORY_ID')) || '';
   const plankaAuthToken = (await getSystemConfig('PLANKA_AUTH_TOKEN')) || '';
+  const chatMode = (await getSystemConfig('CHAT_MODE')) || process.env.CHAT_MODE || 'thread';
   
   const config = {
     PLANKA_BASE_URL: plankaBaseUrl,
@@ -34,6 +35,7 @@ export default async function DashboardPage() {
     mcpProjectScanDelay,
     USE_HARDCODED_PROMPTS: useHardcodedPrompts,
     PLANKA_DAILY_REPORT_CATEGORY_ID: plankaDailyReportCategoryId,
+    CHAT_MODE: chatMode,
   };
   
   const hasApiKey = openRouterKey.length > 0;

@@ -2,9 +2,9 @@ import type { BotContext } from '../bot.js';
 import {
   handlePlankaStatusCommand,
   handleRastarStatusCommand,
-  handleNewChatCommand,
   handleHistoryCommand,
 } from './commands/index.js';
+import { handleNewChatCommand } from './commands/chat-management.js';
 import { handleAiMessage } from './ai-message.js';
 
 /**
@@ -22,14 +22,7 @@ export async function handleRastarStatusButton(ctx: BotContext) {
 }
 
 /**
- * Handle "💬 New Chat" keyboard button
- */
-export async function handleNewChatButton(ctx: BotContext) {
-  await handleNewChatCommand(ctx);
-}
-
-/**
- * Handle "📚 History" keyboard button
+ * Handle " History" keyboard button
  */
 export async function handleHistoryButton(ctx: BotContext) {
   await handleHistoryCommand(ctx);

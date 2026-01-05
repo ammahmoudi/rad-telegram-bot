@@ -1,16 +1,26 @@
 # Commands
 commands-start = Start
+commands-start-description = Start the bot and see the main menu
 commands-menu = Menu
-commands-link-planka = Link Planka
-commands-planka-status = Planka Status
-commands-planka-unlink = Unlink Planka
-commands-link-rastar = Link Rastar
-commands-rastar-status = Rastar Status
-commands-rastar-unlink = Unlink Rastar
-commands-new-chat = New Chat
-commands-history = History
-commands-clear-chat = Clear Chat
+commands-menu-description = Show main menu
 commands-settings = Settings
+commands-settings-description = Bot settings
+commands-help = Help
+commands-help-description = Show this help message
+commands-clear-chat = Clear Chat
+commands-clear-chat-description = Clear current conversation
+commands-link-planka = Link Planka
+commands-link-planka-description = Link your Planka account
+commands-planka-status = Planka Status
+commands-planka-status-description = Check Planka connection status
+commands-planka-unlink = Unlink Planka
+commands-planka-unlink-description = Unlink your Planka account
+commands-link-rastar = Link Rastar
+commands-link-rastar-description = Link your Rastar account
+commands-rastar-status = Rastar Status
+commands-rastar-status-description = Check Rastar connection status
+commands-rastar-unlink = Unlink Rastar
+commands-rastar-unlink-description = Unlink your Rastar account
 
 # AI Status
 ai-thinking = 💭 Thinking...
@@ -25,6 +35,28 @@ buttons-connect-rastar = 🍽️ Connect Rastar
 buttons-new-chat = 💬 New Chat
 buttons-history = 📚 History
 buttons-settings = ⚙️ Settings
+buttons-new-chat = 💬 New Chat
+buttons-clear-chat = 🗑️ Clear Chat
+
+# Chat management
+new-chat-confirm = ⚠️ <b>Start New Chat?</b>
+
+This will clear your conversation history.
+
+Type <b>yes</b> to confirm or <b>no</b> to cancel.
+chat-new-topic-created = ✨ New chat created: <b>{$topicName}</b>\nWelcome to your new conversation!
+chat-new-chat-only-private = This feature is only available in private chats.
+chat-forum-mode-required = To use this feature, Forum Topic Mode must be enabled in @BotFather.
+chat-new-chat-failed = Failed to create new chat. Please try again.
+chat-no-active-thread = No active conversation to clear.
+chat-cleared-successfully = ✅ Chat cleared successfully.
+chat-history-cleared = ✅ <b>Chat history cleared!</b>
+
+Your previous messages are still visible, but I've forgotten our conversation history.
+
+Feel free to start a fresh conversation!
+chat-clear-only-private = This feature is only available in private chats.
+chat-clear-failed = Failed to clear chat. Please try again.
 buttons-today-menu = What's today's menu?
 buttons-unselected-days = Which days haven't I selected food?
 buttons-delayed-tasks = Show my delayed tasks
@@ -258,6 +290,7 @@ prompts-unselected-days = Show me all days where I haven't selected food yet
 prompts-week-menu = Show me the complete food menu for this week
 
 # Errors
+errors-generic = ⚠️ Something went wrong. Please try again in a moment.
 errors-generic-title = ⚠️ Error
 errors-generic-description = Something went wrong while processing your request.
 errors-try-again = Please try again in a moment.

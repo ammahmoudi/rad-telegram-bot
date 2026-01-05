@@ -5,7 +5,7 @@
 
 import type { BotContext } from '../bot.js';
 import type { ChatMessage } from '@rad/shared';
-import { addMessage } from '@rad/shared';
+import { addMessage, getUserLanguage } from '@rad/shared';
 import { executeMcpTool } from '../planka-tools.js';
 import { executeRastarTool } from '../rastar-tools.js';
 import { executeTimeTool } from '../time-tools.js';
@@ -38,6 +38,14 @@ export async function executeAiTools(
   const allToolCallsMade: Array<{ name: string; args: any }> = [];
   const allReasoningTexts: string[] = [];
   let loadingFrameIndex = 0;
+  
+  // Get user's language for translated messages
+  const telegramUserId = ctx.from?.id?.toString();
+  const telegramLanguage = ctx.from?.language_code;
+  const language = telegramUserId ? await getUserLanguage(telegramUserId, telegramLanguage) : 'fa';
+  const toolsLabel = language === 'en' ? 'Tools' : 'ابزارها';
+  const executingLabel = language === 'en' ? 'Executing' : 'در حال اجرا';
+  const reasoningLabel = language === 'en' ? 'Reasoning...' : 'در حال تحلیل...';
   
   console.log('[ai-tools] Starting tool execution...');
   
@@ -114,16 +122,16 @@ export async function executeAiTools(
               .join('\n\n');
             if (textDetails) {
               allReasoningTexts.push(textDetails);
-              tempReasoningDisplay = '🧠 <b>Reasoning...</b>\n\n<blockquote>' + 
+              tempReasoningDisplay = `🧠 <b>${reasoningLabel}</b>\n\n<blockquote>` + 
                 markdownToTelegramHtml(textDetails).substring(0, 500) + 
                 (textDetails.length > 500 ? '...' : '') + 
                 '</blockquote>\n\n';
             }
           }
           
-          let tempToolsDisplay = `<b>🛠️ Tools ${loadingEmoji}</b>\n`;
+          let tempToolsDisplay = `<b>🛠️ ${toolsLabel} ${loadingEmoji}</b>\n`;
           tempToolsDisplay += toolCallsDisplay.map(t => `  ${t}`).join('\n') + '\n';
-          tempToolsDisplay += `\n💭 <i>Executing ${toolDisplayName.replace('🔧 ', '')}...</i> ${loadingEmoji}`;
+          tempToolsDisplay += `\n💭 <i>${executingLabel} ${toolDisplayName.replace('🔧 ', '')}...</i> ${loadingEmoji}`;
           
           // Ensure total content doesn't exceed Telegram's limit
           let tempContent = tempReasoningDisplay + tempToolsDisplay;

@@ -1,16 +1,26 @@
 # Commands
 commands-start = شروع
+commands-start-description = شروع ربات و مشاهده منوی اصلی
 commands-menu = منو
-commands-link-planka = اتصال پلانکا
-commands-planka-status = وضعیت پلانکا
-commands-planka-unlink = قطع اتصال پلانکا
-commands-link-rastar = اتصال رستار
-commands-rastar-status = وضعیت رستار
-commands-rastar-unlink = قطع اتصال رستار
-commands-new-chat = گفتگوی جدید
-commands-history = تاریخچه
-commands-clear-chat = پاک کردن گفتگو
+commands-menu-description = نمایش منوی اصلی
 commands-settings = تنظیمات
+commands-settings-description = تنظیمات ربات
+commands-help = راهنما
+commands-help-description = نمایش پیام راهنما
+commands-clear-chat = پاک کردن گفتگو
+commands-clear-chat-description = پاک کردن گفتگوی فعلی
+commands-link-planka = اتصال پلانکا
+commands-link-planka-description = اتصال حساب پلانکای خود
+commands-planka-status = وضعیت پلانکا
+commands-planka-status-description = بررسی وضعیت اتصال پلانکا
+commands-planka-unlink = قطع اتصال پلانکا
+commands-planka-unlink-description = قطع اتصال حساب پلانکا
+commands-link-rastar = اتصال رستار
+commands-link-rastar-description = اتصال حساب رستار خود
+commands-rastar-status = وضعیت رستار
+commands-rastar-status-description = بررسی وضعیت اتصال رستار
+commands-rastar-unlink = قطع اتصال رستار
+commands-rastar-unlink-description = قطع اتصال حساب رستار
 
 # AI Status
 ai-thinking = 💭 در حال فکر کردن...
@@ -25,6 +35,26 @@ buttons-connect-rastar = 🍽️ اتصال به رستار
 buttons-new-chat = 💬 گفتگوی جدید
 buttons-history = 📚 تاریخچه
 buttons-settings = ⚙️ تنظیمات
+buttons-new-chat = 💬 گفتگوی جدید
+buttons-clear-chat = 🗑️ پاک کردن گفتگو
+
+# Chat managementnew-chat-confirm = ⚠️ <b>شروع گفت‌وگوی جدید؟</b>
+
+این کار تاریخچه گفت‌وگوی شما را پاک می‌کند.
+
+برای تأیید <b>بله</b> و برای لغو <b>خیر</b> تایپ کنید.chat-new-topic-created = ✨ گفتگوی جدید ایجاد شد: <b>{$topicName}</b>\nبه گفتگوی تازه خوش آمدید!
+chat-new-chat-only-private = این قابلیت فقط در چت خصوصی در دسترس است.
+chat-forum-mode-required = برای استفاده از این قابلیت، باید حالت Forum Topic در @BotFather فعال شده باشد.
+chat-new-chat-failed = خطا در ایجاد گفتگوی جدید. لطفاً دوباره تلاش کنید.
+chat-no-active-thread = هیچ گفتگوی فعالی برای پاک کردن وجود ندارد.
+chat-cleared-successfully = ✅ گفتگو با موفقیت پاک شد.
+chat-history-cleared = ✅ <b>تاریخچه گفتگو پاک شد!</b>
+
+پیام‌های قبلی شما هنوز قابل مشاهده هستند، اما من تاریخچه گفتگوی ما را فراموش کرده‌ام.
+
+به راحتی می‌توانید گفتگوی تازه‌ای شروع کنید!
+chat-clear-only-private = این قابلیت فقط در چت خصوصی در دسترس است.
+chat-clear-failed = خطا در پاک کردن گفتگو. لطفاً دوباره تلاش کنید.
 buttons-today-menu = منوی امروز چیه؟
 buttons-unselected-days = کدوم روزا غذا انتخاب نکردم؟
 buttons-delayed-tasks = تسک‌های عقب افتاده رو نشون بده
@@ -262,6 +292,7 @@ prompts-unselected-days = تمام روزهایی که غذا انتخاب نک�
 prompts-week-menu = منوی کامل غذای این هفته رو نشون بده
 
 # Errors
+errors-generic = ⚠️ مشکلی پیش اومد. لطفاً کمی بعد دوباره امتحان کنید.
 errors-generic-title = ⚠️ خطا
 errors-generic-description = در پردازش درخواست شما مشکلی پیش اومد.
 errors-try-again = لطفاً یه لحظه صبر کنید و دوباره امتحان کنید.

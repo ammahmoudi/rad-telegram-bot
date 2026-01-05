@@ -2,6 +2,7 @@ import type { BotContext } from '../../bot.js';
 import { getUserLanguage } from '@rad/shared';
 import { getAiClient } from '../../services/ai-client.js';
 import { getMainMenuKeyboard } from '../keyboards.js';
+import { withThreadContext } from '../../utils/thread-helper.js';
 
 /**
  * Handle /start command
@@ -10,7 +11,14 @@ export async function handleStartCommand(ctx: BotContext) {
   console.log('[telegram-bot] /start', { fromId: ctx.from?.id, username: ctx.from?.username });
   
   const telegramUserId = String(ctx.from?.id ?? '');
-  const language = await getUserLanguage(telegramUserId);
+  // Get Telegram's language setting from user object
+  const telegramLanguage = ctx.from?.language_code;
+  console.log('[start] Telegram language code:', telegramLanguage);
+  
+  // Get language with smart fallback: DB override > Telegram language > Default (FA)
+  const language = await getUserLanguage(telegramUserId, telegramLanguage);
+  console.log('[start] Selected language:', language, '(Telegram:', telegramLanguage, ')');
+  
   const name = ctx.from?.first_name || 'there';
   const client = await getAiClient();
   const hasAI = client !== null;
@@ -54,6 +62,68 @@ export async function handleStartCommand(ctx: BotContext) {
   ctx.session.rastarLinked = !!rastarToken;
   ctx.session.language = language as 'en' | 'fa';
   
+  // Force sync command menu with current language immediately
+  try {
+    const { clearCommandCache } = await import('../../middleware/sync-commands.js');
+    const { userCommands, integrationCommands } = await import('../../commands/index.js');
+    
+    clearCommandCache(ctx.from?.id || 0);
+    console.log('[start] Cleared command cache, syncing commands to', language);
+    
+    // Build commands with proper language
+    const commandsToSet = [];
+    for (const group of [userCommands, integrationCommands]) {
+      for (const cmd of group.commands) {
+        let description = cmd.description;
+        
+        // Debug: Log the entire command structure to find where localizations are stored
+        console.log('[start] Command structure for', cmd.name, ':', JSON.stringify(cmd, null, 2));
+        console.log('[start] Command keys:', Object.keys(cmd));
+        
+        if (language === 'fa') {
+          const cmdAny = cmd as any;
+          
+          // Try all possible locations
+          if (cmdAny._localizations) {
+            console.log('[start] Found _localizations:', cmdAny._localizations);
+            if (Array.isArray(cmdAny._localizations)) {
+              const faLoc = cmdAny._localizations.find((loc: any) => loc.languageCode === 'fa');
+              if (faLoc?.description) {
+                description = faLoc.description;
+                console.log('[start] ✓ Using FA description from _localizations:', description);
+              }
+            }
+          } else if (cmdAny.localizations) {
+            console.log('[start] Found localizations:', cmdAny.localizations);
+            if (Array.isArray(cmdAny.localizations)) {
+              const faLoc = cmdAny.localizations.find((loc: any) => loc.languageCode === 'fa');
+              if (faLoc?.description) {
+                description = faLoc.description;
+                console.log('[start] ✓ Using FA description from localizations:', description);
+              }
+            }
+          } else {
+            console.log('[start] No localizations found for command:', cmd.name);
+          }
+        }
+        
+        commandsToSet.push({
+          command: typeof cmd.name === 'string' ? cmd.name : String(cmd.name),
+          description: description
+        });
+      }
+    }
+    
+    // Set commands for this specific user
+    await ctx.api.setMyCommands(commandsToSet, {
+      scope: { type: 'chat', chat_id: ctx.from?.id || 0 }
+    });
+    
+    console.log(`[start] ✓ Synced ${commandsToSet.length} commands in ${language}`);
+  } catch (err) {
+    console.error('[start] Failed to sync commands:', err);
+  }
+  
   // Build reply keyboard with user's language and connection status
   console.log('[start] About to create keyboard for language:', language);
   console.log('[start] Connection status:', { planka: ctx.session.plankaLinked, rastar: ctx.session.rastarLinked });
@@ -61,19 +131,22 @@ export async function handleStartCommand(ctx: BotContext) {
     plankaLinked: ctx.session.plankaLinked,
     rastarLinked: ctx.session.rastarLinked,
   });
-  console.log('[start] Keyboard created, type:', typeof keyboard);
+  console.log('[start] Keyboard created');
   
   // Get welcome message from user's pack or default pack
   const { getWelcomeMessage } = await import('../../config/welcome-messages.js');
   const welcomeMessage = await getWelcomeMessage(language as 'fa' | 'en', telegramUserId, name);
   
-  console.log('[start] Sending reply with keyboard');
-  await ctx.reply(welcomeMessage, { parse_mode: 'HTML', reply_markup: keyboard });
-  console.log('[start] Reply sent successfully');
+  // Get inline menu to attach to welcome message
+  const { mainMenu } = await import('../../menus/index.js');
   
-  // Show Grammy inline menu under the welcome message
-  const { showMainMenu } = await import('../../menus/index.js');
-  await showMainMenu(ctx);
+  console.log('[start] Sending ONE message: welcome text + inline menu buttons');
+  // Send welcome message with inline menu buttons ONLY
+  await ctx.reply(welcomeMessage, await withThreadContext(ctx, { 
+    parse_mode: 'HTML',
+    reply_markup: mainMenu
+  }));
+  console.log('[start] Reply sent successfully');
 }
 
 /**
@@ -81,7 +154,8 @@ export async function handleStartCommand(ctx: BotContext) {
  */
 export async function handleMenuCommand(ctx: BotContext) {
   const telegramUserId = String(ctx.from?.id ?? '');
-  const language = await getUserLanguage(telegramUserId);
+  const telegramLanguage = ctx.from?.language_code;
+  const language = await getUserLanguage(telegramUserId, telegramLanguage);
   const keyboard = getMainMenuKeyboard(language, {
     plankaLinked: ctx.session.plankaLinked,
     rastarLinked: ctx.session.rastarLinked,
@@ -104,7 +178,7 @@ export async function handleMenuCommand(ctx: BotContext) {
       '',
       ctx.t('menu-or-type'),
     ].join('\n'),
-    { parse_mode: 'HTML', reply_markup: keyboard },
+    await withThreadContext(ctx, { parse_mode: 'HTML', reply_markup: keyboard }),
   );
   
   // Also show Grammy inline menu

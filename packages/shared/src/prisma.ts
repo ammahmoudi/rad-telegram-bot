@@ -56,6 +56,8 @@ export function getPrisma(): import('@prisma/client').PrismaClient {
   // Build/validate database URL (this ensures directory exists for file: URLs)
   let databaseUrl = process.env.DATABASE_URL || buildSqliteDatabaseUrl();
   
+  console.log('[Prisma] Final database URL:', databaseUrl);
+  
   // Ensure directory exists for file-based databases and convert to absolute path
   if (databaseUrl.startsWith('file:')) {
     const filePathMatch = databaseUrl.match(/^file:(.+)$/);

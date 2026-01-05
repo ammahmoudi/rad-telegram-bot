@@ -26,11 +26,16 @@ export interface SessionData {
   messageCount: number;
   lastInteraction?: number;
   
-  // Topic support (Telegram API 8.0+)
+  // Topic support for private chats (Bot API 9.3+)
   topicContext?: {
     threadId?: number;
     isTopicMessage?: boolean;
+    topicName?: string;
   };
+  currentChatTopicId?: number; // Active topic for current chat session
+  
+  // Thread-based chat sessions (Bot API 9.3+)
+  threadSessions?: Record<number, string>; // Map thread ID to chat session ID
   
   // AI conversation state
   conversationId?: string;
@@ -81,10 +86,10 @@ export function createI18n(): I18n<BotContext> {
         return ctx.session.language;
       }
       
-      // 2. Check database
+      // 2. Check database with Telegram language fallback
       if (ctx.from?.id) {
         try {
-          const lang = await getUserLanguage(String(ctx.from.id));
+          const lang = await getUserLanguage(String(ctx.from.id), ctx.from.language_code);
           if (lang === 'fa' || lang === 'en') {
             if (ctx.session) {
               ctx.session.language = lang;
@@ -232,11 +237,14 @@ export function createBot(token: string): Bot<BotContext> {
   });
   
   // ============================================================================
-  // Custom Middleware #3: Topic Detection (API 8.0+)
+  // Custom Middleware #3: Topic Management (Bot API 9.3+)
   // ============================================================================
+  // Bot API 9.3 supports forum topics in both supergroups AND private chats
+  // Forum topic mode must be enabled in bot settings via @BotFather
   bot.use(async (ctx, next) => {
     const message = ctx.message || ctx.callbackQuery?.message;
     
+    // Detect topic from incoming message (works in both private chats and groups)
     if (message && 'message_thread_id' in message) {
       const threadId = (message as any).message_thread_id;
       const isTopicMessage = (message as any).is_topic_message;
@@ -246,11 +254,29 @@ export function createBot(token: string): Bot<BotContext> {
           threadId,
           isTopicMessage,
         };
+        ctx.session.currentChatTopicId = threadId;
+      }
+    }
+    
+    // Detect and track topic from incoming messages
+    // In private chats with forum topics enabled, users create topics manually
+    // Bot API 9.3: Bots can send to, edit, and delete topics, but cannot create them in private chats
+    if (ctx.chat?.type === 'private' && ctx.session && message && 'message_thread_id' in message) {
+      const threadId = message.message_thread_id;
+      if (threadId && threadId !== ctx.session.currentChatTopicId) {
+        ctx.session.currentChatTopicId = threadId;
+        console.log('[bot] Detected topic switch:', { 
+          chatId: ctx.chat.id, 
+          threadId,
+          isTopicMessage: (message as any).is_topic_message,
+          fromUser: ctx.from?.username
+        });
       }
     }
     
     await next();
   });
+  
   console.log('[grammy] ✓ All middleware loaded');
   
   return bot;

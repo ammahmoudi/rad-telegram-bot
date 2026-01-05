@@ -1,4 +1,5 @@
 import type { Context } from 'grammy';
+import type { BotContext } from '../bot.js';
 import type { Message } from 'grammy/types';
 import type { OpenRouterClient, ChatMessage } from '@rad/shared';
 import type { ChatCompletionTool } from 'openai/resources/chat/completions';
@@ -13,7 +14,7 @@ import { LOADING_FRAMES } from '../types/streaming.js';
  * Supports topics in private chats via message_thread_id parameter
  */
 export async function handleStreamingResponse(
-  ctx: Context,
+  ctx: BotContext,
   client: OpenRouterClient,
   trimmedHistory: ChatMessage[],
   systemPrompt: string,
@@ -43,12 +44,12 @@ export async function handleStreamingResponse(
   let toolCallsDisplay: string[] = [];
   let activeTools = new Set<string>();
   
-  // Generate unique draft_id for this streaming session
-  const draftId = sentMessage.message_id;
+  // Generate unique draft_id for this streaming session (use update_id per Grammy API)
+  const draftId = ctx.update.update_id;
   let useNativeStreaming = true;
 
   // Extract topic information if available (Grammy Bot API 9.3+ support)
-  const messageThreadId = ctx.message?.message_thread_id || ctx.msg?.message_thread_id;
+  const messageThreadId = ctx.session?.currentChatTopicId || ctx.message?.message_thread_id || ctx.msg?.message_thread_id;
   
   console.log('[message-streaming] Topic info:', {
     messageThreadId,
@@ -143,7 +144,7 @@ export async function handleStreamingResponse(
     }
     
     try {
-      // Try native streaming first (sendMessageDraft) - Bot API 8.1+
+      // Try native streaming first (sendMessageDraft) - Bot API 8.1+ (Grammy 1.39.2+)
       if (useNativeStreaming && ctx.chat?.id) {
         try {
           await ctx.api.sendMessageDraft(

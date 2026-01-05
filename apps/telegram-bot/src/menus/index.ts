@@ -107,7 +107,28 @@ const languageMenu = new Menu<BotContext>('language-menu')
     const { setUserLanguage } = await import('@rad/shared');
     await setUserLanguage(telegramUserId, 'en');
     ctx.session.language = 'en';
-    await ctx.reply('✅ Language changed to English');
+    
+    // Clear cache and immediately sync commands with new language
+    const { clearCommandCache } = await import('../middleware/sync-commands.js');
+    const { userCommands, integrationCommands } = await import('../commands/index.js');
+    clearCommandCache(ctx.from?.id || 0);
+    
+    // Build and set commands in English immediately
+    const commandsToSet = [];
+    for (const group of [userCommands, integrationCommands]) {
+      for (const cmd of group.commands) {
+        commandsToSet.push({
+          command: typeof cmd.name === 'string' ? cmd.name : String(cmd.name),
+          description: cmd.description // English is default
+        });
+      }
+    }
+    
+    await ctx.api.setMyCommands(commandsToSet, {
+      scope: { type: 'chat', chat_id: ctx.from?.id || 0 }
+    });
+    
+    await ctx.reply('✅ Language changed to English\n\n💡 <i>This overrides your Telegram language setting for this bot only.</i>', { parse_mode: 'HTML' });
     ctx.menu.nav('settings-menu');
   })
   .row()
@@ -117,7 +138,71 @@ const languageMenu = new Menu<BotContext>('language-menu')
     const { setUserLanguage } = await import('@rad/shared');
     await setUserLanguage(telegramUserId, 'fa');
     ctx.session.language = 'fa';
-    await ctx.reply('✅ زبان به فارسی تغییر کرد');
+    
+    // Clear cache and immediately sync commands with new language
+    const { clearCommandCache } = await import('../middleware/sync-commands.js');
+    const { userCommands, integrationCommands } = await import('../commands/index.js');
+    clearCommandCache(ctx.from?.id || 0);
+    
+    // Build and set commands in Farsi immediately
+    const commandsToSet = [];
+    for (const group of [userCommands, integrationCommands]) {
+      for (const cmd of group.commands) {
+        let description = cmd.description;
+        
+        // Get Farsi localization
+        const cmdAny = cmd as any;
+        if (cmdAny._localizations && Array.isArray(cmdAny._localizations)) {
+          const faLoc = cmdAny._localizations.find((loc: any) => loc.languageCode === 'fa');
+          if (faLoc?.description) description = faLoc.description;
+        } else if (cmdAny.localizations && Array.isArray(cmdAny.localizations)) {
+          const faLoc = cmdAny.localizations.find((loc: any) => loc.languageCode === 'fa');
+          if (faLoc?.description) description = faLoc.description;
+        }
+        
+        commandsToSet.push({
+          command: typeof cmd.name === 'string' ? cmd.name : String(cmd.name),
+          description: description
+        });
+      }
+    }
+    
+    await ctx.api.setMyCommands(commandsToSet, {
+      scope: { type: 'chat', chat_id: ctx.from?.id || 0 }
+    });
+    
+    await ctx.reply('✅ زبان به فارسی تغییر کرد\n\n💡 <i>این تنظیم زبان تلگرام شما را فقط برای این ربات تغییر می‌دهد.</i>', { parse_mode: 'HTML' });
+    ctx.menu.nav('settings-menu');
+  })
+  .row()
+  .text('🔄 Use Telegram Language', async (ctx) => {
+    await ctx.answerCallbackQuery();
+    const telegramUserId = String(ctx.from?.id || '');
+    
+    // Delete language preference to use Telegram's language
+    const { getPrisma } = await import('@rad/shared');
+    try {
+      await getPrisma().userPreferences.delete({
+        where: { telegramUserId }
+      });
+    } catch (err) {
+      // It's okay if preference doesn't exist
+    }
+    
+    // Detect Telegram language
+    const telegramLang = ctx.from?.language_code?.toLowerCase();
+    const detectedLang = (telegramLang?.startsWith('en') ? 'en' : 'fa') as 'en' | 'fa';
+    ctx.session.language = detectedLang;
+    
+    // Clear command cache
+    const { clearCommandCache } = await import('../middleware/sync-commands.js');
+    clearCommandCache(ctx.from?.id || 0);
+    
+    const message = detectedLang === 'en' 
+      ? `✅ Using Telegram language (${ctx.from?.language_code || 'en'})\n\n💡 <i>Language will auto-detect from your Telegram settings.</i>`
+      : `✅ استفاده از زبان تلگرام (${ctx.from?.language_code || 'fa'})\n\n💡 <i>زبان به صورت خودکار از تنظیمات تلگرام شما تشخیص داده می‌شود.</i>`;
+    
+    await ctx.reply(message, { parse_mode: 'HTML' });
     ctx.menu.nav('settings-menu');
   })
   .row()

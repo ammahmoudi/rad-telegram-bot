@@ -72,10 +72,37 @@ export async function handleAiMessage(ctx: BotContext): Promise<void> {
       console.log('[ai-message] Could not send typing indicator');
     }
 
-    // Get or create chat session
-    const session = await getOrCreateChatSession(telegramUserId);
+    // Get thread ID based on chat mode
+    // In simple mode: always undefined
+    // In thread mode: from session/message/callback
+    const { getSystemConfig } = await import('@rad/shared');
+    const chatMode = await getSystemConfig('CHAT_MODE') || process.env.CHAT_MODE || 'thread';
+    const isSimpleMode = chatMode.toLowerCase() === 'simple';
     
-    // Get conversation history
+    let threadId = isSimpleMode 
+      ? undefined 
+      : (ctx.session?.currentChatTopicId 
+        || ctx.message?.message_thread_id 
+        || ctx.callbackQuery?.message?.message_thread_id);
+    
+    console.log('[ai-message] Thread detection:', {
+      chatMode,
+      isSimpleMode,
+      sessionThreadId: ctx.session?.currentChatTopicId,
+      messageThreadId: ctx.message?.message_thread_id,
+      callbackThreadId: ctx.callbackQuery?.message?.message_thread_id,
+      finalThreadId: threadId,
+      chatType: ctx.chat?.type,
+      hasThread: !!threadId
+    });
+    
+    // Get or create THREAD-SPECIFIC chat session
+    const session = await getOrCreateThreadSession(telegramUserId, threadId);
+    
+    // Extract reply context if user is replying to a message
+    const replyContext = await extractReplyContext(ctx);
+    
+    // Get conversation history for THIS THREAD
     const history = await getSessionMessages(session.id);
     
     // Convert MessageRecord[] to ChatMessage[] for trimConversationHistory
@@ -93,8 +120,25 @@ export async function handleAiMessage(ctx: BotContext): Promise<void> {
       128000
     );
     
-    // Add user message to database
-    await addMessage(session.id, 'user', text);
+    // Prepare user message with reply context if available
+    const userMessage = replyContext 
+      ? `[Replying to: "${replyContext}"]\n\n${text}`
+      : text;
+    
+    // Add user message to database with metadata
+    await addMessage(
+      session.id, 
+      'user', 
+      userMessage,
+      undefined,
+      undefined,
+      undefined,
+      {
+        telegramMessageId: ctx.message?.message_id,
+        replyToMessageId: ctx.message?.reply_to_message?.message_id,
+        threadId: threadId,
+      }
+    );
     
     // Add user message to history
     trimmedHistory.push({
@@ -106,8 +150,22 @@ export async function handleAiMessage(ctx: BotContext): Promise<void> {
     const tools = await getAiTools(telegramUserId);
     console.log('[ai-message] Available tools:', tools.length);
     
+    // Use the same thread ID we detected earlier for all operations
+    const messageThreadId = threadId;
+    
     // Send initial "Thinking..." message
-    const sentMessage = await ctx.reply(ctx.t('ai-thinking'));
+    // Send "thinking" message with proper thread handling
+    // Include thread ID and reply for context in both general chat and threads
+    const replyOptions: any = {};
+    
+    if (messageThreadId) {
+      replyOptions.message_thread_id = messageThreadId;
+    }
+    if (ctx.message?.message_id) {
+      replyOptions.reply_to_message_id = ctx.message.message_id;
+    }
+    
+    const sentMessage = await ctx.reply(ctx.t('ai-thinking'), replyOptions);
     
     // Handle streaming response
     let streamResult;
@@ -160,11 +218,23 @@ export async function handleAiMessage(ctx: BotContext): Promise<void> {
         false
       );
       
-      // Add final assistant message to database
-      await addMessage(session.id, 'assistant', finalContent);
+      // Send final response and get the message ID
+      const finalMessageId = await sendFinalResponse(ctx, sentMessage, finalContent, telegramUserId, messageThreadId);
       
-      // Send final response
-      await sendFinalResponse(ctx, sentMessage, finalContent, telegramUserId);
+      // Add final assistant message to database with metadata
+      await addMessage(
+        session.id, 
+        'assistant', 
+        finalContent,
+        undefined,
+        undefined,
+        undefined,
+        {
+          telegramMessageId: finalMessageId,
+          replyToMessageId: ctx.message?.message_id, // Replying to user's message
+          threadId: messageThreadId,
+        }
+      );
     } else {
       // No tools called, just send the response
       console.log('[ai-message] No tools called');
@@ -176,11 +246,23 @@ export async function handleAiMessage(ctx: BotContext): Promise<void> {
         false
       );
       
-      // Add final assistant message to database
-      await addMessage(session.id, 'assistant', finalContent);
+      // Send final response and get the message ID
+      const finalMessageId = await sendFinalResponse(ctx, sentMessage, finalContent, telegramUserId, messageThreadId);
       
-      // Send final response
-      await sendFinalResponse(ctx, sentMessage, finalContent, telegramUserId);
+      // Add final assistant message to database with metadata
+      await addMessage(
+        session.id, 
+        'assistant', 
+        finalContent,
+        undefined,
+        undefined,
+        undefined,
+        {
+          telegramMessageId: finalMessageId,
+          replyToMessageId: ctx.message?.message_id, // Replying to user's message
+          threadId: messageThreadId,
+        }
+      );
     }
     
   } catch (error) {
@@ -219,3 +301,56 @@ async function updateUserInfo(ctx: BotContext, telegramUserId: string): Promise<
     console.log('[ai-message] Could not update user info:', dbError);
   }
 }
+
+/**
+ * Get or create thread-specific chat session
+ * Each thread has its own conversation history
+ */
+async function getOrCreateThreadSession(telegramUserId: string, threadId?: number) {
+  const prisma = getPrisma();
+  
+  // Try to find existing session for this thread
+  let session = await prisma.chatSession.findFirst({
+    where: {
+      telegramUserId,
+      threadId: threadId || null,
+    },
+  });
+  
+  // Create new session if not found
+  if (!session) {
+    session = await prisma.chatSession.create({
+      data: {
+        telegramUserId,
+        threadId: threadId || null,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      },
+    });
+    console.log('[ai-message] Created new thread session:', { sessionId: session.id, threadId });
+  }
+  
+  return session;
+}
+
+/**
+ * Extract reply context from message
+ * If user is replying to a bot or their own message, extract that context
+ */
+async function extractReplyContext(ctx: BotContext): Promise<string | null> {
+  const replyToMessage = ctx.message?.reply_to_message;
+  
+  if (!replyToMessage) {
+    return null;
+  }
+  
+  // Extract text from the message being replied to
+  if ('text' in replyToMessage && replyToMessage.text) {
+    const replyText = replyToMessage.text;
+    // Truncate to first 200 chars to avoid context bloat
+    return replyText.length > 200 ? replyText.substring(0, 200) + '...' : replyText;
+  }
+  
+  return null;
+}
+

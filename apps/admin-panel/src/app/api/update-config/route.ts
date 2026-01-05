@@ -21,6 +21,7 @@ export async function POST(request: Request) {
     const mcpProjectScanDelay = formData.get('mcpProjectScanDelay');
     const useHardcodedPrompts = formData.get('useHardcodedPrompts');
     const plankaDailyReportCategoryId = formData.get('plankaDailyReportCategoryId');
+    const chatMode = formData.get('chatMode');
 
     // Update Planka Base URL if provided
     if (plankaBaseUrl && typeof plankaBaseUrl === 'string' && plankaBaseUrl.trim()) {
@@ -79,6 +80,14 @@ export async function POST(request: Request) {
 
     // Update hardcoded prompts setting
     await setSystemConfig('USE_HARDCODED_PROMPTS', useHardcodedPrompts === 'on' ? 'true' : 'false');
+
+    // Update chat mode setting (thread or simple)
+    if (chatMode && typeof chatMode === 'string') {
+      const mode = chatMode.toLowerCase();
+      if (mode === 'thread' || mode === 'simple') {
+        await setSystemConfig('CHAT_MODE', mode);
+      }
+    }
 
     // Return success response
     return NextResponse.json({ 

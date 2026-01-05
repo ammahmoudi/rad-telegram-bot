@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { LanguageProvider } from '@/contexts/LanguageContext';
-import { Toaster } from 'react-hot-toast';
+import { Toaster } from 'sonner';
 
 export const runtime = 'nodejs';
 

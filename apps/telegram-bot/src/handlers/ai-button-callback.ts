@@ -114,15 +114,21 @@ async function handleSendMessage(
   }
 
   // Get topic information if available (Grammy Bot API 9.3+ support)
-  const messageThreadId = ctx.callbackQuery?.message?.message_thread_id;
+  // In private chats, users create topics manually - bot detects and responds in that topic
+  let messageThreadId = ctx.callbackQuery?.message?.message_thread_id;
 
-  // Show the user's action in the chat (echo the message as if they sent it)
-  // This makes the conversation flow more natural
+  // Use existing topic from session if available
+  if (!messageThreadId && ctx.session?.currentChatTopicId) {
+    messageThreadId = ctx.session.currentChatTopicId;
+  }
+
+  // Send the message as a reply to the AI's message
   try {
-    const sendOptions: Record<string, any> = { 
-      reply_to_message_id: ctx.callbackQuery?.message?.message_id 
+    const sendOptions: Record<string, any> = {
+      reply_to_message_id: ctx.callbackQuery?.message?.message_id
     };
-    // Include message_thread_id if user has topics enabled
+    
+    // Include message_thread_id if in a topic
     if (messageThreadId) {
       sendOptions.message_thread_id = messageThreadId;
     }
@@ -132,8 +138,11 @@ async function handleSendMessage(
       message,
       sendOptions
     );
+    
+    // Answer the callback to remove loading state
+    await ctx.answerCallbackQuery();
   } catch (err) {
-    console.log('[handleSendMessage] Could not echo user message:', err);
+    console.log('[handleSendMessage] Could not send message:', err);
   }
 
   // Import the AI message handler dynamically to avoid circular dependency

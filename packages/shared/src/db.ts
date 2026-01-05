@@ -376,6 +376,11 @@ export async function addMessage(
   toolCallId?: string,
   toolName?: string,
   toolArgs?: string,
+  metadata?: {
+    telegramMessageId?: number;
+    replyToMessageId?: number;
+    threadId?: number;
+  }
 ): Promise<MessageRecord> {
   const now = Date.now();
   const prisma = getPrisma();
@@ -388,6 +393,9 @@ export async function addMessage(
       toolCallId,
       toolName,
       toolArgs,
+      telegramMessageId: metadata?.telegramMessageId ? BigInt(metadata.telegramMessageId) : null,
+      replyToMessageId: metadata?.replyToMessageId ? BigInt(metadata.replyToMessageId) : null,
+      threadId: metadata?.threadId ? BigInt(metadata.threadId) : null,
       createdAt: BigInt(now),
     },
   });

@@ -93,22 +93,27 @@ There are TWO types of button actions:
 2. **Custom Message Action** - Send a message to AI (PREFERRED for most buttons):
    - Action: "send_message"
    - Include "message" field with the text to send
-   - Example: {"text":"📅 منوی هفته بعد","action":"send_message","message":"show next week's menu"}
-   - Example: {"text":"📊 آمار انتخاب","action":"send_message","message":"show my selection stats"}
+   - **CRITICAL: The "message" field MUST ALWAYS be in the SAME LANGUAGE as your response to the user**
+   - If you respond in English, "message" must be in English
+   - If you respond in Persian/Farsi, "message" must be in Persian/Farsi
+   - The "message" is what gets sent to you when the button is clicked, so match the conversation language
+   - **Make the message more conversational than the button text** (e.g., button: "My Tasks", message: "show me my tasks")
+   - Example: {"text":"📊 Selection Stats","action":"send_message","message":"tell me about my selection statistics"}
+   - Example: {"text":"📋 My Tasks","action":"send_message","message":"show me all my tasks"}
    - Use this for ANY dynamic query or request
    - This is more flexible and works for all scenarios
    - IMPORTANT: Never use slash commands (like /link_planka) in the message field - use natural language instead
    - For linking accounts, use: "message":"connect my planka account" instead of "/link_planka"
 
 Button examples:
-1. After showing unselected food days (predefined action):
+1. After showing unselected food days:
    ###BUTTONS_START###[{"text":"🍽️ Select All","action":"rastar_select_all"},{"text":"📅 This Week","action":"send_message","message":"show this week's menu"}]###BUTTONS_END###
 
-2. After showing this week's menu (custom message - PREFERRED):
-   ###BUTTONS_START###[{"text":"📅 منوی هفته بعد","action":"send_message","message":"show next week's menu"},{"text":"📊 آمار انتخاب","action":"send_message","message":"show my selection stats"}]###BUTTONS_END###
+2. After showing this week's menu:
+   ###BUTTONS_START###[{"text":"📅 Next Week","action":"send_message","message":"show next week's menu"},{"text":"📊 Selection Stats","action":"send_message","message":"show my selection stats"}]###BUTTONS_END###
 
-3. After showing delayed tasks (custom message):
-   ###BUTTONS_START###[{"text":"📋 My Tasks","action":"send_message","message":"show me my tasks"},{"text":"➕ New Task","action":"send_message","message":"create a new task"}]###BUTTONS_END###
+3. After showing delayed tasks:
+   ###BUTTONS_START###[{"text":"📋 My Tasks","action":"send_message","message":"show me all my tasks"},{"text":"➕ New Task","action":"send_message","message":"create a new task"}]###BUTTONS_END###
 
 4. Mixed approach (predefined + custom):
    ###BUTTONS_START###[{"text":"🍽️ Auto Select","action":"rastar_select_all"},{"text":"🤔 Choose for Me","action":"send_message","message":"select foods based on light appetite"}]###BUTTONS_END###
@@ -117,11 +122,12 @@ Button examples:
 - ALWAYS wrap buttons in ###BUTTONS_START###...###BUTTONS_END### markers
 - Maximum 2-3 buttons per response
 - Use emojis in button labels for visual appeal
-- Button text should match the user's language
+- **CRITICAL: Both "text" AND "message" fields MUST be in the same language as your response**
 - Keep labels short (max 20 characters)
 - Only add buttons when they provide clear next actions
 - Use predefined actions for direct operations (faster)
 - Use send_message for conversational follow-ups or complex requests
+- The "message" field is what will be sent back to you, so write it in the language you're currently using
 - The markers are automatically removed from your message
 - WITHOUT the markers, buttons will appear as raw JSON text
 
@@ -147,7 +153,7 @@ You: [use rastar_menu_list, then] "Here's today's lunch menu:
 
 Which one should I reserve for you?
 
-###BUTTONS_START###[{"text":"📅 Week Menu","action":"rastar_view_week"},{"text":"🍴 Select","action":"send_message","message":"select today's food"}]###BUTTONS_END###"
+###BUTTONS_START###[{"text":"📅 Week Menu","action":"rastar_view_week"},{"text":"🍴 Select","action":"send_message","message":"select today's food for me"}]###BUTTONS_END###"
 
 **CRITICAL REMINDER:** Every time you add buttons, you MUST wrap the JSON array in ###BUTTONS_START### and ###BUTTONS_END### markers. Raw JSON without markers will NOT render as clickable buttons!`;
 

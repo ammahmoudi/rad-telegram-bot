@@ -17,11 +17,16 @@ Complete reference for all environment variables used in the Rastar Telegram Bot
 |----------|----------|---------|-------------|
 | `TELEGRAM_BOT_TOKEN` | ✅ Yes | - | Bot token from @BotFather |
 | `TELEGRAM_BOT_USERNAME` | ❌ No | - | Bot username (for @mentions) |
+| `CHAT_MODE` | ❌ No | `thread` | Chat mode: `thread` (threaded topics) or `simple` (single chat) |
 | `MCP_PLANKA_URL` | ✅ Yes* | `http://mcp-planka:3100/sse` | MCP Planka server URL |
 | `MCP_RASTAR_URL` | ✅ Yes* | `http://mcp-rastar:3101/sse` | MCP Rastar server URL |
 | `LINK_PORTAL_URL` | ✅ Yes | `http://link-portal:3002` | Link portal URL |
 
 *Auto-configured in docker-compose
+
+**Chat Mode Options:**
+- `thread` (default): Uses Telegram's threaded mode with topics/threads for separate conversations. Each conversation creates a new thread. `/clear_chat` deletes the current thread.
+- `simple`: All chats happen in the main private chat. No threads/topics created. `/clear_chat` only clears AI history but keeps messages visible.
 
 ### 🎨 Admin Panel
 

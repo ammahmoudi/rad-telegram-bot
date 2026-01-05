@@ -17,6 +17,7 @@ interface SettingsFormProps {
     mcpProjectScanDelay: string;
     USE_HARDCODED_PROMPTS: string;
     PLANKA_DAILY_REPORT_CATEGORY_ID: string;
+    CHAT_MODE: string;
   };
   hasApiKey: boolean;
   usingEnvApiKey: boolean;
@@ -533,6 +534,27 @@ export function SettingsForm({ config, hasApiKey, usingEnvApiKey, envPlankaUrl, 
                   </p>
                 </div>
               </div>
+            </div>
+
+            {/* Chat Mode Setting */}
+            <div className="pt-4 border-t border-white/10">
+              <label className="text-sm font-medium text-white block mb-2" dir={dir}>
+                Chat Mode
+              </label>
+              <select
+                name="chatMode"
+                defaultValue={config.CHAT_MODE}
+                className="w-full h-10 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                dir="ltr"
+              >
+                <option value="thread">Thread Mode (Topics/Threads)</option>
+                <option value="simple">Simple Mode (Single Chat)</option>
+              </select>
+              <p className="text-xs text-slate-400 mt-2" dir={dir}>
+                <strong>Thread Mode (Default):</strong> Uses Telegram&apos;s threaded mode. Each conversation creates a new thread/topic. <code>/clear_chat</code> deletes the current thread.
+                <br />
+                <strong>Simple Mode:</strong> All chats in main private chat without threads. <code>/clear_chat</code> only clears AI history but keeps messages visible.
+              </p>
             </div>
 
             {/* Save Button */}
