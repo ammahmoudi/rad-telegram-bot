@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import type { OpenRouterModel } from '@rad/shared';
 
 interface ModelSelectorProps {
-  defaultValue: string;
+  defaultModel: string;
   name: string;
 }
 
@@ -13,12 +13,12 @@ interface ModelGroup {
   models: OpenRouterModel[];
 }
 
-export function ModelSelector({ defaultValue, name }: ModelSelectorProps) {
+export function ModelSelector({ defaultModel, name }: ModelSelectorProps) {
   const [models, setModels] = useState<OpenRouterModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showFreeOnly, setShowFreeOnly] = useState(false);
-  const [selectedModel, setSelectedModel] = useState(defaultValue);
+  const [selectedModel, setSelectedModel] = useState(defaultModel);
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {

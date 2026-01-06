@@ -1,33 +1,29 @@
-import type { Context } from 'grammy';
+import type { BotContext } from '../bot.js';
 import { getUserLanguage, setUserLanguage } from '@rad/shared';
-import { getUserI18n } from '../i18n.js';
 import { getSettingsKeyboard, getLanguageKeyboard, getMainMenuKeyboard } from './keyboards.js';
 
 /**
  * Handle /settings command
  */
-export async function handleSettingsCommand(ctx: Context) {
+export async function handleSettingsCommand(ctx: BotContext) {
   const telegramUserId = String(ctx.from?.id ?? '');
   if (!telegramUserId) {
-    const language = await getUserLanguage(telegramUserId);
-    const t = getUserI18n(language);
-    await ctx.reply(t('callback_errors.user_not_identified'));
+    await ctx.reply(ctx.t('callback-errors-user-not-identified'));
     return;
   }
 
   const language = await getUserLanguage(telegramUserId);
-  const t = getUserI18n(language);
   const keyboard = getSettingsKeyboard(language);
 
   const languageName = language === 'fa' ? 'فارسی' : 'English';
 
   await ctx.reply(
     [
-      t('settings.title'),
+      ctx.t('settings-title'),
       '',
-      `${t('settings.language')}: ${languageName}`,
+      `${ctx.t('settings-language')}: ${languageName}`,
       '',
-      t('settings.connections'),
+      ctx.t('settings-connections'),
     ].join('\n'),
     { reply_markup: keyboard },
   );
@@ -36,22 +32,19 @@ export async function handleSettingsCommand(ctx: Context) {
 /**
  * Handle language selection callback
  */
-export async function handleLanguageSelectionCallback(ctx: Context) {
+export async function handleLanguageSelectionCallback(ctx: BotContext) {
   const telegramUserId = String(ctx.from?.id ?? '');
   if (!telegramUserId) {
-    const language = await getUserLanguage(telegramUserId);
-    const t = getUserI18n(language);
-    await ctx.answerCallbackQuery(t('callback_errors.user_not_identified_short'));
+    await ctx.answerCallbackQuery(ctx.t('callback-errors-user-not-identified-short'));
     return;
   }
 
   const language = await getUserLanguage(telegramUserId);
-  const t = getUserI18n(language);
   const keyboard = getLanguageKeyboard();
 
   await ctx.answerCallbackQuery();
   await ctx.editMessageText(
-    t('settings.select_language'),
+    ctx.t('settings-select-language'),
     { reply_markup: keyboard },
   );
 }
@@ -59,30 +52,31 @@ export async function handleLanguageSelectionCallback(ctx: Context) {
 /**
  * Handle language change callback
  */
-export async function handleLanguageChangeCallback(ctx: Context, newLanguage: 'fa' | 'en') {
+export async function handleLanguageChangeCallback(ctx: BotContext, newLanguage: 'fa' | 'en') {
   const telegramUserId = String(ctx.from?.id ?? '');
   if (!telegramUserId) {
-    const language = await getUserLanguage(telegramUserId);
-    const t = getUserI18n(language);
-    await ctx.answerCallbackQuery(t('callback_errors.user_not_identified_short'));
+    await ctx.answerCallbackQuery(ctx.t('callback-errors-user-not-identified-short'));
     return;
   }
 
   await setUserLanguage(telegramUserId, newLanguage);
-  const t = getUserI18n(newLanguage);
+  
+  // Re-create i18n context with new language
+  await ctx.i18n.renegotiateLocale();
+  
   const languageName = newLanguage === 'fa' ? 'فارسی' : 'English';
 
-  await ctx.answerCallbackQuery(t('settings.language_changed', { language: languageName }));
+  await ctx.answerCallbackQuery(ctx.t('settings-language-changed', { language: languageName }));
   
   // Show settings again with new language (inline keyboard)
   const keyboard = getSettingsKeyboard(newLanguage);
   await ctx.editMessageText(
     [
-      t('settings.title'),
+      ctx.t('settings-title'),
       '',
-      `${t('settings.language')}: ${languageName}`,
+      `${ctx.t('settings-language')}: ${languageName}`,
       '',
-      t('settings.connections'),
+      ctx.t('settings-connections'),
     ].join('\n'),
     { reply_markup: keyboard },
   );
@@ -90,7 +84,7 @@ export async function handleLanguageChangeCallback(ctx: Context, newLanguage: 'f
   // Send a new message to update the reply keyboard
   const mainKeyboard = getMainMenuKeyboard(newLanguage);
   await ctx.reply(
-    t('settings.keyboard_updated'),
+    ctx.t('settings-keyboard-updated'),
     { reply_markup: mainKeyboard },
   );
 }
@@ -98,7 +92,7 @@ export async function handleLanguageChangeCallback(ctx: Context, newLanguage: 'f
 /**
  * Handle settings back button
  */
-export async function handleSettingsBackCallback(ctx: Context) {
+export async function handleSettingsBackCallback(ctx: BotContext) {
   await ctx.answerCallbackQuery();
   await ctx.deleteMessage();
 }

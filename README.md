@@ -16,9 +16,11 @@ TypeScript monorepo that contains:
 2. Install deps:
    - `npm install`
 3. Initialize the database (Prisma migration):
-   - `npm -w packages/shared exec prisma migrate dev --name core`
+   - `npm run db:setup`
 4. Run dev:
    - `npm run dev`
+
+📚 **For production deployment and database migrations**, see [MIGRATIONS_GUIDE.md](./MIGRATIONS_GUIDE.md)
 
 ## Admin panel
 - Runs at `http://localhost:3000` in `npm run dev`.
@@ -45,7 +47,7 @@ Each service:
 ## Security notes
 - Never paste passwords/tokens into chat.
 - The link portal stores only the Planka access token (encrypted at rest) and never stores the password.
-- Rotate `TOKEN_ENCRYPTION_KEY` only if you also rotate/re-encrypt stored secrets.
+- Rotate `ENCRYPTION_KEY` only if you also rotate/re-encrypt stored secrets.
 
 ## AI Chat Features
 The Telegram bot now includes AI-powered chat capabilities using OpenRouter:

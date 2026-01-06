@@ -21,6 +21,7 @@ For each service in Dokploy, copy the corresponding service env file content:
 | Link Portal | `link-portal` | [.env.dokploy.link-portal](.env.dokploy.link-portal) |
 | MCP Planka | `mcp-planka` | [.env.dokploy.mcp-planka](.env.dokploy.mcp-planka) |
 | MCP Rastar | `mcp-rastar` | [.env.dokploy.mcp-rastar](.env.dokploy.mcp-rastar) |
+| MCP Time | `mcp-time` | [.env.dokploy.mcp-time](.env.dokploy.mcp-time) |
 
 ### 3. How It Works
 
@@ -46,6 +47,7 @@ Each service has default ports set in their Dockerfile:
 - Link Portal: `3002`
 - MCP Planka: `3100`
 - MCP Rastar: `3101`
+- MCP Time: `3102`
 
 Dokploy handles external port mapping automatically. If you need to override the internal port, uncomment the `PORT` variable in the service env.
 
@@ -54,7 +56,7 @@ Dokploy handles external port mapping automatically. If you need to override the
 **IMPORTANT:** For MCP servers to accept external requests, you **MUST** set `ALLOWED_HOSTS` at the project level:
 
 ```env
-ALLOWED_HOSTS=rastar-mcp.rastar.dev,planka-mcp.rastar.dev
+ALLOWED_HOSTS=rastar-mcp.rastar.dev,planka-mcp.rastar.dev,time-mcp.rastar.dev
 ```
 
 This prevents DNS rebinding attacks while allowing your production domains.
@@ -86,12 +88,12 @@ Or use the built-in migration in the Docker CMD (automatic on startup).
 
 ### MCP server returns "Invalid Host" error
 - Ensure `ALLOWED_HOSTS` includes your production domain
-- Format: `ALLOWED_HOSTS=rastar-mcp.rastar.dev,planka-mcp.rastar.dev`
+- Format: `ALLOWED_HOSTS=rastar-mcp.rastar.dev,planka-mcp.rastar.dev,time-mcp.rastar.dev`
 - Check that MCP service has `ALLOWED_HOSTS=${{project.ALLOWED_HOSTS}}`
 
 ### Port conflicts
 - Dokploy manages external ports automatically
-- Internal ports (3000-3101) should not conflict
+- Internal ports (3000-3102) should not conflict
 - If needed, override with `PORT=XXXX` in service env
 
 ## Quick Reference

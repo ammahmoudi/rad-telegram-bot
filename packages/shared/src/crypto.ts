@@ -1,16 +1,16 @@
-import crypto from 'node:crypto';
+import crypto from 'crypto';
 
 const ALGO = 'aes-256-gcm' as const;
 
 function getKey(): Buffer {
-  const raw = process.env.TOKEN_ENCRYPTION_KEY;
+  const raw = process.env.ENCRYPTION_KEY;
   if (!raw) {
-    throw new Error('TOKEN_ENCRYPTION_KEY is required');
+    throw new Error('ENCRYPTION_KEY is required');
   }
 
   const key = Buffer.from(raw, 'base64');
   if (key.length !== 32) {
-    throw new Error('TOKEN_ENCRYPTION_KEY must be 32 bytes (base64-encoded)');
+    throw new Error('ENCRYPTION_KEY must be 32 bytes (base64-encoded)');
   }
 
   return key;

@@ -1,4 +1,17 @@
 {
+  "keyboards": {
+    "my-cards": "📇 My Cards",
+    "delayed-tasks": "⏰ Delayed Tasks",
+    "my-boards": "📋 My Boards",
+    "create-task": "➕ Create Task",
+    "planka-status": "📋 Planka Status",
+    "todays-menu": "🍽️ Today's Menu",
+    "unselected-days": "📅 Unselected Days",
+    "week-menu": "📆 Week Menu",
+    "select-lunch": "✅ Select Lunch",
+    "rastar-status": "🍽️ Rastar Status",
+    "settings": "⚙️ Settings"
+  },
   "notifications": {
     "link_opened": {
       "title": "Link opened!",

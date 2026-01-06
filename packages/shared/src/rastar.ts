@@ -39,11 +39,14 @@ export async function storeRastarTokenResponse(
   telegramUserId: string,
   tokenResponse: RastarTokenResponse
 ): Promise<void> {
+  // Supabase returns expires_at as Unix timestamp in seconds, convert to milliseconds
+  const expiresAtMs = tokenResponse.expires_at * 1000;
+  
   await upsertRastarToken(
     telegramUserId,
     tokenResponse.access_token,
     tokenResponse.refresh_token,
-    tokenResponse.expires_at, // Already in milliseconds
+    expiresAtMs,
     tokenResponse.user.id,
     tokenResponse.user.email
   );

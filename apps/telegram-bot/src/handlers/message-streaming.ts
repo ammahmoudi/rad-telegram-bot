@@ -1,4 +1,5 @@
 import type { Context } from 'grammy';
+import type { BotContext } from '../bot.js';
 import type { Message } from 'grammy/types';
 import type { OpenRouterClient, ChatMessage } from '@rad/shared';
 import type { ChatCompletionTool } from 'openai/resources/chat/completions';
@@ -9,9 +10,11 @@ import { LOADING_FRAMES } from '../types/streaming.js';
 
 /**
  * Handle streaming AI response with live updates to Telegram message
+ * Uses native Telegram sendMessageDraft API for smooth streaming (Bot API 8.1+)
+ * Supports topics in private chats via message_thread_id parameter
  */
 export async function handleStreamingResponse(
-  ctx: Context,
+  ctx: BotContext,
   client: OpenRouterClient,
   trimmedHistory: ChatMessage[],
   systemPrompt: string,
@@ -26,6 +29,7 @@ export async function handleStreamingResponse(
   reasoningDetails?: unknown;
 }> {
   let lastUpdateTime = Date.now();
+  let lastTypingTime = Date.now();
   let reasoningActive = false;
   let reasoningText = '';
   let allReasoningTexts: string[] = [];
@@ -39,6 +43,34 @@ export async function handleStreamingResponse(
   
   let toolCallsDisplay: string[] = [];
   let activeTools = new Set<string>();
+  
+  // Generate unique draft_id for this streaming session (use update_id per Grammy API)
+  const draftId = ctx.update.update_id;
+  let useNativeStreaming = true;
+
+  // Extract topic information if available (Grammy Bot API 9.3+ support)
+  const messageThreadId = ctx.session?.currentChatTopicId || ctx.message?.message_thread_id || ctx.msg?.message_thread_id;
+  
+  console.log('[message-streaming] Topic info:', {
+    messageThreadId,
+    draftId,
+    useNativeStreaming,
+  });
+  
+  // Send typing action periodically (for compatibility)
+  const sendTypingAction = async () => {
+    const now = Date.now();
+    if (now - lastTypingTime > 4000) { // Telegram typing indicator lasts ~5 seconds
+      try {
+        await ctx.api.sendChatAction(ctx.chat!.id, 'typing', {
+          message_thread_id: messageThreadId,
+        });
+        lastTypingTime = now;
+      } catch (error) {
+        // Ignore errors from typing action
+      }
+    }
+  };
 
   // Helper to update message (with rate limiting)
   const updateMessage = async (force: boolean = false) => {
@@ -47,19 +79,29 @@ export async function handleStreamingResponse(
     
     lastUpdateTime = now;
     
+    // Send typing indicator for fallback
+    await sendTypingAction();
+    
+    // Check if reasoning should be shown to users
+    const { getSystemConfig } = await import('@rad/shared');
+    const showReasoning = (await getSystemConfig('SHOW_REASONING_TO_USERS')) !== 'false';
+    
     let content = '';
     
     // Show reasoning indicator if active
-    if (reasoningActive && reasoningText) {
-      content += '🧠 <b>Reasoning...</b>\n\n';
-      const formattedReasoning = markdownToTelegramHtml(reasoningText);
-      content += '<blockquote>' + formattedReasoning.substring(0, 500) + '</blockquote>\n\n';
-    } else if (reasoningActive) {
-      content += '🧠 <i>Reasoning...</i>\n\n';
+    if (reasoningActive) {
+      if (showReasoning && reasoningText) {
+        content += '🧠 <b>Reasoning...</b>\n\n';
+        const formattedReasoning = markdownToTelegramHtml(reasoningText);
+        content += '<blockquote>' + formattedReasoning.substring(0, 500) + '</blockquote>\n\n';
+      } else {
+        // Show simple thinking indicator when reasoning is hidden
+        content += '🤔 <i>Thinking...</i>\n\n';
+      }
     }
     
-    // Show active tools
-    if (toolCallsDisplay.length > 0) {
+    // Show active tools only if reasoning is enabled
+    if (showReasoning && toolCallsDisplay.length > 0) {
       content += '<b>🛠️ Tools in use:</b>\n';
       content += toolCallsDisplay.map(t => `  ${t}`).join('\n');
       content += '\n\n';
@@ -75,21 +117,26 @@ export async function handleStreamingResponse(
     // Check if content exceeds Telegram's limit (4096 chars)
     // Use a safety margin to prevent truncation during streaming
     if (content.length > 4000) {
+      // Check if reasoning should be shown to users (recheck for consistency)
+      const showReasoning = (await getSystemConfig('SHOW_REASONING_TO_USERS')) !== 'false';
+      
       // Truncate the final response part to fit within limit
       const overflowBy = content.length - 4000;
       const maxFinalResponseLength = Math.max(0, markdownToTelegramHtml(finalResponse).length - overflowBy - 100);
       
       // Rebuild content with truncated response
       content = '';
-      if (reasoningActive && reasoningText) {
-        content += '🧠 <b>Reasoning...</b>\n\n';
-        const formattedReasoning = markdownToTelegramHtml(reasoningText);
-        content += '<blockquote>' + formattedReasoning.substring(0, 500) + '</blockquote>\n\n';
-      } else if (reasoningActive) {
-        content += '🧠 <i>Reasoning...</i>\n\n';
+      if (reasoningActive) {
+        if (showReasoning && reasoningText) {
+          content += '🧠 <b>Reasoning...</b>\n\n';
+          const formattedReasoning = markdownToTelegramHtml(reasoningText);
+          content += '<blockquote>' + formattedReasoning.substring(0, 500) + '</blockquote>\n\n';
+        } else {
+          content += '🤔 <i>Thinking...</i>\n\n';
+        }
       }
       
-      if (toolCallsDisplay.length > 0) {
+      if (showReasoning && toolCallsDisplay.length > 0) {
         content += '<b>🛠️ Tools in use:</b>\n';
         content += toolCallsDisplay.map(t => `  ${t}`).join('\n');
         content += '\n\n';
@@ -109,7 +156,38 @@ export async function handleStreamingResponse(
     }
     
     try {
-      await ctx.api.editMessageText(sentMessage.chat.id, sentMessage.message_id, content, { parse_mode: 'HTML' });
+      // Try native streaming first (sendMessageDraft) - Bot API 8.1+ (Grammy 1.39.2+)
+      if (useNativeStreaming && ctx.chat?.id) {
+        try {
+          await ctx.api.sendMessageDraft(
+            ctx.chat.id,
+            draftId,
+            content,
+            {
+              parse_mode: 'HTML',
+              ...(messageThreadId ? { message_thread_id: messageThreadId } : {}),
+            }
+          );
+        } catch (error: any) {
+          // Fallback to editMessageText if sendMessageDraft not supported
+          if (error?.error_code === 400 || error?.description?.includes('supported only for bots with forum topic mode')) {
+            useNativeStreaming = false;
+            console.log('[message-streaming] Native streaming not available, using fallback');
+          } else {
+            throw error;
+          }
+        }
+      }
+      
+      // Fallback: use traditional editMessageText
+      if (!useNativeStreaming) {
+        const editOptions: Record<string, any> = { parse_mode: 'HTML' };
+        if (messageThreadId) {
+          editOptions.message_thread_id = messageThreadId;
+        }
+        
+        await ctx.api.editMessageText(sentMessage.chat.id, sentMessage.message_id, content, editOptions);
+      }
     } catch (error) {
       // Ignore errors from too frequent updates or identical content
     }

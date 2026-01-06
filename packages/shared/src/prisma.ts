@@ -1,7 +1,7 @@
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import fs from 'node:fs';
-import { createRequire } from 'node:module';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
+import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
 
@@ -18,6 +18,7 @@ function normalizeFileUrl(fileUrlOrPath: string): string {
 function buildSqliteDatabaseUrl(): string {
   if (process.env.DATABASE_URL) {
     const dbUrl = process.env.DATABASE_URL;
+    console.log('[Prisma] Using DATABASE_URL from env:', dbUrl);
     // If it's a file URL, ensure the directory exists
     if (dbUrl.startsWith('file:')) {
       const filePathMatch = dbUrl.match(/^file:(.+)$/);
@@ -26,6 +27,7 @@ function buildSqliteDatabaseUrl(): string {
         const absolutePath = path.isAbsolute(filePath) 
           ? filePath 
           : path.resolve(repoRoot, filePath);
+        console.log('[Prisma] Resolved absolute path:', absolutePath);
         fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
       }
     }
@@ -58,16 +60,25 @@ export function getPrisma(): import('@prisma/client').PrismaClient {
   if (databaseUrl.startsWith('file:')) {
     const filePathMatch = databaseUrl.match(/^file:(.+)$/);
     if (filePathMatch) {
-      const filePath = filePathMatch[1];
-      const absolutePath = path.isAbsolute(filePath) 
-        ? filePath 
-        : path.resolve(repoRoot, filePath);
-      fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
+      let filePath = filePathMatch[1];
       
-      // Convert to absolute file URL for better-sqlite3
-      databaseUrl = `file:${absolutePath}`;
+      // Normalize path separators
+      filePath = filePath.replaceAll('/', path.sep);
+      
+      // Handle relative paths by converting to absolute
+      if (!path.isAbsolute(filePath)) {
+        filePath = path.resolve(repoRoot, filePath);
+      }
+      
+      // Ensure directory exists
+      fs.mkdirSync(path.dirname(filePath), { recursive: true });
+      
+      // Convert to absolute file URL for better-sqlite3 (always use forward slashes)
+      databaseUrl = `file:${filePath.replaceAll(path.sep, '/')}`;
     }
   }
+  
+  console.log('[Prisma] Final database URL:', databaseUrl);
   
   // Set the DATABASE_URL if it wasn't set
   if (!process.env.DATABASE_URL) {

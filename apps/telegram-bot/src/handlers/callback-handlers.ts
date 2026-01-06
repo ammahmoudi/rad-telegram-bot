@@ -1,22 +1,23 @@
-import type { Context } from 'grammy';
+import type { BotContext } from '../bot.js';
 import {
   handleLinkPlankaCommand,
   handlePlankaUnlinkCommand,
   handleLinkRastarCommand,
   handleRastarUnlinkCommand,
-} from './commands.js';
+} from './commands/index.js';
 import { handleAiMessage } from './ai-message.js';
-import { getUserI18n } from '../i18n.js';
-import { getUserLanguage } from '@rad/shared';
 
 /**
  * Helper function to create a message context from a callback query
  * This simulates a user sending a text message
  */
-function createMessageContext(ctx: Context, messageText: string): Context {
+function createMessageContext(ctx: BotContext, messageText: string): BotContext {
+  // Get topic information if available (Grammy Bot API 9.3+ support)
+  const messageThreadId = ctx.callbackQuery?.message?.message_thread_id;
+  
   // Create a wrapper that proxies most properties to original context
   // but provides custom message and from properties
-  const message = {
+  const message: Record<string, any> = {
     message_id: ctx.callbackQuery?.message?.message_id || 0,
     date: Math.floor(Date.now() / 1000),
     chat: ctx.chat!,
@@ -24,19 +25,24 @@ function createMessageContext(ctx: Context, messageText: string): Context {
     text: messageText
   };
   
+  // Include message_thread_id if available (for topics in private chats)
+  if (messageThreadId) {
+    message.message_thread_id = messageThreadId;
+  }
+  
   return new Proxy(ctx, {
     get(target, prop) {
       if (prop === 'message') return message;
       if (prop === 'from') return ctx.callbackQuery!.from;
       return (target as any)[prop];
     }
-  }) as Context;
+  }) as BotContext;
 }
 
 /**
  * Handle "link_planka" callback
  */
-export async function handleLinkPlankaCallback(ctx: Context) {
+export async function handleLinkPlankaCallback(ctx: BotContext) {
   await ctx.answerCallbackQuery();
   await handleLinkPlankaCommand(ctx);
 }
@@ -44,7 +50,7 @@ export async function handleLinkPlankaCallback(ctx: Context) {
 /**
  * Handle "planka_unlink" callback
  */
-export async function handlePlankaUnlinkCallback(ctx: Context) {
+export async function handlePlankaUnlinkCallback(ctx: BotContext) {
   await ctx.answerCallbackQuery();
   await handlePlankaUnlinkCommand(ctx);
 }
@@ -52,65 +58,47 @@ export async function handlePlankaUnlinkCallback(ctx: Context) {
 /**
  * Handle "planka_list_boards" callback
  */
-export async function handlePlankaListBoardsCallback(ctx: Context) {
+export async function handlePlankaListBoardsCallback(ctx: BotContext) {
   try {
-    const telegramUserId = String(ctx.from?.id ?? '');
-    const language = await getUserLanguage(telegramUserId);
-    const t = getUserI18n(language);
-    
     await ctx.answerCallbackQuery();
-    await ctx.reply(t('loading.fetching_boards'));
+    await ctx.reply(ctx.t('loading-fetching-boards'));
     
-    const fakeMessageCtx = createMessageContext(ctx, t('prompts.list_boards'));
+    const fakeMessageCtx = createMessageContext(ctx, ctx.t('prompts-list-boards'));
     await handleAiMessage(fakeMessageCtx);
   } catch (error) {
     console.error('[callback] planka_list_boards error:', error);
-    const telegramUserId = String(ctx.from?.id ?? '');
-    const language = await getUserLanguage(telegramUserId);
-    const t = getUserI18n(language);
-    await ctx.reply(t('callback_errors.fetch_boards'));
+    await ctx.reply(ctx.t('callback-errors-fetch-boards'));
   }
 }
 
 /**
  * Handle "planka_delayed_tasks" callback
  */
-export async function handlePlankaDelayedTasksCallback(ctx: Context) {
+export async function handlePlankaDelayedTasksCallback(ctx: BotContext) {
   try {
-    const telegramUserId = String(ctx.from?.id ?? '');
-    const language = await getUserLanguage(telegramUserId);
-    const t = getUserI18n(language);
-    
     await ctx.answerCallbackQuery();
-    await ctx.reply(t('loading.checking_delayed_tasks'));
+    await ctx.reply(ctx.t('loading-checking-delayed-tasks'));
     
-    const fakeMessageCtx = createMessageContext(ctx, t('prompts.delayed_tasks'));
+    const fakeMessageCtx = createMessageContext(ctx, ctx.t('prompts-delayed-tasks'));
     await handleAiMessage(fakeMessageCtx);
   } catch (error) {
     console.error('[callback] planka_delayed_tasks error:', error);
-    const telegramUserId = String(ctx.from?.id ?? '');
-    const language = await getUserLanguage(telegramUserId);
-    const t = getUserI18n(language);
-    await ctx.reply(t('callback_errors.check_tasks'));
+    await ctx.reply(ctx.t('callback-errors-check-tasks'));
   }
 }
 
 /**
  * Handle "planka_create_card" callback
  */
-export async function handlePlankaCreateCardCallback(ctx: Context) {
-  const telegramUserId = String(ctx.from?.id ?? '');
-  const language = await getUserLanguage(telegramUserId);
-  const t = getUserI18n(language);
-  
+export async function handlePlankaCreateCardCallback(ctx: BotContext) {
   await ctx.answerCallbackQuery();
-  await ctx.reply(t('callback_errors.create_prompt'));
+  await ctx.reply(ctx.t('callback-errors-create-prompt'));
 }
 
 /**
  * Handle "link_rastar" callback
  */
-export async function handleLinkRastarCallback(ctx: Context) {
+export async function handleLinkRastarCallback(ctx: BotContext) {
   await ctx.answerCallbackQuery();
   await handleLinkRastarCommand(ctx);
 }
@@ -118,7 +106,7 @@ export async function handleLinkRastarCallback(ctx: Context) {
 /**
  * Handle "rastar_unlink" callback
  */
-export async function handleRastarUnlinkCallback(ctx: Context) {
+export async function handleRastarUnlinkCallback(ctx: BotContext) {
   await ctx.answerCallbackQuery();
   await handleRastarUnlinkCommand(ctx);
 }
@@ -126,68 +114,76 @@ export async function handleRastarUnlinkCallback(ctx: Context) {
 /**
  * Handle "rastar_today_menu" callback
  */
-export async function handleRastarTodayMenuCallback(ctx: Context) {
+export async function handleRastarTodayMenuCallback(ctx: BotContext) {
   try {
-    const telegramUserId = String(ctx.from?.id ?? '');
-    const language = await getUserLanguage(telegramUserId);
-    const t = getUserI18n(language);
-    
     await ctx.answerCallbackQuery();
-    await ctx.reply(t('loading.fetching_today_menu'));
+    await ctx.reply(ctx.t('loading-fetching-today-menu'));
     
-    const fakeMessageCtx = createMessageContext(ctx, t('prompts.today_menu'));
+    const fakeMessageCtx = createMessageContext(ctx, ctx.t('prompts-today-menu'));
     await handleAiMessage(fakeMessageCtx);
   } catch (error) {
     console.error('[callback] rastar_today_menu error:', error);
-    const telegramUserId = String(ctx.from?.id ?? '');
-    const language = await getUserLanguage(telegramUserId);
-    const t = getUserI18n(language);
-    await ctx.reply(t('callback_errors.fetch_menu'));
+    await ctx.reply(ctx.t('callback-errors-fetch-menu'));
   }
 }
 
 /**
  * Handle "rastar_unselected_days" callback
  */
-export async function handleRastarUnselectedDaysCallback(ctx: Context) {
+export async function handleRastarUnselectedDaysCallback(ctx: BotContext) {
   try {
-    const telegramUserId = String(ctx.from?.id ?? '');
-    const language = await getUserLanguage(telegramUserId);
-    const t = getUserI18n(language);
-    
     await ctx.answerCallbackQuery();
-    await ctx.reply(t('loading.checking_unselected_days'));
+    await ctx.reply(ctx.t('loading-checking-unselected-days'));
     
-    const fakeMessageCtx = createMessageContext(ctx, t('prompts.unselected_days'));
+    const fakeMessageCtx = createMessageContext(ctx, ctx.t('prompts-unselected-days'));
     await handleAiMessage(fakeMessageCtx);
   } catch (error) {
     console.error('[callback] rastar_unselected_days error:', error);
-    const telegramUserId = String(ctx.from?.id ?? '');
-    const language = await getUserLanguage(telegramUserId);
-    const t = getUserI18n(language);
-    await ctx.reply(t('callback_errors.check_unselected_days'));
+    await ctx.reply(ctx.t('callback-errors-check-unselected-days'));
   }
 }
 
 /**
  * Handle "rastar_week_menu" callback
  */
-export async function handleRastarWeekMenuCallback(ctx: Context) {
+export async function handleRastarWeekMenuCallback(ctx: BotContext) {
   try {
-    const telegramUserId = String(ctx.from?.id ?? '');
-    const language = await getUserLanguage(telegramUserId);
-    const t = getUserI18n(language);
-    
     await ctx.answerCallbackQuery();
-    await ctx.reply(t('loading.fetching_week_menu'));
+    await ctx.reply(ctx.t('loading-fetching-week-menu'));
     
-    const fakeMessageCtx = createMessageContext(ctx, t('prompts.week_menu'));
+    const fakeMessageCtx = createMessageContext(ctx, ctx.t('prompts-week-menu'));
     await handleAiMessage(fakeMessageCtx);
   } catch (error) {
     console.error('[callback] rastar_week_menu error:', error);
-    const telegramUserId = String(ctx.from?.id ?? '');
-    const language = await getUserLanguage(telegramUserId);
-    const t = getUserI18n(language);
-    await ctx.reply(t('callback_errors.fetch_week_menu'));
+    await ctx.reply(ctx.t('callback-errors-fetch-week-menu'));
+  }
+}
+
+/**
+ * Handle thread action callbacks (from inline quick action buttons in threads)
+ */
+export async function handleThreadActionCallback(ctx: BotContext) {
+  try {
+    const action = ctx.callbackQuery?.data?.split(':')[1];
+    await ctx.answerCallbackQuery();
+    
+    // Map thread actions to message prompts
+    const actionMap: Record<string, string> = {
+      'my_cards': ctx.t('buttons-my-cards'),
+      'delayed_tasks': ctx.t('buttons-delayed-tasks'),
+      'today_menu': ctx.t('buttons-today-menu'),
+      'select_lunch': ctx.t('buttons-select-lunch'),
+      'clear_chat': ctx.t('buttons-clear-chat'),
+      'settings': ctx.t('buttons-settings'),
+    };
+    
+    const messageText = actionMap[action || ''];
+    if (messageText) {
+      const fakeMessageCtx = createMessageContext(ctx, messageText);
+      await handleAiMessage(fakeMessageCtx);
+    }
+  } catch (error) {
+    console.error('[callback] thread_action error:', error);
+    await ctx.reply(ctx.t('errors-generic'));
   }
 }

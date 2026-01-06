@@ -13,42 +13,42 @@ export async function handleToolCall(name: string, args: any): Promise<any> {
 
   switch (name) {
     // Auth tools
-    case 'rastar.auth.refresh':
+    case 'rastar_auth_refresh':
       return api.refreshToken(args.refreshToken);
 
     // Read operations (using helpers)
-    case 'rastar.menu.get_today':
+    case 'rastar_menu_get_today':
       return helpers.getTodayMenu(auth, args.userId);
 
-    case 'rastar.menu.get_tomorrow':
+    case 'rastar_menu_get_tomorrow':
       return helpers.getTomorrowMenu(auth, args.userId);
 
-    case 'rastar.menu.get_this_week':
+    case 'rastar_menu_get_this_week':
       return helpers.getThisWeekMenu(auth, args.userId);
 
-    case 'rastar.menu.get_next_week':
+    case 'rastar_menu_get_next_week':
       return helpers.getNextWeekMenu(auth, args.userId);
 
-    case 'rastar.menu.get_selection_stats':
+    case 'rastar_menu_get_selection_stats':
       return helpers.getSelectionStats(auth, args.userId);
 
-    case 'rastar.menu.get_unselected_days':
+    case 'rastar_menu_get_unselected_days':
       return helpers.getUnselectedDays(auth, args.userId);
 
     // Menu helper tools (new - user-friendly)
-    case 'rastar.menu.change_selection':
+    case 'rastar_menu_change_selection':
       return helpers.changeSelection(auth, args.userId, {
         date: args.date,
         newMenuScheduleId: args.newScheduleId,
       });
 
-    case 'rastar.menu.select_food_by_date':
+    case 'rastar_menu_select_food_by_date':
       return helpers.selectFoodByDate(auth, args.userId, args.date, args.foodName);
 
-    case 'rastar.menu.remove_selection_by_date':
+    case 'rastar_menu_remove_selection_by_date':
       return helpers.removeSelectionByDate(auth, args.userId, args.date);
 
-    case 'rastar.menu.bulk_select_foods':
+    case 'rastar_menu_bulk_select_foods':
       return helpers.bulkSelectFoods(auth, args.userId, args.selections);
 
     // Old raw API tools (disabled, kept for reference)

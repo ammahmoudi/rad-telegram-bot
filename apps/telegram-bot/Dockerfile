@@ -81,6 +81,15 @@ RUN npm install --global --save-exact "prisma@$(node --print 'require("./node_mo
 # Copy locales for i18n
 COPY --chown=nodejs:nodejs apps/telegram-bot/src/locales ./apps/telegram-bot/src/locales
 
+# Copy entrypoint script
+COPY --chown=nodejs:nodejs scripts/docker-entrypoint.sh /app/docker-entrypoint.sh
+COPY --chown=nodejs:nodejs scripts/create-admin.ts /app/scripts/create-admin.ts
+COPY --chown=nodejs:nodejs scripts/create-default-pack.ts /app/scripts/create-default-pack.ts
+RUN chmod +x /app/docker-entrypoint.sh
+
+# Install tsx for running TypeScript in entrypoint
+RUN npm install --global tsx
+
 # Create data directory for SQLite database
 RUN mkdir -p /app/data && chown -R nodejs:nodejs /app/data
 
@@ -102,5 +111,5 @@ EXPOSE 3001
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
 
-# Sync database schema on startup then start the app
-CMD ["sh", "-c", "cd packages/shared && npx prisma db push && cd ../.. && node apps/telegram-bot/dist/index.js"]
+# Use entrypoint script that handles migrations and admin creation
+CMD ["/app/docker-entrypoint.sh"]

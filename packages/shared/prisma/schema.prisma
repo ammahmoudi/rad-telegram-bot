@@ -4,7 +4,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
+
 }
 
 model LinkState {
@@ -37,6 +38,86 @@ model SystemConfig {
   value String
 }
 
+model Admin {
+  id           String @id @default(cuid())
+  username     String @unique
+  passwordHash String
+  createdAt    BigInt
+  updatedAt    BigInt
+}
+
+model SystemMessage {
+  id           String @id
+  language     String // 'fa' or 'en'
+  messageType  String // 'welcome', 'system_prompt', 'character'
+  content      String
+  isActive     Boolean @default(true)
+  updatedAt    BigInt
+
+  @@unique([language, messageType])
+  @@index([messageType, isActive])
+}
+
+// Character pack - a collection of system prompts, character definitions, and messages
+model CharacterPack {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  isDefault       Boolean  @default(false)
+  createdAt       BigInt
+  updatedAt       BigInt
+  
+  // Relations
+  messages        PackMessage[]
+  userAssignments UserPackAssignment[]
+  
+  @@index([isDefault])
+}
+
+// Messages within a character pack (system prompts, welcome messages, etc.)
+model PackMessage {
+  id           String @id @default(cuid())
+  packId       String
+  language     String // 'fa' or 'en'
+  messageType  String // 'welcome', 'system_prompt', 'character'
+  content      String
+  updatedAt    BigInt
+  
+  pack         CharacterPack @relation(fields: [packId], references: [id], onDelete: Cascade)
+  
+  @@unique([packId, language, messageType])
+  @@index([packId, messageType])
+}
+
+// User-specific character pack assignments
+model UserPackAssignment {
+  id              String @id @default(cuid())
+  telegramUserId  String
+  packId          String
+  assignedAt      BigInt
+  assignedBy      String? // admin username who assigned it
+  
+  pack            CharacterPack @relation(fields: [packId], references: [id], onDelete: Cascade)
+  
+  @@unique([telegramUserId])
+  @@index([packId])
+}
+
+// Telegram user information with roles
+model TelegramUser {
+  id              String  @id // telegram user id
+  firstName       String?
+  lastName        String?
+  username        String?
+  photoUrl        String?
+  role            String  @default("user") // user, manager, admin
+  lastSeenAt      BigInt?
+  createdAt       BigInt
+  updatedAt       BigInt
+  
+  @@index([role])
+}
+
 model UserPreferences {
   telegramUserId String @id
   language       String @default("fa") // Default to Persian
@@ -46,26 +127,57 @@ model UserPreferences {
 model ChatSession {
   id             String @id @default(cuid())
   telegramUserId String
+  threadId       BigInt? // Forum topic/thread ID for thread-based sessions (Bot API 9.3+)
   createdAt      BigInt
   updatedAt      BigInt
   messages       Message[]
 
   @@index([telegramUserId])
+  @@index([telegramUserId, threadId])
   @@index([updatedAt])
 }
 
 model Message {
-  id            String @id @default(cuid())
-  sessionId     String
-  role          String // 'user', 'assistant', 'system', 'tool'
-  content       String
-  toolCallId    String? // For tool responses
-  toolName      String? // For tool calls
-  toolArgs      String? // JSON string of tool arguments
-  createdAt     BigInt
+  id                 String  @id @default(cuid())
+  sessionId          String
+  role               String  // 'user', 'assistant', 'system', 'tool'
+  content            String
+  telegramMessageId  BigInt? // Telegram message ID for reference
+  replyToMessageId   BigInt? // Telegram message ID this is replying to
+  threadId           BigInt? // Thread/topic ID if in a thread
+  toolCallId         String? // For tool responses
+  toolName           String? // For tool calls
+  toolArgs           String? // JSON string of tool arguments
+  createdAt          BigInt
   
-  session       ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session            ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@index([sessionId])
+  @@index([sessionId, threadId])
   @@index([createdAt])
+}
+
+// MCP Tool Call Logs - for debugging and monitoring
+model McpToolLog {
+  id              String  @id @default(cuid())
+  telegramUserId  String  // User who triggered the tool call
+  sessionId       String? // Chat session this tool call belongs to
+  messageId       String? // Specific message that triggered this tool call
+  mcpServer       String  // 'planka', 'rastar', 'time', etc.
+  toolName        String  // Name of the tool called
+  inputArgs       String  // JSON string of input arguments
+  outputContent   String  // Tool output/result
+  success         Boolean @default(true)
+  errorMessage    String? // Error message if failed
+  executionTimeMs Int?    // Execution time in milliseconds
+  createdAt       BigInt
+  
+  @@index([telegramUserId])
+  @@index([sessionId])
+  @@index([messageId])
+  @@index([mcpServer])
+  @@index([toolName])
+  @@index([createdAt])
+  @@index([telegramUserId, createdAt])
+  @@index([sessionId, createdAt])
 }

@@ -10,15 +10,30 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently -n bot,portal,admin -c blue,green,yellow \"npm -w apps/telegram-bot run dev\" \"npm -w apps/link-portal run dev\" \"npm -w apps/admin-panel run dev\"",
-    "build": "tsc -b",
+    "setup:wizard": "node scripts/setup.mjs",
+    "dev": "npm run db:verify && concurrently -n bot,portal,admin -c blue,green,yellow \"npm -w apps/telegram-bot run dev\" \"npm -w apps/link-portal run dev\" \"npm -w apps/admin-panel run dev\"",
+    "build": "npm run prisma:generate && tsc -b",
     "prisma:generate": "npm -w packages/shared run prisma:generate",
+    "prisma:migrate": "npm -w packages/shared run prisma:migrate",
+    "prisma:migrate:deploy": "npm -w packages/shared run prisma:migrate:deploy",
+    "prisma:status": "npm -w packages/shared exec prisma migrate status",
+    "prisma:studio": "npm -w packages/shared run prisma:studio",
+    "db:setup": "npm run prisma:generate && npm run prisma:migrate:deploy",
+    "db:verify": "node packages/shared/scripts/reset-migrations.mjs",
+    "db:check": "node scripts/check-production-migrations.mjs",
+    "create-admin": "tsx scripts/create-admin.ts",
     "admin:build": "npm -w apps/admin-panel run build",
     "admin:start": "npm -w apps/admin-panel run start",
-    "start": "npm -w apps/telegram-bot run start"
+    "start": "npm -w apps/telegram-bot run start",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "docker:rebuild": "docker compose up -d --build",
+    "setup": "npm install && npm run db:setup"
   },
   "devDependencies": {
     "concurrently": "^9.2.0",
+    "shadcn": "^3.6.2",
     "tsx": "^4.20.0",
     "typescript": "^5.8.2"
   }

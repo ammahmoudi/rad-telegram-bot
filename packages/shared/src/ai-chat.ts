@@ -477,6 +477,57 @@ export function validateMessageHistory(messages: ChatMessage[]): ChatMessage[] {
 
 
 /**
+ * Estimate token count for a message (rough approximation)
+ * 1 token ≈ 4 characters for English text
+ */
+function estimateTokens(message: ChatMessage): number {
+  const contentTokens = Math.ceil(message.content.length / 4);
+  const toolArgsTokens = message.toolArgs ? Math.ceil(message.toolArgs.length / 4) : 0;
+  return contentTokens + toolArgsTokens + 10; // +10 for role/metadata overhead
+}
+
+/**
+ * Trim conversation history by token count
+ * Keeps recent messages up to maxTokens limit
+ */
+export function trimConversationHistoryByTokens(
+  messages: ChatMessage[],
+  maxTokens: number = 4000,
+): ChatMessage[] {
+  let totalTokens = 0;
+  let startIndex = messages.length;
+  
+  // Count backwards to keep most recent messages
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msgTokens = estimateTokens(messages[i]);
+    if (totalTokens + msgTokens > maxTokens && startIndex < messages.length) {
+      // Exceeded limit, stop here
+      break;
+    }
+    totalTokens += msgTokens;
+    startIndex = i;
+  }
+  
+  let trimmed = messages.slice(startIndex);
+  
+  // If first message is a tool response, include its assistant call
+  if (trimmed.length > 0 && trimmed[0].role === 'tool') {
+    const toolCallId = trimmed[0].toolCallId;
+    let searchIdx = startIndex - 1;
+    while (searchIdx >= 0) {
+      const msg = messages[searchIdx];
+      if (msg.role === 'assistant' && msg.toolCallId === toolCallId) {
+        trimmed = messages.slice(searchIdx);
+        break;
+      }
+      searchIdx--;
+    }
+  }
+  
+  return removeOrphanedToolMessages(trimmed);
+}
+
+/**
  * Trim conversation history to fit within context window
  * Keeps recent messages and ensures tool call/response pairs stay together
  */

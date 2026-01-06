@@ -1,309 +1,406 @@
-# Planka MCP Server
+# 🚀 Planka MCP Server
 
-A comprehensive Model Context Protocol (MCP) server for [Planka](https://planka.app/) kanban boards, providing **Tools**, **Prompts**, and **Resources** for complete project management automation.
+A comprehensive **Model Context Protocol (MCP) server** for [Planka](https://planka.app/) project management. Provides AI assistants with complete access to Planka boards, cards, tasks, and project data.
 
-## 🚀 Features
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
+[![MCP](https://img.shields.io/badge/MCP-1.x-green.svg)](https://modelcontextprotocol.io/)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-- **40+ Tools** - Complete CRUD operations for all Planka entities
-- **5 Prompts** - Pre-built templates for common workflows
-- **5 Resources** - URI-based access to Planka data
-- **Project Management** - List and view projects
-- **Board Management** - Create, update, delete, and list boards
-- **List Management** - Create, update, archive, delete lists (columns)
-- **Card Management** - Full card lifecycle with search, create, update, move, delete
-- **Label Management** - Create, update, delete labels and assign to cards
-- **Member Management** - Assign and remove members from cards
-- **Comments** - Add, update, delete comments on cards
-- **Task Lists & Tasks** - Manage checklists within cards
-- **Attachments** - List and delete attachments
-- **User Authentication** - Link Telegram users to Planka accounts
+---
 
-## 🎯 MCP Capabilities
+## 📋 Table of Contents
 
-### Tools (40+)
-Direct function calls to interact with Planka
+- [Quick Start](#-quick-start)
+- [Features](#-features)
+- [Architecture](#-architecture)
+- [Documentation](#-documentation)
+- [Installation](#-installation)
+- [Configuration](#-configuration)
+- [Usage Examples](#-usage-examples)
+- [Development](#-development)
 
-### Prompts (5)
-Pre-built workflow templates:
-- `daily-standup` - Generate standup reports
-- `create-sprint-card` - Structured card creation template
-- `weekly-report` - User or project status reports
-- `project-overview` - Comprehensive project analysis
-- `board-health-check` - Identify issues and risks
+---
 
-### Resources (5)
-URI-based data access:
-- `planka://projects` - All projects
-- `planka://projects/{projectId}` - Project details
-- `planka://boards/{boardId}` - Board with cards
-- `planka://users/{telegramUserId}/assigned-cards` - User's tasks
-- `planka://projects/{projectId}/cards` - All project cards
+## ⚡ Quick Start
 
-## 📋 Available Tools
-
-### Authentication
-- `planka.auth.status` - Check Planka link status for a user
-
-### Projects
-- `planka.projects.list` - List all projects
-
-### Boards
-- `planka.boards.list` - List boards in a project
-- `planka.boards.create` - Create a new board
-- `planka.boards.update` - Update board details
-- `planka.boards.delete` - Delete a board
-
-### Lists (Columns)
-- `planka.lists.list` - List all lists in a board
-- `planka.lists.create` - Create a new list
-- `planka.lists.update` - Update list properties
-- `planka.lists.archive` - Archive a list
-- `planka.lists.delete` - Delete a list
-
-### Cards
-- `planka.cards.search` - Search cards by name/description
-- `planka.cards.create` - Create a new card
-- `planka.cards.update` - Update card details
-- `planka.cards.move` - Move card to another list
-- `planka.cards.delete` - Delete a card
-
-### Labels
-- `planka.labels.list` - List labels in a board
-- `planka.labels.create` - Create a new label
-- `planka.labels.update` - Update label properties
-- `planka.labels.delete` - Delete a label
-- `planka.labels.assignToCard` - Assign label to card
-- `planka.labels.removeFromCard` - Remove label from card
-
-### Members
-- `planka.members.list` - List members in a project
-- `planka.members.assignToCard` - Assign member to card
-- `planka.members.removeFromCard` - Remove member from card
-
-### Comments
-- `planka.comments.list` - List comments on a card
-- `planka.comments.create` - Add a comment
-- `planka.comments.update` - Update a comment
-- `planka.comments.delete` - Delete a comment
-
-### Task Lists
-- `planka.taskLists.create` - Create a task list (checklist)
-- `planka.taskLists.update` - Update task list
-- `planka.taskLists.delete` - Delete task list
-
-### Tasks
-- `planka.tasks.create` - Create a task in a task list
-- `planka.tasks.update` - Update task (name, completion status)
-- `planka.tasks.delete` - Delete a task
-
-### Attachments
-- `planka.attachments.list` - List attachments on a card
-- `planka.attachments.delete` - Delete an attachment
-
-## 🔧 API Methods
-
-All API methods are available in `planka.ts`:
-
-### Board Operations
-```typescript
-createBoard(auth, projectId, name, position?)
-updateBoard(auth, boardId, updates)
-deleteBoard(auth, boardId)
-```
-
-### List Operations
-```typescript
-createList(auth, boardId, name, position?, color?)
-updateList(auth, listId, updates)
-archiveList(auth, listId)
-deleteList(auth, listId)
-```
-
-### Card Operations
-```typescript
-createCard(auth, listId, name, description?, position?, dueDate?)
-updateCard(auth, cardId, updates)
-deleteCard(auth, cardId)
-```
-
-### Label Operations
-```typescript
-getLabels(auth, boardId)
-createLabel(auth, boardId, name, color, position?)
-updateLabel(auth, labelId, updates)
-deleteLabel(auth, labelId)
-assignLabelToCard(auth, cardId, labelId)
-removeLabelFromCard(auth, cardId, labelId)
-```
-
-### Member Operations
-```typescript
-getMembers(auth, projectId)
-assignMemberToCard(auth, cardId, userId)
-removeMemberFromCard(auth, cardId, userId)
-```
-
-### Comment Operations
-```typescript
-getComments(auth, cardId)
-createComment(auth, cardId, text)
-updateComment(auth, commentId, text)
-deleteComment(auth, commentId)
-```
-
-### Task Operations
-```typescript
-createTaskList(auth, cardId, name, position?)
-updateTaskList(auth, taskListId, updates)
-deleteTaskList(auth, taskListId)
-createTask(auth, taskListId, name, position?)
-updateTask(auth, taskId, updates)
-deleteTask(auth, taskId)
-```
-
-### Attachment Operations
-```typescript
-getAttachments(auth, cardId)
-deleteAttachment(auth, attachmentId)
-```
-
-## 📚 Type Definitions
-
-All types are defined in `planka.d.ts`:
-
-```typescript
-interface PlankaProject { id, name, description?, createdAt, updatedAt? }
-interface PlankaBoard { id, name, position, projectId, createdAt, updatedAt? }
-interface PlankaList { id, name, position, boardId, type?, color?, createdAt, updatedAt? }
-interface PlankaCard { id, name, description?, position, listId, boardId, dueDate?, createdAt, updatedAt? }
-interface PlankaLabel { id, name, color, position, boardId, createdAt, updatedAt? }
-interface PlankaUser { id, name, email, username?, role?, createdAt, updatedAt? }
-interface PlankaComment { id, type, data: { text }, cardId, userId, createdAt, updatedAt? }
-interface PlankaTaskList { id, name, position, cardId, showOnFrontOfCard, createdAt, updatedAt? }
-interface PlankaTask { id, name, position, taskListId, isCompleted, createdAt, updatedAt? }
-interface PlankaAttachment { id, name, cardId, creatorUserId, createdAt, updatedAt? }
-```
-
-## 🎯 Usage Examples
-
-### Creating a Complete Workflow
-
-```typescript
-// 1. List projects
-const projects = await listProjects(auth);
-
-// 2. Create a board
-const board = await createBoard(auth, projectId, "Sprint 1");
-
-// 3. Create lists
-const todoList = await createList(auth, board.id, "To Do", 1);
-const inProgressList = await createList(auth, board.id, "In Progress", 2);
-const doneList = await createList(auth, board.id, "Done", 3, "green-grass");
-
-// 4. Create a card
-const card = await createCard(auth, todoList.id, "Implement feature", "Full description here");
-
-// 5. Add labels
-const bugLabel = await createLabel(auth, board.id, "Bug", "berry-red");
-await assignLabelToCard(auth, card.id, bugLabel.id);
-
-// 6. Assign members
-const members = await getMembers(auth, projectId);
-await assignMemberToCard(auth, card.id, members[0].id);
-
-// 7. Add a comment
-await createComment(auth, card.id, "Starting work on this");
-
-// 8. Create a task list
-const taskList = await createTaskList(auth, card.id, "Implementation Steps");
-
-// 9. Add tasks
-await createTask(auth, taskList.id, "Step 1: Setup");
-await createTask(auth, taskList.id, "Step 2: Code");
-await createTask(auth, taskList.id, "Step 3: Test");
-
-// 10. Move card when done
-await moveCard(auth, card.id, doneList.id);
-```
-
-## � Debugging with MCP Inspector
-
-The MCP Inspector provides a web UI for testing and debugging MCP tools:
-
-### Setup
+### 1. Install Dependencies
 ```bash
-# Set required environment variable
-$env:TOKEN_ENCRYPTION_KEY = 'your_key_from_.env'
-
-# Start Inspector
-npx @modelcontextprotocol/inspector npx tsx packages/mcp-planka/src/index.ts
+npm install
 ```
 
-### Access
-Open the URL shown in terminal (includes auth token):
-```
-http://localhost:6274/?MCP_PROXY_AUTH_TOKEN=...
-```
+### 2. Configure Environment
+```bash
+# Set Planka API URL
+PLANKA_API_URL=https://your-planka-instance.com
 
-### Testing Tools
-1. **Connect** - Auto-connects to your MCP server
-2. **Browse Tools** - View all 39 available Planka tools
-3. **Test Calls** - Execute tools with test data
-4. **View Responses** - See raw JSON responses
-
-Example test for global search:
-```json
+# Or use in MCP config
 {
-  "telegramUserId": "263324534",
-  "query": "card name or user name"
+  "mcpServers": {
+    "planka": {
+      "command": "node",
+      "args": ["path/to/build/index.js"],
+      "env": {
+        "PLANKA_API_URL": "https://your-planka-instance.com"
+      }
+    }
+  }
 }
 ```
 
-The Inspector shows exact MCP communication, perfect for debugging tool responses and testing queries before deploying.
+### 3. Start the Server
+```bash
+npm run dev  # Development mode
+npm run build && node build/index.js  # Production
+```
 
-## �🔗 Integration
+---
 
-This MCP server integrates with:
-- **Telegram Bot** - Link Planka accounts to Telegram users
-- **AI Assistants** - Use via Model Context Protocol
-- **Automation Tools** - Programmatic board management
+## 🎯 Features
 
-## 🛡️ Security
+### **21 MCP Tools** 🛠️
+High-level helper functions for AI assistants:
+- **User Cards** - Get cards assigned to users with advanced filtering
+- **User Activity** - Track actions, comments, and contributions
+- **Project Status** - Generate project dashboards and reports
+- **Daily Reports** - Automated standup and progress summaries
+- **Search** - Powerful search across all Planka entities
 
-- Uses encrypted access tokens
-- Never stores passwords
-- Secure token storage in database
-- Per-user authentication
+### **50+ Raw API Functions** 🔧
+Direct access to Planka REST API:
+- Projects, Boards, Lists, Cards
+- Labels, Members, Comments
+- Task Lists, Tasks, Attachments
+- User management and authentication
 
-## 📝 Development
+### **Helper Functions** 🤖
+Intelligent data aggregation and formatting:
+- Enriched card data with project/board/list context
+- Task completion statistics and progress tracking
+- User activity timelines and contribution metrics
+- Project health indicators and risk analysis
+- Smart filtering, sorting, and searching
 
-Built with:
-- TypeScript
-- Node.js
-- MCP SDK
-- Planka REST API
+---
 
-## 🚧 Future Enhancements
+## 🏗️ Architecture
 
-Potential additions:
-- Board templates
-- Custom fields support
-- Bulk operations
-- Webhooks
-- Advanced search filters
-- Export/import functionality
+```
+packages/mcp-planka/
+├── src/
+│   ├── index.ts              # MCP server entry point
+│   ├── tools/                # 21 MCP tools (AI-facing)
+│   │   ├── user-tasks.tools.ts
+│   │   ├── user-activity.tools.ts
+│   │   ├── project-status.tools.ts
+│   │   ├── daily-reports.tools.ts
+│   │   └── search.tools.ts
+│   ├── helpers/              # High-level helper functions
+│   │   ├── user-tasks.ts
+│   │   ├── user-activity.ts
+│   │   ├── project-status.ts
+│   │   ├── daily-reports.ts
+│   │   ├── search.ts
+│   │   └── types.ts
+│   └── api/                  # 50+ raw Planka API functions
+│       ├── projects.ts
+│       ├── boards.ts
+│       ├── cards.ts
+│       ├── tasks.ts
+│       └── ... (47 more files)
+└── docs/
+    ├── TOOLS.md              # Complete tools reference
+    ├── HELPERS.md            # Helper functions guide
+    └── API.md                # Raw API documentation
+```
 
-## 📄 License
+### **Three-Layer Design**
+
+1. **Tools Layer** (`src/tools/`) - MCP interface for AI assistants
+   - 21 high-level tools with clear descriptions
+   - Zod schema validation for parameters
+   - User-friendly naming: `planka_get_user_cards`
+
+2. **Helpers Layer** (`src/helpers/`) - Smart business logic
+   - Data enrichment and aggregation
+   - Advanced filtering and sorting
+   - Context-aware formatting
+
+3. **API Layer** (`src/api/`) - Direct Planka REST API
+   - 50+ endpoints covering all Planka features
+   - Type-safe with TypeScript interfaces
+   - Minimal abstraction for maximum flexibility
+
+---
+
+## 📚 Documentation
+
+| Document | Description |
+|----------|-------------|
+| **[TOOLS.md](docs/TOOLS.md)** | Complete reference for all 21 MCP tools with examples and parameters |
+| **[HELPERS.md](docs/HELPERS.md)** | Guide to helper functions with type signatures and use cases |
+| **[API.md](docs/API.md)** | Raw Planka API functions reference with endpoints and responses |
+
+---
+
+## 📦 Installation
+
+### As MCP Server (Recommended)
+
+Add to your MCP client configuration:
+
+```json
+{
+  "mcpServers": {
+    "planka": {
+      "command": "node",
+      "args": ["path/to/rastar-telegram-bot/packages/mcp-planka/build/index.js"],
+      "env": {
+        "PLANKA_API_URL": "https://planka.yourdomain.com"
+      }
+    }
+  }
+}
+```
+
+### As Package Dependency
+
+```bash
+npm install @rastar/mcp-planka
+```
+
+```typescript
+import { getUserCards, searchCards } from '@rastar/mcp-planka/helpers';
+import { getProject, getBoard } from '@rastar/mcp-planka/api';
+```
+
+---
+
+## ⚙️ Configuration
+
+### Environment Variables
+
+```bash
+# Required
+PLANKA_API_URL=https://your-planka-instance.com
+
+# Optional (for development)
+NODE_ENV=development
+LOG_LEVEL=debug
+```
+
+### Authentication
+
+Authentication is handled per-request using **Planka access tokens**:
+
+```typescript
+const auth = { 
+  plankaUrl: 'https://planka.yourdomain.com',
+  accessToken: 'your-planka-token-here'
+};
+
+const cards = await getUserCards(auth, 'user-id-123');
+```
+
+Tokens are provided by the Telegram bot via the `@shared/crypto` module (encrypted storage).
+
+---
+
+## 💡 Usage Examples
+
+### Get User's Tasks
+
+```typescript
+import { getUserCards } from '@rastar/mcp-planka/helpers';
+
+// Get all cards for current user
+const cards = await getUserCards(auth);
+
+// Get cards with full task items and history
+const detailedCards = await getUserCards(auth, 'user-123', {
+  includeTasks: true,
+  includeHistory: true,
+  projectId: 'proj-456'
+});
+
+// Filter incomplete cards with due dates
+const urgentCards = await getUserCards(auth, undefined, {
+  isCompleted: false,
+  dueDate: { before: '2025-12-31' }
+}, {
+  by: 'dueDate',
+  order: 'asc'
+});
+```
+
+### Search Across Projects
+
+```typescript
+import { globalSearch } from '@rastar/mcp-planka/helpers';
+
+// Search everything
+const results = await globalSearch(auth, 'urgent bug', {
+  searchUsers: true,
+  searchProjects: true,
+  searchBoards: true,
+  searchCards: true,
+  searchTasks: true
+});
+
+console.log(results.cards);  // Matching cards
+console.log(results.tasks);  // Matching tasks
+```
+
+### Generate Project Status Report
+
+```typescript
+import { getProjectStatus } from '@rastar/mcp-planka/helpers';
+
+const status = await getProjectStatus(auth, 'project-id-123');
+
+console.log(status.summary);
+// {
+//   totalCards: 45,
+//   completedCards: 28,
+//   inProgressCards: 12,
+//   completionRate: 0.62,
+//   overdueCards: 3
+// }
+```
+
+### Track User Activity
+
+```typescript
+import { getUserActivity } from '@rastar/mcp-planka/helpers';
+
+const activity = await getUserActivity(auth, 'user-123', {
+  since: '2025-12-01',
+  types: ['createCard', 'commentCard', 'updateCard']
+});
+
+console.log(activity.summary);
+// {
+//   totalActions: 156,
+//   cardsCreated: 23,
+//   commentsAdded: 89,
+//   cardsUpdated: 44
+// }
+```
+
+---
+
+## 🔧 Development
+
+### Build
+
+```bash
+npm run build
+```
+
+### Development Mode
+
+```bash
+npm run dev
+```
+
+### Testing
+
+```bash
+# Run all tests
+npm test
+
+# Run unit tests only
+npm test -- unit
+
+# Run tests in watch mode
+npm run test:watch
+
+# Test with coverage
+npm run test:coverage
+```
+
+#### Integration Tests
+
+Integration tests run against a live Planka instance. To run them:
+
+1. **Copy environment template:**
+   ```bash
+   cp .env.test.example .env.test
+   ```
+
+2. **Configure credentials in `.env.test`:**
+   ```bash
+   PLANKA_BASE_URL=https://pm-dev.rastar.dev
+   PLANKA_USERNAME=your_username
+   PLANKA_PASSWORD=your_password
+   ```
+
+3. **Run integration tests:**
+   ```bash
+   # Windows PowerShell
+   $env:INTEGRATION_TEST='1'; npm test -- api-optimized --run
+   
+   # Linux/Mac
+   INTEGRATION_TEST=1 npm test -- api-optimized
+   ```
+
+**Note:** Integration tests for optimized API endpoints will gracefully skip if the backend hasn't implemented those endpoints yet (they check availability automatically).
+
+**Test Results:**
+- ✅ Unit tests: 11/11 passing (parameter building, URL construction)
+- ✅ Integration tests: 28/28 passing (17 skip when endpoints unavailable + 1 availability check)
+
+
+### Type Checking
+
+```bash
+npm run type-check
+```
+
+---
+
+## 🌟 Highlights
+
+### **Legendary getUserCards()**
+Our flagship helper function that can:
+- ✅ Get cards for any user (or current user)
+- ✅ Filter by project, board, list, completion, due date
+- ✅ Optionally include full task items (`includeTasks: true`)
+- ✅ Optionally include action history (`includeHistory: true`)
+- ✅ Sort by name, date, position
+- ✅ Enrich with project/board/list context
+
+See [LEGENDARY_GETUSERCARDS.md](LEGENDARY_GETUSERCARDS.md) for details.
+
+### **Smart Search**
+- Fuzzy matching across cards, tasks, users, projects, boards
+- Filter by date ranges, completion status, assignments
+- Context-aware results with full entity relationships
+
+### **Activity Tracking**
+- Real-time user contribution metrics
+- Action history timelines
+- Productivity analytics
+
+---
+
+## 📝 License
 
 MIT
 
+---
+
 ## 🤝 Contributing
 
-Contributions welcome! This MCP server provides comprehensive Planka integration based on the official API.
+Contributions welcome! Please read our contributing guidelines and submit PRs.
 
-## 🔗 References
+---
 
-- [Planka Official Docs](https://docs.planka.cloud/)
+## 🔗 Links
+
+- [Planka Project](https://planka.app/)
 - [Model Context Protocol](https://modelcontextprotocol.io/)
-- [HexiDev/planka-mcp-kanban](https://github.com/HexiDev/planka-mcp-kanban)
-- [AcceleratedIndustries/planka-mcp](https://github.com/AcceleratedIndustries/planka-mcp)
+- [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk)
+
+---
+
+**Made with ❤️ for the Rastar Telegram Bot project**

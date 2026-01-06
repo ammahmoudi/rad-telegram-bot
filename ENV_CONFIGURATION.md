@@ -17,11 +17,16 @@ Complete reference for all environment variables used in the Rastar Telegram Bot
 |----------|----------|---------|-------------|
 | `TELEGRAM_BOT_TOKEN` | ✅ Yes | - | Bot token from @BotFather |
 | `TELEGRAM_BOT_USERNAME` | ❌ No | - | Bot username (for @mentions) |
+| `CHAT_MODE` | ❌ No | `thread` | Chat mode: `thread` (threaded topics) or `simple` (single chat) |
 | `MCP_PLANKA_URL` | ✅ Yes* | `http://mcp-planka:3100/sse` | MCP Planka server URL |
 | `MCP_RASTAR_URL` | ✅ Yes* | `http://mcp-rastar:3101/sse` | MCP Rastar server URL |
 | `LINK_PORTAL_URL` | ✅ Yes | `http://link-portal:3002` | Link portal URL |
 
 *Auto-configured in docker-compose
+
+**Chat Mode Options:**
+- `thread` (default): Uses Telegram's threaded mode with topics/threads for separate conversations. Each conversation creates a new thread. `/clear_chat` deletes the current thread.
+- `simple`: All chats happen in the main private chat. No threads/topics created. `/clear_chat` only clears AI history but keeps messages visible.
 
 ### 🎨 Admin Panel
 
@@ -30,8 +35,8 @@ Complete reference for all environment variables used in the Rastar Telegram Bot
 | `ADMIN_PANEL_URL` | ✅ Yes | `http://localhost:3000` | Public URL of admin panel |
 | `NEXTAUTH_SECRET` | ✅ Yes | - | NextAuth encryption secret |
 | `NEXTAUTH_URL` | ✅ Yes | `http://localhost:3000` | NextAuth callback URL |
-| `ADMIN_USERNAME` | ✅ Yes | `admin` | Admin login username |
-| `ADMIN_PASSWORD` | ✅ Yes | - | Admin login password |
+| `DEFAULT_ADMIN_USERNAME` | ❌ No | - | Auto-create admin username (Docker only) |
+| `DEFAULT_ADMIN_PASSWORD` | ❌ No | - | Auto-create admin password (Docker only) |
 | `ADMIN_PANEL_PORT` | ❌ No | `3000` | Internal port |
 
 ### 🔗 Link Portal
@@ -122,9 +127,13 @@ echo "NEXTAUTH_SECRET=$(openssl rand -base64 32)" >> .env
 nano .env
 # - TELEGRAM_BOT_TOKEN
 # - OPENROUTER_API_KEY
-# - RASTAR_USERNAME
-# - RASTAR_PASSWORD
-# - ADMIN_PASSWORD
+# - ENCRYPTION_KEY
+# - NEXTAUTH_SECRET
+# - PLANKA_SERVER_URL
+# - RASTAR_SUPABASE_URL
+# - RASTAR_SUPABASE_ANON_KEY
+# - DEFAULT_ADMIN_USERNAME (optional)
+# - DEFAULT_ADMIN_PASSWORD (optional)
 # - Update all URLs with your domain
 
 # 4. Deploy

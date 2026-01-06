@@ -1,0 +1,213 @@
+import type { Context } from 'grammy';
+import type { Message } from 'grammy/types';
+import type { OpenRouterClient, ChatMessage } from '@rad/shared';
+import type { ChatCompletionTool } from 'openai/resources/chat/completions';
+import type { ReasoningStep } from '../types/streaming.js';
+import { markdownToTelegramHtml, formatToolName } from '../utils/formatting.js';
+import { splitHtmlSafely } from '../utils/html-splitter.js';
+import { LOADING_FRAMES } from '../types/streaming.js';
+import {
+  getMessageThreadId,
+  isUserTopicsEnabled,
+  isTopicMessage,
+} from '../services/draft-streaming.js';
+
+/**
+ * Handle streaming AI response with live updates to Telegram message
+ * Supports topics in private chats via message_thread_id parameter
+ */
+export async function handleStreamingResponse(
+  ctx: Context,
+  client: OpenRouterClient,
+  trimmedHistory: ChatMessage[],
+  systemPrompt: string,
+  tools: ChatCompletionTool[],
+  sentMessage: Message.TextMessage
+): Promise<{
+  finalResponse: string;
+  totalToolCallsMade: number;
+  reasoningSteps: ReasoningStep[];
+  allToolCallsMade: Array<{ name: string; args?: any }>;
+  allReasoningTexts: string[];
+  reasoningDetails?: unknown;
+}> {
+  let lastUpdateTime = Date.now();
+  let reasoningActive = false;
+  let reasoningText = '';
+  let allReasoningTexts: string[] = [];
+  let allToolCallsMade: Array<{ name: string; args?: any }> = [];
+  let reasoningSteps: ReasoningStep[] = [];
+  let currentStepTools: Array<{ name: string; args: any }> = [];
+  let totalToolCallsMade = 0;
+  let finalResponse = '';
+  let reasoningDetails: unknown = undefined;
+  let loadingFrameIndex = 0;
+  
+  let toolCallsDisplay: string[] = [];
+  let activeTools = new Set<string>();
+
+  // Extract topic information if available
+  const messageThreadId = getMessageThreadId(ctx);
+  const userHasTopics = isUserTopicsEnabled(ctx);
+  const isTopicMsg = isTopicMessage(ctx);
+  
+  console.log('[message-streaming] User topic info:', {
+    hasTopicsEnabled: userHasTopics,
+    messageThreadId,
+    isTopicMessage: isTopicMsg,
+  });
+
+  // Helper to update message (with rate limiting)
+  const updateMessage = async (force: boolean = false) => {
+    const now = Date.now();
+    if (!force && now - lastUpdateTime < 500) return; // Rate limit: 2 updates per second
+    
+    lastUpdateTime = now;
+    
+    let content = '';
+    
+    // Show reasoning indicator if active
+    if (reasoningActive && reasoningText) {
+      content += '🧠 <b>Reasoning...</b>\n\n';
+      const formattedReasoning = markdownToTelegramHtml(reasoningText);
+      content += '<blockquote>' + formattedReasoning.substring(0, 500) + '</blockquote>\n\n';
+    } else if (reasoningActive) {
+      content += '🧠 <i>Reasoning...</i>\n\n';
+    }
+    
+    // Show active tools
+    if (toolCallsDisplay.length > 0) {
+      content += '<b>🛠️ Tools in use:</b>\n';
+      content += toolCallsDisplay.map(t => `  ${t}`).join('\n');
+      content += '\n\n';
+    }
+    
+    // Show accumulated response content
+    if (finalResponse) {
+      content += markdownToTelegramHtml(finalResponse);
+    } else if (!reasoningActive && toolCallsDisplay.length === 0) {
+      content += '💭 <i>Generating response...</i>';
+    }
+    
+    // Check if content exceeds Telegram's limit (4096 chars)
+    // Use a safety margin to prevent truncation during streaming
+    if (content.length > 4000) {
+      // Truncate the final response part to fit within limit
+      const overflowBy = content.length - 4000;
+      const maxFinalResponseLength = Math.max(0, markdownToTelegramHtml(finalResponse).length - overflowBy - 100);
+      
+      // Rebuild content with truncated response
+      content = '';
+      if (reasoningActive && reasoningText) {
+        content += '🧠 <b>Reasoning...</b>\n\n';
+        const formattedReasoning = markdownToTelegramHtml(reasoningText);
+        content += '<blockquote>' + formattedReasoning.substring(0, 500) + '</blockquote>\n\n';
+      } else if (reasoningActive) {
+        content += '🧠 <i>Reasoning...</i>\n\n';
+      }
+      
+      if (toolCallsDisplay.length > 0) {
+        content += '<b>🛠️ Tools in use:</b>\n';
+        content += toolCallsDisplay.map(t => `  ${t}`).join('\n');
+        content += '\n\n';
+      }
+      
+      if (finalResponse) {
+        const formattedResponse = markdownToTelegramHtml(finalResponse);
+        // Use splitHtmlSafely and take only the first chunk
+        const chunks = splitHtmlSafely(formattedResponse, maxFinalResponseLength);
+        content += chunks[0];
+        if (chunks.length > 1) {
+          content += '\n\n<i>... (message continues)</i>';
+        }
+      } else if (!reasoningActive && toolCallsDisplay.length === 0) {
+        content += '💭 <i>Generating response...</i>';
+      }
+    }
+    
+    try {
+      // Pass message_thread_id if available (for topics in private chats)
+      const editOptions: Record<string, any> = { parse_mode: 'HTML' };
+      if (messageThreadId) {
+        editOptions.message_thread_id = messageThreadId;
+      }
+      
+      await ctx.api.editMessageText(sentMessage.chat.id, sentMessage.message_id, content, editOptions);
+    } catch (error) {
+      // Ignore errors from too frequent updates or identical content
+    }
+  };
+
+  // Stream AI response
+  const stream = client.streamChat(trimmedHistory, { systemPrompt }, tools);
+  
+  for await (const chunk of stream) {
+    if (chunk.type === 'reasoning') {
+      reasoningActive = true;
+      if (chunk.content) {
+        reasoningText = chunk.content;
+        allReasoningTexts.push(chunk.content);
+      }
+      console.log('[telegram-bot] 🧠 Reasoning chunk received');
+      await updateMessage();
+    } else if (chunk.type === 'tool_call' && chunk.toolCall) {
+      reasoningActive = false;
+      const toolName = chunk.toolCall.name;
+      
+      if (!activeTools.has(toolName)) {
+        activeTools.add(toolName);
+        toolCallsDisplay.push(formatToolName(toolName));
+        allToolCallsMade.push({ name: toolName, args: chunk.toolCall.arguments });
+        currentStepTools.push({ name: toolName, args: chunk.toolCall.arguments });
+        totalToolCallsMade++;
+        console.log('[telegram-bot] 🔧 Tool call:', toolName);
+        await updateMessage();
+      }
+    } else if (chunk.type === 'content' && chunk.content) {
+      reasoningActive = false;
+      finalResponse += chunk.content;
+      console.log('[telegram-bot] 💬 Content chunk:', chunk.content.substring(0, 50));
+      await updateMessage();
+    } else if (chunk.type === 'done') {
+      // Save final reasoning step with its tools
+      if (reasoningText && currentStepTools.length > 0) {
+        reasoningSteps.push({
+          reasoning: reasoningText,
+          tools: [...currentStepTools]
+        });
+        currentStepTools = [];
+      }
+      
+      reasoningDetails = chunk.reasoningDetails;
+      reasoningActive = false;
+      reasoningText = '';
+      console.log('[telegram-bot] ✅ Streaming complete');
+      console.log('[telegram-bot] Done event:', {
+        finishReason: chunk.finishReason,
+        contentLength: chunk.content?.length || 0
+      });
+      
+      // If the done event has content we haven't seen yet, add it
+      if (chunk.content && !finalResponse) {
+        finalResponse = chunk.content;
+        console.log('[telegram-bot] Using content from done event');
+      }
+    }
+  }
+  
+  console.log('[telegram-bot] Stream finished, total response length:', finalResponse.length);
+  
+  // Force final update only if we have content to show
+  if (finalResponse || toolCallsDisplay.length > 0) {
+    await updateMessage(true);
+  }
+
+  return {
+    finalResponse,
+    totalToolCallsMade,
+    reasoningSteps,
+    allToolCallsMade,
+    allReasoningTexts,
+    reasoningDetails
+  };
+}

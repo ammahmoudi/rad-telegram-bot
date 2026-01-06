@@ -4,7 +4,7 @@
 
 export const authTools = [
   {
-    name: 'rastar.auth.refresh',
+    name: 'rastar_auth_refresh',
     description: 'Refresh access token using refresh token',
     inputSchema: {
       type: 'object',

@@ -6,7 +6,14 @@ export type PlankaAuth = {
 export interface PlankaProject {
   id: string;
   name: string;
-  description?: string;
+  description?: string | null;
+  backgroundType?: string;
+  backgroundGradient?: string;
+  isHidden?: boolean;
+  ownerProjectManagerId?: string | null;
+  backgroundImageId?: string | null;
+  isFavorite?: boolean;
+  categoryId?: string;
   createdAt: string;
   updatedAt?: string;
 }
@@ -16,6 +23,16 @@ export interface PlankaBoard {
   name: string;
   position: number;
   projectId: string;
+  defaultView?: string; // 'kanban', 'list', etc.
+  defaultCardType?: string; // 'project', 'story', etc.
+  limitCardTypesToDefaultOne?: boolean;
+  alwaysDisplayCardCreator?: boolean;
+  expandTaskListsByDefault?: boolean;
+  calendarType?: string; // 'gregorian', 'persian', etc.
+  isListsLocked?: boolean;
+  templateId?: string | null;
+  isSubscribed?: boolean;
+  cardTypes?: any[];
   createdAt: string;
   updatedAt?: string;
 }
@@ -35,10 +52,27 @@ export interface PlankaCard {
   id: string;
   name: string;
   description?: string;
+  type?: string; // 'project', 'story', etc.
   position: number;
   listId: string;
   boardId: string;
+  creatorUserId?: string;
+  color?: string;
+  startDate?: string;
   dueDate?: string;
+  isDueCompleted?: boolean | null; // Planka's "done" checkbox
+  stopwatch?: any;
+  commentsTotal?: number;
+  isClosed?: boolean;
+  listChangedAt?: string;
+  weight?: number;
+  storyPoints?: number | null;
+  isSyncEnabled?: boolean;
+  prevListId?: string | null;
+  coverAttachmentId?: string | null;
+  parentCardId?: string | null;
+  syncedFromCardId?: string | null;
+  isSubscribed?: boolean;
   createdAt: string;
   updatedAt?: string;
 }
@@ -48,9 +82,10 @@ export interface PlankaLabel {
   name: string;
   color: string;
   position: number;
-  boardId: string;
+  boardId: string | null; // null for global labels
+  isGlobal?: boolean;
   createdAt: string;
-  updatedAt?: string;
+  updatedAt?: string | null;
 }
 
 export interface PlankaUser {
@@ -59,6 +94,24 @@ export interface PlankaUser {
   email: string;
   username?: string;
   role?: string;
+  phone?: string;
+  organization?: string;
+  permissions?: string[];
+  language?: string;
+  subscribeToOwnCards?: boolean;
+  subscribeToCardWhenCommenting?: boolean;
+  turnOffRecentCardHighlighting?: boolean;
+  enableFavoritesByDefault?: boolean;
+  defaultEditorMode?: string; // 'wysiwyg' | 'markdown'
+  defaultHomeView?: string; // 'groupedProjects' | 'ungroupedProjects'
+  defaultProjectsOrder?: string; // 'byDefault' | 'byName'
+  isSsoUser?: boolean;
+  isDeactivated?: boolean;
+  managerUser?: any;
+  avatar?: any;
+  termsType?: string;
+  isDefaultAdmin?: boolean;
+  lockedFieldNames?: string[];
   createdAt: string;
   updatedAt?: string;
 }
@@ -358,22 +411,28 @@ export interface PlankaNotificationService {
 
 export interface PlankaNotification {
   id: string;
-  userId: string;
-  cardId?: string;
-  actionId?: string;
+  type: string; // 'moveCard', 'addComment', etc.
+  data: any; // Dynamic based on type
   isRead: boolean;
+  userId: string; // Recipient
+  creatorUserId: string; // Who caused the notification
+  boardId: string;
+  cardId: string;
+  commentId?: string | null;
+  actionId: string;
   createdAt: string;
-  updatedAt?: string;
+  updatedAt?: string | null;
 }
 
 export interface PlankaAction {
   id: string;
-  type: string;
-  data: any;
-  cardId?: string;
-  boardId?: string;
-  userId: string;
+  type: string; // 'createCard', 'moveCard', 'updateCard', etc.
+  data: any; // Dynamic content based on action type
+  boardId: string;
+  cardId: string;
+  userId: string; // Who performed the action
   createdAt: string;
+  updatedAt?: string | null;
 }
 
 export interface PlankaWebhook {

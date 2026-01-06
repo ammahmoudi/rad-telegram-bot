@@ -102,6 +102,9 @@ export class McpClientManager {
     serverName: string,
     toolName: string,
     args: Record<string, unknown>,
+    telegramUserId?: string,
+    sessionId?: string,
+    messageId?: string,
   ): Promise<any> {
     const client = this.clients.get(serverName);
     if (!client) {
@@ -109,12 +112,71 @@ export class McpClientManager {
     }
 
     console.log(`[MCP:${serverName}] Calling tool ${toolName}`, args);
-    const result = await client.callTool({
-      name: toolName,
-      arguments: args,
-    });
+    const startTime = Date.now();
+    
+    try {
+      const result = await client.callTool({
+        name: toolName,
+        arguments: args,
+      });
 
-    return result;
+      const executionTimeMs = Date.now() - startTime;
+
+      // Log the tool call if user ID is provided
+      if (telegramUserId) {
+        // Extract output content for logging
+        let outputContent = '';
+        if (result.content && Array.isArray(result.content)) {
+          for (const item of result.content) {
+            if (item.type === 'text') {
+              outputContent += item.text;
+            }
+          }
+        }
+
+        // Import logging function dynamically to avoid circular dependencies
+        const { logMcpToolCall } = await import('@rad/shared');
+        await logMcpToolCall({
+          telegramUserId,
+          sessionId,
+          messageId,
+          mcpServer: serverName,
+          toolName,
+          inputArgs: args as Record<string, any>,
+          outputContent: outputContent.substring(0, 10000), // Limit output size
+          success: !result.isError,
+          errorMessage: result.isError ? outputContent : undefined,
+          executionTimeMs,
+        }).catch((err) => {
+          console.error('[MCP] Failed to log tool call:', err);
+        });
+      }
+
+      return result;
+    } catch (error) {
+      const executionTimeMs = Date.now() - startTime;
+
+      // Log the error if user ID is provided
+      if (telegramUserId) {
+        const { logMcpToolCall } = await import('@rad/shared');
+        await logMcpToolCall({
+          telegramUserId,
+          sessionId,
+          messageId,
+          mcpServer: serverName,
+          toolName,
+          inputArgs: args as Record<string, any>,
+          outputContent: '',
+          success: false,
+          errorMessage: error instanceof Error ? error.message : String(error),
+          executionTimeMs,
+        }).catch((err) => {
+          console.error('[MCP] Failed to log tool call error:', err);
+        });
+      }
+
+      throw error;
+    }
   }
 
   /**
@@ -193,6 +255,7 @@ export async function initializeMcpServers(): Promise<void> {
     // Spawn MCP servers as child processes
     const plankaServerPath = path.join(repoRoot, 'packages/mcp-planka/dist/index.js');
     const rastarServerPath = path.join(repoRoot, 'packages/mcp-rastar/dist/index.js');
+    const timeServerPath = path.join(repoRoot, 'packages/mcp-time/dist/index.js');
 
     console.log(`[MCP] Connecting to Planka MCP server (stdio)...`);
     await manager.connect({
@@ -215,12 +278,24 @@ export async function initializeMcpServers(): Promise<void> {
         MCP_TRANSPORT: 'stdio',
       },
     });
+
+    console.log(`[MCP] Connecting to Time MCP server (stdio)...`);
+    await manager.connect({
+      name: 'time',
+      command: 'node',
+      args: [timeServerPath],
+      env: {
+        ...(process.env as Record<string, string>),
+        MCP_TRANSPORT: 'stdio',
+      },
+    });
   } else {
     console.log('[MCP] Using Streamable HTTP transport (Docker/production)');
     
     // MCP server URLs (Streamable HTTP endpoints)
     const plankaUrl = process.env.MCP_PLANKA_URL || 'http://mcp-planka:3100/mcp';
     const rastarUrl = process.env.MCP_RASTAR_URL || 'http://mcp-rastar:3101/mcp';
+    const timeUrl = process.env.MCP_TIME_URL || 'http://mcp-time:3102/mcp';
 
     console.log(`[MCP] Connecting to Planka MCP server at ${plankaUrl}...`);
     await manager.connect({
@@ -232,6 +307,12 @@ export async function initializeMcpServers(): Promise<void> {
     await manager.connect({
       name: 'rastar',
       url: rastarUrl,
+    });
+
+    console.log(`[MCP] Connecting to Time MCP server at ${timeUrl}...`);
+    await manager.connect({
+      name: 'time',
+      url: timeUrl,
     });
   }
 
