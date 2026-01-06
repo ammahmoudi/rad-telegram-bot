@@ -4,7 +4,7 @@ import {
   handleRastarStatusCommand,
   handleHistoryCommand,
 } from './commands/index.js';
-import { handleNewChatCommand } from './commands/chat-management.js';
+import { handleClearChatCommand } from './commands/chat.js';
 import { handleAiMessage } from './ai-message.js';
 
 /**

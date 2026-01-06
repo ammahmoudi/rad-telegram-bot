@@ -16,9 +16,11 @@ TypeScript monorepo that contains:
 2. Install deps:
    - `npm install`
 3. Initialize the database (Prisma migration):
-   - `npm -w packages/shared exec prisma migrate dev --name core`
+   - `npm run db:setup`
 4. Run dev:
    - `npm run dev`
+
+📚 **For production deployment and database migrations**, see [MIGRATIONS_GUIDE.md](./MIGRATIONS_GUIDE.md)
 
 ## Admin panel
 - Runs at `http://localhost:3000` in `npm run dev`.

@@ -124,6 +124,12 @@ planka-not-connected = ❌ Not Connected
 planka-not-connected-message = Your Planka account is not linked yet.
 planka-connect-instruction = 🔗 Run /link_planka to connect your account
 planka-connect-command = Run /link_planka to connect an account
+planka-connection-expired = 🔒 <b>Planka connection expired!</b>
+
+Your authentication token is no longer valid.
+
+👉 Please reconnect: /link_planka
+planka-connection-expired-short = 🔒 Planka connection expired. Reconnect: /link_planka
 planka-token-expired = ⚠️ Token Expired
 planka-token-expired-message = ❌ Your access token has expired and can no longer be used.
 planka-reconnect-title = 🔄 To reconnect:
@@ -137,6 +143,12 @@ planka-link-again = Then link again
 planka-connected = ✅ Connected
 planka-token-expires-in = ⏰ Token expires in: {$hours}h {$minutes}m
 planka-can-use = 💡 You can now use Planka commands in this bot
+planka-connection-expired = 🔒 <b>Planka connection expired!</b>
+
+Your authentication token is no longer valid.
+
+👉 Please reconnect: /link_planka
+planka-connection-expired-short = 🔒 Planka connection expired. Reconnect: /link_planka
 planka-disconnect-command = To disconnect: /planka_unlink
 planka-unlinked = ✅ Account Unlinked
 planka-unlinked-message = Your Planka account has been disconnected.
@@ -185,6 +197,12 @@ rastar-connected = ✅ Connected
 rastar-available-features = 💡 Available features:
 rastar-chat-instruction = 💬 You can also chat with me naturally:
 rastar-example = e.g., "What's for lunch today?" or "Select food for tomorrow"
+rastar-connection-expired = 🔒 <b>Rastar connection expired!</b>
+
+Your authentication has expired.
+
+👉 Please reconnect: /link_rastar
+rastar-connection-expired-short = 🔒 Rastar connection expired. Reconnect: /link_rastar
 rastar-disconnected = ✅ Account Disconnected
 rastar-disconnected-message = Your Rastar account ({$email}) has been disconnected from this bot.
 rastar-reconnect-later = 🔗 You can reconnect anytime by running:

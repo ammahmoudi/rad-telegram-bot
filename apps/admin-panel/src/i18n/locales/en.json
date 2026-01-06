@@ -15,6 +15,7 @@
     "settings": "Settings",
     "users": "Users",
     "packs": "Character Packs",
+    "toolLogs": "Tool Logs",
     "logout": "Logout"
   },
   "settings": {
@@ -78,7 +79,11 @@
     "telegramInfo": "Telegram Information",
     "lastActivity": "Last Activity",
     "memberSince": "Member Since",
-    "backToUsers": "← Back to Users"
+    "backToUsers": "← Back to Users",
+    "chatSessions": "Chat Sessions",
+    "noChats": "No chat sessions found",
+    "messages": "messages",
+    "viewChat": "View Chat"
   },
   "packs": {
     "title": "Character Packs",

@@ -33,7 +33,7 @@ export async function handleButtonCallback(ctx: BotContext) {
   }
 
   // Handle menu action buttons (link/unlink) - check before JSON parsing
-  if (callbackData === 'planka_link') {
+  if (callbackData === 'link_planka' || callbackData === 'planka_link') {
     await ctx.answerCallbackQuery();
     const { handleLinkPlankaCommand } = await import('./commands/index.js');
     await handleLinkPlankaCommand(ctx);
@@ -54,7 +54,28 @@ export async function handleButtonCallback(ctx: BotContext) {
     return;
   }
 
-  if (callbackData === 'rastar_link') {
+  if (callbackData === 'planka_list_boards') {
+    await ctx.answerCallbackQuery();
+    await ctx.reply('📋 Listing your Planka boards...');
+    // TODO: Implement board listing
+    return;
+  }
+
+  if (callbackData === 'planka_delayed_tasks') {
+    await ctx.answerCallbackQuery();
+    await ctx.reply('🔴 Fetching delayed tasks...');
+    // TODO: Implement delayed tasks
+    return;
+  }
+
+  if (callbackData === 'planka_create_card') {
+    await ctx.answerCallbackQuery();
+    await ctx.reply('➕ Starting card creation...');
+    // TODO: Implement card creation flow
+    return;
+  }
+
+  if (callbackData === 'link_rastar' || callbackData === 'rastar_link') {
     await ctx.answerCallbackQuery();
     const { handleLinkRastarCommand } = await import('./commands/index.js');
     await handleLinkRastarCommand(ctx);
@@ -72,6 +93,27 @@ export async function handleButtonCallback(ctx: BotContext) {
     await ctx.answerCallbackQuery();
     const { showRastarStatus } = await import('./commands/rastar.js');
     await showRastarStatus(ctx);
+    return;
+  }
+
+  if (callbackData === 'rastar_today_menu') {
+    await ctx.answerCallbackQuery();
+    await ctx.reply('📋 Fetching today\'s menu...');
+    // TODO: Implement today's menu
+    return;
+  }
+
+  if (callbackData === 'rastar_unselected_days') {
+    await ctx.answerCallbackQuery();
+    await ctx.reply('⚠️ Checking unselected days...');
+    // TODO: Implement unselected days check
+    return;
+  }
+
+  if (callbackData === 'rastar_week_menu') {
+    await ctx.answerCallbackQuery();
+    await ctx.reply('📅 Fetching this week\'s menu...');
+    // TODO: Implement week menu
     return;
   }
 

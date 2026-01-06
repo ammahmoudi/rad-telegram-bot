@@ -56,9 +56,10 @@ export async function executeAiTools(
   while (response.toolCalls && response.toolCalls.length > 0 && maxToolCalls > 0) {
     maxToolCalls--;
 
-    // Add tool calls to history and database
+    // Add tool calls to history and database, mapping toolCallId to messageId
+    const toolCallIdToMessageId = new Map<string, string>();
     for (const toolCall of response.toolCalls) {
-      await addMessage(
+      const savedMessage = await addMessage(
         sessionId,
         'assistant',
         '',
@@ -66,6 +67,7 @@ export async function executeAiTools(
         toolCall.name,
         toolCall.arguments,
       );
+      toolCallIdToMessageId.set(toolCall.id, savedMessage.id);
     }
     
     // Map reasoning details to tool calls by ID
@@ -154,38 +156,41 @@ export async function executeAiTools(
       }
       
       // Route tool calls based on prefix
+      const assistantMessageId = toolCallIdToMessageId.get(toolCall.id);
+      const userLanguage = ctx.session.language || 'en';
+      
       let toolResult;
       if (mcpToolName.startsWith('rastar.') || mcpToolName.startsWith('rastar_')) {
         toolResult = await executeRastarTool(
           String(ctx.from?.id ?? ''),
           mcpToolName,
           JSON.parse(toolCall.arguments),
+          sessionId,
+          assistantMessageId,
+          userLanguage,
         );
       } else if (mcpToolName.startsWith('planka_')) {
         toolResult = await executeMcpTool(
           String(ctx.from?.id ?? ''),
           mcpToolName,
           JSON.parse(toolCall.arguments),
+          sessionId,
+          assistantMessageId,
+          userLanguage,
         );
       } else {
         // Time tools or other MCP servers
         toolResult = await executeTimeTool(
           mcpToolName,
           JSON.parse(toolCall.arguments),
+          String(ctx.from?.id ?? ''),
+          sessionId,
+          assistantMessageId,
         );
       }
       
-      // Add tool result to database
-      await addMessage(
-        sessionId,
-        'tool',
-        toolResult.success ? toolResult.content : `Error: ${toolResult.error}`,
-        toolCall.id,
-        undefined,
-        undefined,
-      );
-      
-      // Add tool result to history
+      // Add tool result to history (for AI context only - not saved to Message table)
+      // Tool results are already logged in McpToolLog table for debugging
       trimmedHistory.push({
         role: 'tool',
         content: toolResult.success ? toolResult.content : `Error: ${toolResult.error}`,

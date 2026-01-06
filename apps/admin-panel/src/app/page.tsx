@@ -21,8 +21,13 @@ export default async function DashboardPage() {
   const mcpProjectScanDelay = (await getSystemConfig('mcpProjectScanDelay')) || '100';
   const useHardcodedPrompts = (await getSystemConfig('USE_HARDCODED_PROMPTS')) || 'false';
   const plankaDailyReportCategoryId = (await getSystemConfig('PLANKA_DAILY_REPORT_CATEGORY_ID')) || '';
+  const mcpToolLoggingEnabled = (await getSystemConfig('MCP_TOOL_LOGGING_ENABLED')) || 'false';
+  const showReasoningToUsers = (await getSystemConfig('SHOW_REASONING_TO_USERS')) || 'true';
   const plankaAuthToken = (await getSystemConfig('PLANKA_AUTH_TOKEN')) || '';
   const chatMode = (await getSystemConfig('CHAT_MODE')) || process.env.CHAT_MODE || 'thread';
+  const chatHistoryMode = (await getSystemConfig('CHAT_HISTORY_MODE')) || 'message_count';
+  const chatHistoryLimit = (await getSystemConfig('CHAT_HISTORY_LIMIT')) || '';
+  const chatRestoreToolResults = (await getSystemConfig('CHAT_RESTORE_TOOL_RESULTS')) || 'false';
   
   const config = {
     PLANKA_BASE_URL: plankaBaseUrl,
@@ -36,6 +41,11 @@ export default async function DashboardPage() {
     USE_HARDCODED_PROMPTS: useHardcodedPrompts,
     PLANKA_DAILY_REPORT_CATEGORY_ID: plankaDailyReportCategoryId,
     CHAT_MODE: chatMode,
+    CHAT_HISTORY_MODE: chatHistoryMode,
+    CHAT_HISTORY_LIMIT: chatHistoryLimit,
+    CHAT_RESTORE_TOOL_RESULTS: chatRestoreToolResults,
+    MCP_TOOL_LOGGING_ENABLED: mcpToolLoggingEnabled,
+    SHOW_REASONING_TO_USERS: showReasoningToUsers,
   };
   
   const hasApiKey = openRouterKey.length > 0;

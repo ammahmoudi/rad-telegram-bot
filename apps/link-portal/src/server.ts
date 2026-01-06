@@ -388,21 +388,7 @@ app.post('/link/planka', async (req, res) => {
     const isRelink = !!existingToken;
     const language = await getUserLanguage(link.telegramUserId);
     
-    // Send success message
-    await sendTelegramMessage(
-      link.telegramUserId,
-      isRelink
-        ? `✅ <b>${t(language, 'notifications.planka.relinked_title')}</b>\n\n` +
-          `${t(language, 'notifications.planka.relinked_message')}\n` +
-          `${t(language, 'notifications.planka.base_url', { url: escapeHtml(normalizeBaseUrl(baseUrl)) })}\n\n` +
-          t(language, 'notifications.planka.verify_connection')
-        : `✅ <b>${t(language, 'notifications.planka.linked_title')}</b>\n\n` +
-          `${t(language, 'notifications.planka.linked_message')}\n` +
-          `${t(language, 'notifications.planka.base_url', { url: escapeHtml(normalizeBaseUrl(baseUrl)) })}\n\n` +
-          t(language, 'notifications.planka.check_status'),
-    );
-    
-    // Send updated keyboard
+    // Prepare updated keyboard with new connection status
     const rastarToken = await getRastarToken(link.telegramUserId);
     const translations: Partial<KeyboardTranslations> = {
       'keyboards.my-cards': t(language, 'keyboards.my-cards'),
@@ -418,9 +404,19 @@ app.post('/link/planka', async (req, res) => {
       'keyboards.settings': t(language, 'keyboards.settings'),
     };
     const keyboard = buildMainMenuKeyboard(true, !!rastarToken, translations);
+    
+    // Send success message with updated keyboard
     await sendTelegramMessage(
       link.telegramUserId,
-      language === 'fa' ? '🎯 منوی اصلی' : '🎯 Main Menu',
+      isRelink
+        ? `✅ <b>${t(language, 'notifications.planka.relinked_title')}</b>\n\n` +
+          `${t(language, 'notifications.planka.relinked_message')}\n` +
+          `${t(language, 'notifications.planka.base_url', { url: escapeHtml(normalizeBaseUrl(baseUrl)) })}\n\n` +
+          t(language, 'notifications.planka.verify_connection')
+        : `✅ <b>${t(language, 'notifications.planka.linked_title')}</b>\n\n` +
+          `${t(language, 'notifications.planka.linked_message')}\n` +
+          `${t(language, 'notifications.planka.base_url', { url: escapeHtml(normalizeBaseUrl(baseUrl)) })}\n\n` +
+          t(language, 'notifications.planka.check_status'),
       { reply_markup: keyboard }
     );
 
@@ -755,16 +751,7 @@ app.post('/link/rastar', async (req, res) => {
 
     const language = await getUserLanguage(link.telegramUserId);
 
-    // Send success message
-    await sendTelegramMessage(
-      link.telegramUserId,
-      `✅ <b>${t(language, 'notifications.rastar.linked_title')}</b>\n\n` +
-      `${t(language, 'notifications.rastar.linked_message')}\n` +
-      `${t(language, 'notifications.rastar.email', { email: escapeHtml(email) })}\n\n` +
-      t(language, 'notifications.rastar.check_status'),
-    );
-    
-    // Send updated keyboard
+    // Prepare updated keyboard with new connection status
     const plankaToken = await getPlankaToken(link.telegramUserId);
     const translations: Partial<KeyboardTranslations> = {
       'keyboards.my-cards': t(language, 'keyboards.my-cards'),
@@ -780,9 +767,14 @@ app.post('/link/rastar', async (req, res) => {
       'keyboards.settings': t(language, 'keyboards.settings'),
     };
     const keyboard = buildMainMenuKeyboard(!!plankaToken, true, translations);
+
+    // Send success message with updated keyboard
     await sendTelegramMessage(
       link.telegramUserId,
-      language === 'fa' ? '🎯 منوی اصلی' : '🎯 Main Menu',
+      `✅ <b>${t(language, 'notifications.rastar.linked_title')}</b>\n\n` +
+      `${t(language, 'notifications.rastar.linked_message')}\n` +
+      `${t(language, 'notifications.rastar.email', { email: escapeHtml(email) })}\n\n` +
+      t(language, 'notifications.rastar.check_status'),
       { reply_markup: keyboard }
     );
 

@@ -22,6 +22,11 @@ export async function POST(request: Request) {
     const useHardcodedPrompts = formData.get('useHardcodedPrompts');
     const plankaDailyReportCategoryId = formData.get('plankaDailyReportCategoryId');
     const chatMode = formData.get('chatMode');
+    const chatHistoryMode = formData.get('chatHistoryMode');
+    const chatHistoryLimit = formData.get('chatHistoryLimit');
+    const chatRestoreToolResults = formData.get('chatRestoreToolResults');
+    const mcpToolLogging = formData.get('mcpToolLogging');
+    const showReasoningToUsers = formData.get('showReasoningToUsers');
 
     // Update Planka Base URL if provided
     if (plankaBaseUrl && typeof plankaBaseUrl === 'string' && plankaBaseUrl.trim()) {
@@ -88,6 +93,33 @@ export async function POST(request: Request) {
         await setSystemConfig('CHAT_MODE', mode);
       }
     }
+
+    // Update chat history mode
+    if (chatHistoryMode && typeof chatHistoryMode === 'string') {
+      if (chatHistoryMode === 'message_count' || chatHistoryMode === 'token_size') {
+        await setSystemConfig('CHAT_HISTORY_MODE', chatHistoryMode);
+      }
+    }
+
+    // Update chat history limit
+    if (chatHistoryLimit !== null && typeof chatHistoryLimit === 'string') {
+      const trimmed = chatHistoryLimit.trim();
+      if (trimmed !== '') {
+        const num = parseInt(trimmed);
+        if (!isNaN(num) && num > 0) {
+          await setSystemConfig('CHAT_HISTORY_LIMIT', trimmed);
+        }
+      }
+    }
+
+    // Update chat restore tool results setting
+    await setSystemConfig('CHAT_RESTORE_TOOL_RESULTS', chatRestoreToolResults === 'on' ? 'true' : 'false');
+
+    // Update MCP tool logging setting
+    await setSystemConfig('MCP_TOOL_LOGGING_ENABLED', mcpToolLogging === 'on' ? 'true' : 'false');
+
+    // Update show reasoning to users setting
+    await setSystemConfig('SHOW_REASONING_TO_USERS', showReasoningToUsers === 'on' ? 'true' : 'false');
 
     // Return success response
     return NextResponse.json({ 

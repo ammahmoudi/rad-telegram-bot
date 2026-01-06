@@ -1,0 +1,221 @@
+```
+🔄 Database Migration Workflow
+═══════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────┐
+│                      DEVELOPMENT (SQLite)                        │
+└─────────────────────────────────────────────────────────────────┘
+
+  1. Edit Schema
+     └─> packages/shared/prisma/schema.prisma
+         ├─> Add model
+         ├─> Add field
+         └─> Add index
+
+  2. Create Migration
+     └─> npm run prisma:migrate
+         ├─> Prompts for name
+         ├─> Generates SQL
+         └─> Creates migration file
+             └─> packages/shared/prisma/migrations/
+                 └─> 20260106123456_your_name/
+                     └─> migration.sql
+
+  3. Generate Client
+     └─> npm run prisma:generate
+         └─> Updates TypeScript types
+             └─> node_modules/@prisma/client/
+
+  4. Test Locally
+     └─> npm run dev
+         ├─> Verifies database (npm run db:verify)
+         │   └─> Checks tables exist
+         │   └─> Auto-applies if missing
+         └─> Starts applications
+             ├─> Bot (SQLite)
+             ├─> Portal (SQLite)
+             └─> Admin (SQLite)
+
+┌─────────────────────────────────────────────────────────────────┐
+│                    PRODUCTION (PostgreSQL)                       │
+└─────────────────────────────────────────────────────────────────┘
+
+  5. Commit & Push
+     └─> git add packages/shared/prisma/migrations/
+     └─> git commit -m "feat: add new feature"
+     └─> git push origin main
+
+  6. Automatic Deploy (Dokploy/Docker)
+     └─> Build Docker Image
+         ├─> npm run build
+         └─> Dockerfile stages
+
+     └─> Start Container
+         └─> docker-entrypoint.sh
+             │
+             ├─> 📊 npx prisma migrate deploy
+             │   └─> Checks _prisma_migrations table
+             │   └─> Applies only NEW migrations
+             │   └─> Skips already-applied
+             │   └─> ✅ Migration complete
+             │
+             ├─> 👤 Create admin user (if needed)
+             ├─> 🎭 Create default pack (if needed)
+             └─> ✅ Start application
+
+┌─────────────────────────────────────────────────────────────────┐
+│                      DATABASE ADAPTERS                           │
+└─────────────────────────────────────────────────────────────────┘
+
+  prisma.ts (Auto-detection)
+  │
+  ├─> DATABASE_URL starts with "file:"
+  │   └─> SQLite Mode
+  │       ├─> Convert relative → absolute path
+  │       ├─> Create directory if needed
+  │       └─> Use PrismaBetterSqlite3 adapter
+  │
+  └─> DATABASE_URL starts with "postgresql:"
+      └─> PostgreSQL Mode
+          └─> Use PrismaPg adapter
+
+┌─────────────────────────────────────────────────────────────────┐
+│                      MIGRATION SAFETY                            │
+└─────────────────────────────────────────────────────────────────┘
+
+  _prisma_migrations Table
+  │
+  ├─> Tracks applied migrations
+  │   ├─> id: UUID
+  │   ├─> migration_name: "20260106123456_add_feature"
+  │   ├─> started_at: Timestamp
+  │   ├─> finished_at: Timestamp
+  │   └─> checksum: SHA256 hash
+  │
+  └─> Migration Logic
+      ├─> Check if migration_name exists
+      ├─> If YES → Skip (already applied)
+      └─> If NO → Apply SQL + Record entry
+
+┌─────────────────────────────────────────────────────────────────┐
+│                      DEPLOYMENT FLOW                             │
+└─────────────────────────────────────────────────────────────────┘
+
+  Local Development
+  └─> npm run dev
+      └─> SQLite (file:./data/rastar.db)
+          ✅ Instant startup
+          ✅ No server needed
+
+  Docker Compose
+  └─> docker compose up -d --build
+      └─> PostgreSQL (postgresql://postgres@postgres:5432/rastar)
+          ├─> Build all services
+          ├─> Start postgres container
+          ├─> Wait for postgres ready
+          └─> Start app containers
+              └─> Run migrations
+                  ✅ Production-like environment
+
+  Dokploy
+  └─> git push origin main
+      └─> PostgreSQL (managed/external)
+          ├─> Trigger deploy webhook
+          ├─> Pull latest code
+          ├─> Build Docker image
+          └─> Start container
+              └─> Run migrations
+                  ✅ Zero downtime (new migrations are additive)
+
+┌─────────────────────────────────────────────────────────────────┐
+│                      TROUBLESHOOTING                             │
+└─────────────────────────────────────────────────────────────────┘
+
+  Check Status
+  └─> npm run prisma:status
+      ├─> "Database schema is up to date" ✅
+      ├─> "N pending migrations" ⚠️
+      └─> "Migration failed" ❌
+
+  Verify Tables
+  └─> npm run db:verify
+      └─> Checks all tables exist
+      └─> Auto-fixes if needed
+
+  Production Check
+  └─> npm run db:check
+      └─> Verifies PostgreSQL migrations
+
+  View Data
+  └─> npm run prisma:studio
+      └─> Opens GUI at localhost:5555
+
+┌─────────────────────────────────────────────────────────────────┐
+│                      FILE STRUCTURE                              │
+└─────────────────────────────────────────────────────────────────┘
+
+  rastar-telegram-bot/
+  │
+  ├── data/
+  │   └── rastar.db                  ← SQLite database (dev)
+  │
+  ├── packages/shared/
+  │   ├── prisma/
+  │   │   ├── schema.prisma          ← Single source of truth
+  │   │   └── migrations/            ← Migration history
+  │   │       ├── 20251228_test/
+  │   │       ├── 20260106_add_mcp_logging/
+  │   │       └── 20260106_add_session_tracking/
+  │   │
+  │   ├── src/
+  │   │   └── prisma.ts              ← Auto-adapter selection
+  │   │
+  │   └── scripts/
+  │       └── reset-migrations.mjs   ← Verification script
+  │
+  ├── scripts/
+  │   ├── docker-entrypoint.sh       ← Production startup
+  │   └── check-production-migrations.mjs
+  │
+  └── docs/
+      ├── MIGRATIONS_GUIDE.md        ← Full documentation
+      └── DATABASE_QUICK_REFERENCE.md ← This file!
+
+┌─────────────────────────────────────────────────────────────────┐
+│                      BEST PRACTICES                              │
+└─────────────────────────────────────────────────────────────────┘
+
+  ✅ Always test locally first (npm run dev)
+  ✅ Use descriptive migration names
+  ✅ Commit migration files to Git
+  ✅ Keep migrations additive (safe for zero-downtime)
+  ✅ Monitor first production deploy
+  ✅ Backup before major changes
+
+  ❌ Don't edit migration.sql files manually
+  ❌ Don't delete migration files
+  ❌ Don't skip migrations
+  ❌ Don't modify _prisma_migrations table
+
+┌─────────────────────────────────────────────────────────────────┐
+│                      QUICK COMMANDS                              │
+└─────────────────────────────────────────────────────────────────┘
+
+  Development:
+    npm run dev              # Start with verification
+    npm run prisma:migrate   # Create new migration
+    npm run prisma:status    # Check status
+    npm run db:verify        # Verify database
+
+  Production:
+    git push origin main     # Auto-deploys + migrates
+    npm run db:check         # Check PostgreSQL
+    docker compose logs -f   # Watch deployment
+
+  Emergency:
+    docker exec -it rastar-telegram-bot sh
+    cd packages/shared
+    npx prisma migrate deploy
+
+═══════════════════════════════════════════════════════════════════
+```

@@ -9,6 +9,7 @@ import { requireAuth, text as textHelper } from './helpers.js';
 
 type ToolResponse = {
   content: Array<{ type: 'text'; text: string }>;
+  isError?: boolean;
 };
 
 export async function handleToolCall(request: { params: { name: string; arguments: any } }): Promise<ToolResponse> {
@@ -74,6 +75,7 @@ export async function handleToolCall(request: { params: { name: string; argument
           text: `Error: ${error.message}`,
         },
       ],
+      isError: true,
     };
   }
 }

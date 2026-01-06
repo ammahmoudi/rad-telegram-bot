@@ -8,6 +8,7 @@ import { getAiClient } from '../../services/ai-client.js';
 
 /**
  * Handle /new_chat command
+ * Only works in simple mode - in thread mode, each thread is already a separate session
  */
 export async function handleNewChatCommand(ctx: BotContext) {
   const telegramUserId = String(ctx.from?.id ?? '');
@@ -22,8 +23,26 @@ export async function handleNewChatCommand(ctx: BotContext) {
     return;
   }
 
-  // Create new session
-  await createNewChatSession(telegramUserId);
+  // Check chat mode - this command only works in simple mode
+  const { getSystemConfig } = await import('@rad/shared');
+  const chatMode = await getSystemConfig('CHAT_MODE') || process.env.CHAT_MODE || 'thread';
+  const isSimpleMode = chatMode.toLowerCase() === 'simple';
+  
+  if (!isSimpleMode) {
+    await ctx.reply(
+      '⚠️ This command is only available in simple chat mode.\n\n' +
+      'In thread mode, each topic/thread is already a separate conversation.\n' +
+      'Create a new thread to start a fresh conversation.',
+      { parse_mode: 'HTML' }
+    );
+    return;
+  }
+  
+  // Create new session (simple mode only, no threadId)
+  await createNewChatSession(telegramUserId, null);
+  
+  console.log('[new_chat] Created new session in simple mode:', { telegramUserId });
+  
   await ctx.reply(
     [
       '✨ <b>' + ctx.t('chat-new-started') + '</b>',
@@ -76,6 +95,8 @@ export async function handleHistoryCommand(ctx: BotContext) {
 
 /**
  * Handle /clear_chat command
+ * Only works in simple mode - creates a new session to clear chat history
+ * In thread mode, users should create a new thread for a fresh conversation
  */
 export async function handleClearChatCommand(ctx: BotContext) {
   const telegramUserId = String(ctx.from?.id ?? '');
@@ -90,7 +111,25 @@ export async function handleClearChatCommand(ctx: BotContext) {
     return;
   }
 
-  await createNewChatSession(telegramUserId);
+  // Check chat mode - this command only works in simple mode
+  const { getSystemConfig } = await import('@rad/shared');
+  const chatMode = await getSystemConfig('CHAT_MODE') || process.env.CHAT_MODE || 'thread';
+  const isSimpleMode = chatMode.toLowerCase() === 'simple';
+  
+  if (!isSimpleMode) {
+    await ctx.reply(
+      '⚠️ This command is only available in simple chat mode.\n\n' +
+      'In thread mode, each topic/thread has its own conversation history.\n' +
+      'Create a new thread to start a fresh conversation.',
+      { parse_mode: 'HTML' }
+    );
+    return;
+  }
+  
+  // Create new session (simple mode only, no threadId)
+  await createNewChatSession(telegramUserId, null);
+  
+  console.log('[clear_chat] Created new session in simple mode:', { telegramUserId });
   
   await ctx.reply(ctx.t('chat-cleared'), {
     parse_mode: 'HTML',

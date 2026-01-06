@@ -49,7 +49,7 @@ const buttonHandlers: Record<string, (ctx: BotContext) => Promise<void>> = {
   'buttons-planka-status': handlePlankaStatusButton,
   'buttons-rastar-status': handleRastarStatusButton,
   'buttons-clear-chat': async (ctx) => {
-    const { handleClearChatCommand } = await import('./commands/chat-management.js');
+    const { handleClearChatCommand } = await import('./commands/chat.js');
     await handleClearChatCommand(ctx);
   },
   'buttons-history': handleHistoryButton,

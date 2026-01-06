@@ -137,14 +137,11 @@ export async function handleStartCommand(ctx: BotContext) {
   const { getWelcomeMessage } = await import('../../config/welcome-messages.js');
   const welcomeMessage = await getWelcomeMessage(language as 'fa' | 'en', telegramUserId, name);
   
-  // Get inline menu to attach to welcome message
-  const { mainMenu } = await import('../../menus/index.js');
-  
-  console.log('[start] Sending ONE message: welcome text + inline menu buttons');
-  // Send welcome message with inline menu buttons ONLY
+  console.log('[start] Sending welcome message with reply keyboard');
+  // Send welcome message with reply keyboard (persistent buttons at bottom)
   await ctx.reply(welcomeMessage, await withThreadContext(ctx, { 
     parse_mode: 'HTML',
-    reply_markup: mainMenu
+    reply_markup: keyboard
   }));
   console.log('[start] Reply sent successfully');
 }

@@ -56,22 +56,29 @@ export function getPrisma(): import('@prisma/client').PrismaClient {
   // Build/validate database URL (this ensures directory exists for file: URLs)
   let databaseUrl = process.env.DATABASE_URL || buildSqliteDatabaseUrl();
   
-  console.log('[Prisma] Final database URL:', databaseUrl);
-  
   // Ensure directory exists for file-based databases and convert to absolute path
   if (databaseUrl.startsWith('file:')) {
     const filePathMatch = databaseUrl.match(/^file:(.+)$/);
     if (filePathMatch) {
-      const filePath = filePathMatch[1];
-      const absolutePath = path.isAbsolute(filePath) 
-        ? filePath 
-        : path.resolve(repoRoot, filePath);
-      fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
+      let filePath = filePathMatch[1];
       
-      // Convert to absolute file URL for better-sqlite3
-      databaseUrl = `file:${absolutePath}`;
+      // Normalize path separators
+      filePath = filePath.replaceAll('/', path.sep);
+      
+      // Handle relative paths by converting to absolute
+      if (!path.isAbsolute(filePath)) {
+        filePath = path.resolve(repoRoot, filePath);
+      }
+      
+      // Ensure directory exists
+      fs.mkdirSync(path.dirname(filePath), { recursive: true });
+      
+      // Convert to absolute file URL for better-sqlite3 (always use forward slashes)
+      databaseUrl = `file:${filePath.replaceAll(path.sep, '/')}`;
     }
   }
+  
+  console.log('[Prisma] Final database URL:', databaseUrl);
   
   // Set the DATABASE_URL if it wasn't set
   if (!process.env.DATABASE_URL) {

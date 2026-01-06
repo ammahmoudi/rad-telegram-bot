@@ -7,6 +7,7 @@ import type { BotContext } from '../bot.js';
 import {
   type ChatMessage,
   trimConversationHistory,
+  trimConversationHistoryByTokens,
   validateMessageHistory,
   getOrCreateChatSession,
   getSessionMessages,
@@ -14,6 +15,7 @@ import {
   getSystemConfig,
   getUserLanguage,
   getPrisma,
+  restoreToolResultsFromLogs,
 } from '@rad/shared';
 import { getAiClient } from '../services/ai-client.js';
 import { getAiTools } from '../services/tools-manager.js';
@@ -103,7 +105,13 @@ export async function handleAiMessage(ctx: BotContext): Promise<void> {
     const replyContext = await extractReplyContext(ctx);
     
     // Get conversation history for THIS THREAD
-    const history = await getSessionMessages(session.id);
+    let history = await getSessionMessages(session.id);
+    
+    // Optionally restore tool results from McpToolLog (can be enabled via config)
+    const restoreToolResults = await getSystemConfig('CHAT_RESTORE_TOOL_RESULTS');
+    if (restoreToolResults === 'true') {
+      history = await restoreToolResultsFromLogs(session.id, history);
+    }
     
     // Convert MessageRecord[] to ChatMessage[] for trimConversationHistory
     const chatMessages: ChatMessage[] = history.map(msg => ({
@@ -114,11 +122,20 @@ export async function handleAiMessage(ctx: BotContext): Promise<void> {
       toolArgs: msg.toolArgs || undefined,
     }));
     
-    // Trim history to stay within context limits
-    let trimmedHistory = trimConversationHistory(
-      chatMessages,
-      128000
-    );
+    // Get history limit and mode from system config
+    const historyMode = await getSystemConfig('CHAT_HISTORY_MODE') || 'message_count';
+    const historyLimitConfig = await getSystemConfig('CHAT_HISTORY_LIMIT');
+    
+    let trimmedHistory: ChatMessage[];
+    if (historyMode === 'token_size') {
+      // Token-based trimming (default: 4000 tokens ≈ 16000 characters)
+      const tokenLimit = historyLimitConfig ? parseInt(historyLimitConfig) : 4000;
+      trimmedHistory = trimConversationHistoryByTokens(chatMessages, tokenLimit);
+    } else {
+      // Message count trimming (default: 20 messages)
+      const messageLimit = historyLimitConfig ? parseInt(historyLimitConfig) : 20;
+      trimmedHistory = trimConversationHistory(chatMessages, messageLimit);
+    }
     
     // Prepare user message with reply context if available
     const userMessage = replyContext 
@@ -187,6 +204,7 @@ export async function handleAiMessage(ctx: BotContext): Promise<void> {
     const { 
       finalResponse, 
       totalToolCallsMade,
+      reasoningSteps,
     } = streamResult;
     
     // Execute tools if they were called
@@ -211,12 +229,15 @@ export async function handleAiMessage(ctx: BotContext): Promise<void> {
       
       // Get final response after tool execution
       const finalResponseAfterTools = await client.chat(trimmedHistory, { systemPrompt });
+      const showReasoning = (await getSystemConfig('SHOW_REASONING_TO_USERS')) !== 'false';
       const finalContent = buildFinalResponse(
         finalResponseAfterTools.content,
-        [],
+        showReasoning ? reasoningSteps : [],
         toolResult.allToolCallsMade,
         false
       );
+      
+      console.log('[ai-message] Saving assistant message (with tools), content length:', finalContent.length);
       
       // Send final response and get the message ID
       const finalMessageId = await sendFinalResponse(ctx, sentMessage, finalContent, telegramUserId, messageThreadId);
@@ -239,12 +260,15 @@ export async function handleAiMessage(ctx: BotContext): Promise<void> {
       // No tools called, just send the response
       console.log('[ai-message] No tools called');
       
+      const showReasoning = (await getSystemConfig('SHOW_REASONING_TO_USERS')) !== 'false';
       const finalContent = buildFinalResponse(
         finalResponse,
-        [],
+        showReasoning ? reasoningSteps : [],
         [],
         false
       );
+      
+      console.log('[ai-message] Saving assistant message (no tools), finalResponse length:', finalResponse.length, 'finalContent length:', finalContent.length);
       
       // Send final response and get the message ID
       const finalMessageId = await sendFinalResponse(ctx, sentMessage, finalContent, telegramUserId, messageThreadId);
@@ -309,12 +333,14 @@ async function updateUserInfo(ctx: BotContext, telegramUserId: string): Promise<
 async function getOrCreateThreadSession(telegramUserId: string, threadId?: number) {
   const prisma = getPrisma();
   
-  // Try to find existing session for this thread
+  // Try to find the MOST RECENT session for this thread
+  // This ensures we use the new session created by /clear_chat
   let session = await prisma.chatSession.findFirst({
     where: {
       telegramUserId,
       threadId: threadId || null,
     },
+    orderBy: { updatedAt: 'desc' },
   });
   
   // Create new session if not found

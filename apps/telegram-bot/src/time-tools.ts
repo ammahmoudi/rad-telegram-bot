@@ -13,6 +13,9 @@ export interface ToolExecutionResult {
 export async function executeTimeTool(
   toolName: string,
   args: Record<string, any>,
+  telegramUserId?: string,
+  sessionId?: string,
+  messageId?: string,
 ): Promise<ToolExecutionResult> {
   console.log('[executeTimeTool]', { toolName, args });
   try {
@@ -27,7 +30,7 @@ export async function executeTimeTool(
     }
 
     // Call the Time MCP server (logging happens in mcp-client.ts)
-    const result = await manager.callTool('time', toolName, args);
+    const result = await manager.callTool('time', toolName, args, telegramUserId, sessionId, messageId);
 
     // Extract text content from MCP result
     let content = '';

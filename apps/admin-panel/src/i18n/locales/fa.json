@@ -15,6 +15,7 @@
     "settings": "تنظیمات",
     "users": "کاربران",
     "packs": "بسته‌های شخصیتی",
+    "toolLogs": "گزارش ابزارها",
     "logout": "خروج"
   },
   "settings": {
@@ -76,7 +77,11 @@
     "telegramInfo": "اطلاعات تلگرام",
     "lastActivity": "آخرین فعالیت",
     "memberSince": "عضو از",
-    "backToUsers": "← بازگشت به کاربران"
+    "backToUsers": "← بازگشت به کاربران",
+    "chatSessions": "جلسات گفتگو",
+    "noChats": "هیچ جلسه گفتگویی یافت نشد",
+    "messages": "پیام",
+    "viewChat": "مشاهده گفتگو"
   },
   "packs": {
     "title": "پک‌های شخصیتی",

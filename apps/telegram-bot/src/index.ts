@@ -96,9 +96,6 @@ console.log('[grammy] ✓ Menu system registered');
 // Register Commands Plugin
 // ============================================================================
 
-// Enable commands context shortcut (ctx.setMyCommands)
-bot.use(commands());
-
 // Register all command groups
 bot.use(userCommands);
 bot.use(chatCommands);
@@ -259,14 +256,18 @@ try {
   // Order: User commands (including clear_chat) → Integration commands
   // Note: chatCommands group is now empty (clear_chat moved to userCommands)
   const allCommands = [
-    ...userCommands.commands.map(cmd => ({
-      command: cmd.name,
-      description: cmd.description
-    })),
-    ...integrationCommands.commands.map(cmd => ({
-      command: cmd.name,
-      description: cmd.description
-    }))
+    ...userCommands.commands
+      .filter(cmd => typeof cmd.name === 'string')
+      .map(cmd => ({
+        command: cmd.name as string,
+        description: cmd.description
+      })),
+    ...integrationCommands.commands
+      .filter(cmd => typeof cmd.name === 'string')
+      .map(cmd => ({
+        command: cmd.name as string,
+        description: cmd.description
+      }))
   ];
   
   // Set all commands at once to Telegram
@@ -286,43 +287,101 @@ bot.use(sequentialize((ctx) => {
   return ctx.chat?.id.toString();
 }));
 
-// Start bot with runner (production-grade)
-console.log('[telegram-bot] Starting bot with Grammy runner...');
-const runner = run(bot, {
-  runner: {
-    fetch: {
-      allowed_updates: ['message', 'edited_message', 'callback_query', 'inline_query'],
-    },
-  },
+// ============================================================================
+// Bot Startup with Connection Retry
+// ============================================================================
+
+async function startBotWithRetry(maxRetries = 5, retryDelay = 5000) {
+  let attempt = 0;
+  
+  console.log('[telegram-bot] 🔄 Initializing bot connection with retry support...');
+  
+  while (attempt < maxRetries) {
+    try {
+      attempt++;
+      console.log(`[telegram-bot] 📡 Connection attempt ${attempt}/${maxRetries}...`);
+      
+      // Test connection by getting bot info
+      const info = await bot.api.getMe();
+      console.log(`[telegram-bot] ✅ Connected successfully as @${info.username}`);
+      
+      // Start bot with runner (production-grade)
+      console.log('[telegram-bot] 🚀 Starting bot with Grammy runner...');
+      const runner = run(bot, {
+        runner: {
+          fetch: {
+            allowed_updates: ['message', 'edited_message', 'callback_query', 'inline_query'],
+          },
+        },
+      });
+
+      // Log startup success
+      console.log(`[telegram-bot] ✨ Modern Grammy bot started successfully!`);
+      console.log('[telegram-bot] ✓ Using Grammy v1.35.0 with full plugin ecosystem:');
+      console.log('[telegram-bot]   • @grammyjs/i18n - Internationalization (en, fa)');
+      console.log('[telegram-bot]   • @grammyjs/ratelimiter - Anti-spam protection');
+      console.log('[telegram-bot]   • @grammyjs/auto-retry - API resilience');
+      console.log('[telegram-bot]   • @grammyjs/conversations - Multi-step flows');
+      console.log('[telegram-bot]   • @grammyjs/menu - Dynamic menus');
+      console.log('[telegram-bot]   • @grammyjs/hydrate - Editable messages');
+      console.log('[telegram-bot]   • @grammyjs/parse-mode - Auto HTML parsing');
+      console.log('[telegram-bot]   • @grammyjs/runner - Production runner');
+      console.log('[telegram-bot]   • @grammyjs/commands - Advanced command handling');
+      console.log('[telegram-bot] 🎯 Ready to accept messages!');
+
+      // Graceful shutdown handlers
+      const stopRunner = () => {
+        console.log('[telegram-bot] 🛑 Received shutdown signal, stopping runner...');
+        if (runner.isRunning()) {
+          runner.stop();
+        }
+      };
+
+      process.once('SIGINT', stopRunner);  // Ctrl+C
+      process.once('SIGTERM', stopRunner); // Docker/K8s termination
+
+      // Wait for runner to stop
+      await runner.task();
+      console.log('[telegram-bot] ✅ Runner stopped gracefully');
+      break; // Exit retry loop on success
+      
+    } catch (error) {
+      console.error(`[telegram-bot] ❌ Connection failed (attempt ${attempt}/${maxRetries})`);
+      
+      if (error instanceof Error) {
+        console.error(`[telegram-bot] 💥 Error: ${error.message}`);
+        if ('code' in error) {
+          console.error(`[telegram-bot] 🔍 Error code: ${(error as any).code}`);
+        }
+        if (error.stack) {
+          console.error(`[telegram-bot] Stack trace:`, error.stack);
+        }
+      } else {
+        console.error(`[telegram-bot] Unknown error:`, error);
+      }
+      
+      if (attempt < maxRetries) {
+        console.log(`[telegram-bot] ⏳ Retrying in ${retryDelay / 1000} seconds...`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+      } else {
+        console.error('[telegram-bot] 🚨 Max retry attempts reached. Bot failed to start.');
+        throw error;
+      }
+    }
+  }
+}
+
+console.log('[telegram-bot] 🎬 Starting bot initialization...');
+
+// Start the bot with retry logic
+startBotWithRetry().catch(error => {
+  console.error('[telegram-bot] 💀 Fatal error during bot startup:', error);
+  process.exit(1);
 });
 
-// Log when runner is active
-const info = await bot.api.getMe();
-console.log(`[telegram-bot] 🚀 Modern Grammy bot started as @${info.username}`);
-console.log('[telegram-bot] ✓ Using Grammy v1.35.0 with full plugin ecosystem:');
-console.log('[telegram-bot]   • @grammyjs/i18n - Internationalization (en, fa)');
-console.log('[telegram-bot]   • @grammyjs/ratelimiter - Anti-spam protection');
-console.log('[telegram-bot]   • @grammyjs/auto-retry - API resilience');
-console.log('[telegram-bot]   • @grammyjs/conversations - Multi-step flows');
-console.log('[telegram-bot]   • @grammyjs/menu - Dynamic menus');
-console.log('[telegram-bot]   • @grammyjs/hydrate - Editable messages');
-console.log('[telegram-bot]   • @grammyjs/parse-mode - Auto HTML parsing');
-console.log('[telegram-bot]   • @grammyjs/runner - Production runner');
-console.log('[telegram-bot]   • @grammyjs/commands - Advanced command handling');
-console.log('[telegram-bot] ✓ Ready to accept messages!');
-
-// Graceful shutdown handlers
-const stopRunner = () => {
-  console.log('[telegram-bot] Received shutdown signal, stopping runner...');
-  runner.isRunning() && runner.stop();
-};
-
-process.once('SIGINT', stopRunner);  // Ctrl+C
-process.once('SIGTERM', stopRunner); // Docker/K8s termination
-
-// Wait for runner to stop
-await runner.task();
-console.log('[telegram-bot] Runner stopped gracefully');
+// ============================================================================
+// Error Handlers
+// ============================================================================
 
 // Keep process alive and handle errors
 process.on('unhandledRejection', (err) => {

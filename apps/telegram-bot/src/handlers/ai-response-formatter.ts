@@ -7,7 +7,7 @@ import type { BotContext } from '../bot.js';
 import { parseAiButtons, createButtonKeyboard } from '../utils/ai-buttons.js';
 import { splitHtmlSafely } from '../utils/html-splitter.js';
 import { getMainMenuKeyboard, getThreadQuickActionsKeyboard } from './keyboards.js';
-import { getUserLanguage } from '@rad/shared';
+import { getUserLanguage, getPlankaToken, getRastarToken } from '@rad/shared';
 import { InlineKeyboard } from 'grammy';
 
 /**
@@ -36,10 +36,22 @@ export async function sendFinalResponse(
   // Get keyboards - always show reply keyboard at bottom, AI buttons are additional
   const language = await getUserLanguage(telegramUserId);
   
+  // Refresh connection status from database (in case tokens were deleted during tool execution)
+  const plankaToken = await getPlankaToken(telegramUserId);
+  const rastarToken = await getRastarToken(telegramUserId);
+  const plankaLinked = !!plankaToken;
+  const rastarLinked = !!rastarToken;
+  
+  // Update session cache
+  if (ctx.session) {
+    ctx.session.plankaLinked = plankaLinked;
+    ctx.session.rastarLinked = rastarLinked;
+  }
+  
   // Reply keyboard (persistent at bottom) - always use in both general chat and threads
   const replyKeyboard = getMainMenuKeyboard(language, {
-    plankaLinked: ctx.session?.plankaLinked,
-    rastarLinked: ctx.session?.rastarLinked,
+    plankaLinked,
+    rastarLinked,
   });
   
   // AI-suggested inline buttons (additional to reply keyboard)

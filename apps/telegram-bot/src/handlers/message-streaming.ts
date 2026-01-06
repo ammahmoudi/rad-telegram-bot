@@ -82,19 +82,26 @@ export async function handleStreamingResponse(
     // Send typing indicator for fallback
     await sendTypingAction();
     
+    // Check if reasoning should be shown to users
+    const { getSystemConfig } = await import('@rad/shared');
+    const showReasoning = (await getSystemConfig('SHOW_REASONING_TO_USERS')) !== 'false';
+    
     let content = '';
     
     // Show reasoning indicator if active
-    if (reasoningActive && reasoningText) {
-      content += '🧠 <b>Reasoning...</b>\n\n';
-      const formattedReasoning = markdownToTelegramHtml(reasoningText);
-      content += '<blockquote>' + formattedReasoning.substring(0, 500) + '</blockquote>\n\n';
-    } else if (reasoningActive) {
-      content += '🧠 <i>Reasoning...</i>\n\n';
+    if (reasoningActive) {
+      if (showReasoning && reasoningText) {
+        content += '🧠 <b>Reasoning...</b>\n\n';
+        const formattedReasoning = markdownToTelegramHtml(reasoningText);
+        content += '<blockquote>' + formattedReasoning.substring(0, 500) + '</blockquote>\n\n';
+      } else {
+        // Show simple thinking indicator when reasoning is hidden
+        content += '🤔 <i>Thinking...</i>\n\n';
+      }
     }
     
-    // Show active tools
-    if (toolCallsDisplay.length > 0) {
+    // Show active tools only if reasoning is enabled
+    if (showReasoning && toolCallsDisplay.length > 0) {
       content += '<b>🛠️ Tools in use:</b>\n';
       content += toolCallsDisplay.map(t => `  ${t}`).join('\n');
       content += '\n\n';
@@ -110,21 +117,26 @@ export async function handleStreamingResponse(
     // Check if content exceeds Telegram's limit (4096 chars)
     // Use a safety margin to prevent truncation during streaming
     if (content.length > 4000) {
+      // Check if reasoning should be shown to users (recheck for consistency)
+      const showReasoning = (await getSystemConfig('SHOW_REASONING_TO_USERS')) !== 'false';
+      
       // Truncate the final response part to fit within limit
       const overflowBy = content.length - 4000;
       const maxFinalResponseLength = Math.max(0, markdownToTelegramHtml(finalResponse).length - overflowBy - 100);
       
       // Rebuild content with truncated response
       content = '';
-      if (reasoningActive && reasoningText) {
-        content += '🧠 <b>Reasoning...</b>\n\n';
-        const formattedReasoning = markdownToTelegramHtml(reasoningText);
-        content += '<blockquote>' + formattedReasoning.substring(0, 500) + '</blockquote>\n\n';
-      } else if (reasoningActive) {
-        content += '🧠 <i>Reasoning...</i>\n\n';
+      if (reasoningActive) {
+        if (showReasoning && reasoningText) {
+          content += '🧠 <b>Reasoning...</b>\n\n';
+          const formattedReasoning = markdownToTelegramHtml(reasoningText);
+          content += '<blockquote>' + formattedReasoning.substring(0, 500) + '</blockquote>\n\n';
+        } else {
+          content += '🤔 <i>Thinking...</i>\n\n';
+        }
       }
       
-      if (toolCallsDisplay.length > 0) {
+      if (showReasoning && toolCallsDisplay.length > 0) {
         content += '<b>🛠️ Tools in use:</b>\n';
         content += toolCallsDisplay.map(t => `  ${t}`).join('\n');
         content += '\n\n';

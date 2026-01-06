@@ -18,6 +18,11 @@ interface SettingsFormProps {
     USE_HARDCODED_PROMPTS: string;
     PLANKA_DAILY_REPORT_CATEGORY_ID: string;
     CHAT_MODE: string;
+    CHAT_HISTORY_MODE: string;
+    CHAT_HISTORY_LIMIT: string;
+    CHAT_RESTORE_TOOL_RESULTS: string;
+    MCP_TOOL_LOGGING_ENABLED: string;
+    SHOW_REASONING_TO_USERS: string;
   };
   hasApiKey: boolean;
   usingEnvApiKey: boolean;
@@ -515,6 +520,59 @@ export function SettingsForm({ config, hasApiKey, usingEnvApiKey, envPlankaUrl, 
               </div>
             </div>
 
+            {/* Debug & Monitoring Settings */}
+            <div className="pt-4 border-t border-white/10 space-y-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-white">Debug & Monitoring</h3>
+                  <p className="text-xs text-slate-400">Tools for debugging and monitoring AI behavior</p>
+                </div>
+              </div>
+
+              {/* MCP Tool Logging */}
+              <div className="flex items-start gap-3 bg-white/5 rounded-lg p-4" dir={dir}>
+                <input
+                  id="mcpToolLogging"
+                  type="checkbox"
+                  name="mcpToolLogging"
+                  defaultChecked={config.MCP_TOOL_LOGGING_ENABLED === 'true'}
+                  className="mt-1 h-4 w-4 rounded border-white/20 bg-white/5 text-purple-500 focus:ring-2 focus:ring-purple-500"
+                />
+                <div className="flex-1">
+                  <label htmlFor="mcpToolLogging" className="text-sm font-medium text-white block cursor-pointer">
+                    🔍 Enable MCP Tool Call Logging
+                  </label>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Logs all MCP tool calls (inputs/outputs) to database for debugging. Includes execution time and error tracking.
+                  </p>
+                </div>
+              </div>
+
+              {/* Show Reasoning to Users */}
+              <div className="flex items-start gap-3 bg-white/5 rounded-lg p-4" dir={dir}>
+                <input
+                  id="showReasoningToUsers"
+                  type="checkbox"
+                  name="showReasoningToUsers"
+                  defaultChecked={config.SHOW_REASONING_TO_USERS !== 'false'}
+                  className="mt-1 h-4 w-4 rounded border-white/20 bg-white/5 text-purple-500 focus:ring-2 focus:ring-purple-500"
+                />
+                <div className="flex-1">
+                  <label htmlFor="showReasoningToUsers" className="text-sm font-medium text-white block cursor-pointer">
+                    🧠 Show AI Reasoning to Users
+                  </label>
+                  <p className="text-xs text-slate-400 mt-1">
+                    When enabled, users see the AI&apos;s internal reasoning process and tool usage. When disabled, users only see a &quot;🤔 Thinking...&quot; indicator and the final response.
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* Hardcoded Prompts Setting */}
             <div className="pt-4 border-t border-white/10">
               <div className="flex items-start gap-3" dir={dir}>
@@ -555,6 +613,83 @@ export function SettingsForm({ config, hasApiKey, usingEnvApiKey, envPlankaUrl, 
                 <br />
                 <strong>Simple Mode:</strong> All chats in main private chat without threads. <code>/clear_chat</code> only clears AI history but keeps messages visible.
               </p>
+            </div>
+
+            {/* Chat History Configuration */}
+            <div className="pt-4 border-t border-white/10 space-y-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-white">Conversation History</h3>
+                  <p className="text-xs text-slate-400">Control how much conversation history is kept in memory</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="chatHistoryMode" className="text-sm font-medium text-white block" dir={dir}>
+                  History Mode
+                </label>
+                <select
+                  id="chatHistoryMode"
+                  name="chatHistoryMode"
+                  defaultValue={config.CHAT_HISTORY_MODE || 'message_count'}
+                  className="w-full h-10 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  dir="ltr"
+                >
+                  <option value="message_count">Message Count (Simple & Predictable)</option>
+                  <option value="token_size">Token Size (Better for AI Context)</option>
+                </select>
+                <p className="text-xs text-slate-400" dir={dir}>
+                  <strong>Message Count:</strong> Keep last N messages (faster, simpler).
+                  <br />
+                  <strong>Token Size:</strong> Keep messages up to N tokens (~4 chars = 1 token).
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="chatHistoryLimit" className="text-sm font-medium text-white block" dir={dir}>
+                  History Limit
+                </label>
+                <input
+                  id="chatHistoryLimit"
+                  type="number"
+                  name="chatHistoryLimit"
+                  min="1"
+                  defaultValue={config.CHAT_HISTORY_LIMIT || ''}
+                  placeholder="20 for message_count, 4000 for token_size"
+                  className="w-full h-10 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  dir="ltr"
+                />
+                <p className="text-xs text-slate-400" dir={dir}>
+                  Default: <strong>20</strong> for message_count mode, <strong>4000</strong> for token_size mode.
+                  <br />
+                  Token size: 4000 tokens ≈ 16,000 characters ≈ 3,000 words.
+                </p>
+              </div>
+
+              <div className="flex items-start gap-3 bg-white/5 rounded-lg p-4" dir={dir}>
+                <input
+                  id="chatRestoreToolResults"
+                  type="checkbox"
+                  name="chatRestoreToolResults"
+                  defaultChecked={config.CHAT_RESTORE_TOOL_RESULTS === 'true'}
+                  className="mt-1 h-4 w-4 rounded border-white/20 bg-white/5 text-cyan-500 focus:ring-2 focus:ring-cyan-500"
+                />
+                <div className="flex-1">
+                  <label htmlFor="chatRestoreToolResults" className="text-sm font-medium text-white block cursor-pointer">
+                    🔧 Restore Tool Results from Database
+                  </label>
+                  <p className="text-xs text-slate-400 mt-1">
+                    When enabled, tool outputs are restored from logs when loading history. This uses more context but provides richer memory.
+                    <br />
+                    <strong>Recommended:</strong> Keep disabled for better performance. Tool results already exist in memory during execution.
+                  </p>
+                </div>
+              </div>
             </div>
 
             {/* Save Button */}

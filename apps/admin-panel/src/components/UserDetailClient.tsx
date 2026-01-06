@@ -1,9 +1,21 @@
 'use client';
 
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useState } from 'react';
-import toast from 'react-hot-toast';
+import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import Link from 'next/link';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+
+interface ChatSession {
+  id: string;
+  createdAt: Date;
+  updatedAt: Date;
+  _count: {
+    messages: number;
+  };
+}
 
 interface Pack {
   id: string;
@@ -38,6 +50,26 @@ export function UserDetailClient({
   const { t } = useLanguage();
   const [selectedPackId, setSelectedPackId] = useState<string>(currentPack?.id || '');
   const [loading, setLoading] = useState(false);
+  const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
+  const [loadingSessions, setLoadingSessions] = useState(true);
+
+  useEffect(() => {
+    loadChatSessions();
+  }, [user.id]);
+
+  const loadChatSessions = async () => {
+    try {
+      const res = await fetch(`/api/users/${user.id}/sessions`);
+      if (res.ok) {
+        const data = await res.json();
+        setChatSessions(data);
+      }
+    } catch (error) {
+      console.error('Failed to load chat sessions:', error);
+    } finally {
+      setLoadingSessions(false);
+    }
+  };
 
   const handleUpdatePack = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -237,6 +269,57 @@ export function UserDetailClient({
           </button>
         </form>
       </div>
+
+      {/* Chat Sessions Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <span className="text-2xl">💬</span>
+            {t.users.chatSessions || 'Chat Sessions'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loadingSessions ? (
+            <div className="text-center py-8 text-muted-foreground">{t.loading}</div>
+          ) : chatSessions.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              {t.users.noChats || 'No chat sessions found'}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {chatSessions.map((session) => (
+                <div
+                  key={session.id}
+                  className="flex items-center justify-between p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <Badge variant="outline">
+                        {session._count.messages} {t.users.messages || 'messages'}
+                      </Badge>
+                      <span className="text-sm text-muted-foreground">
+                        {new Date(session.createdAt).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {t.users.lastActivity || 'Last activity'}: {new Date(session.updatedAt).toLocaleString()}
+                    </div>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    asChild
+                  >
+                    <Link href={`/tool-logs?sessionId=${session.id}`}>
+                      {t.users.viewChat || 'View Chat'}
+                    </Link>
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
