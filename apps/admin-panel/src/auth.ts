@@ -91,9 +91,9 @@ const config = {
   secret: process.env.NEXTAUTH_SECRET,
 } satisfies NextAuthConfig;
 
-export const {
-  handlers,
-  auth,
-  signIn,
-  signOut,
-} = NextAuth(config);
+const nextAuth = NextAuth(config);
+
+export const handlers = nextAuth.handlers;
+export const auth = nextAuth.auth;
+export const signIn = nextAuth.signIn;
+export const signOut = nextAuth.signOut;
