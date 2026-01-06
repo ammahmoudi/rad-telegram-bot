@@ -52,8 +52,8 @@ ENV MCP_TRANSPORT=http
 ENV PORT=3102
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3102/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"
+# HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+#   CMD node -e "require('http').get('http://localhost:3102/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"
 
 # Run the server with dumb-init
 CMD ["dumb-init", "node", "packages/mcp-time/dist/index.js"]

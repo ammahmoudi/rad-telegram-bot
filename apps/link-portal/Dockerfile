@@ -78,8 +78,8 @@ ENV NODE_ENV=production \
     DATABASE_URL="file:/app/data/rastar.db"
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:3002/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})" || exit 1
+# HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+#     CMD node -e "require('http').get('http://localhost:3002/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})" || exit 1
 
 # Expose portal port
 EXPOSE 3002

@@ -1,4 +1,4 @@
-import NextAuth, { DefaultSession } from 'next-auth';
+import NextAuth, { DefaultSession, type NextAuthConfig } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { compare } from 'bcryptjs';
 import { getPrisma } from '@rad/shared';
@@ -12,12 +12,7 @@ declare module 'next-auth' {
   }
 }
 
-export const {
-  handlers,
-  auth,
-  signIn,
-  signOut,
-} = NextAuth({
+const config = {
   trustHost: true,
   basePath: '/api/auth',
   providers: [
@@ -94,4 +89,11 @@ export const {
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   secret: process.env.NEXTAUTH_SECRET,
-});
+} satisfies NextAuthConfig;
+
+export const {
+  handlers,
+  auth,
+  signIn,
+  signOut,
+} = NextAuth(config);
