@@ -20,13 +20,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         where: { telegramUserId },
         update: {
           packId,
-          updatedAt: Date.now(),
+          assignedAt: Date.now(),
         },
         create: {
           telegramUserId,
           packId,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
+          assignedAt: Date.now(),
         },
       });
     } else {
