@@ -29,18 +29,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 border: '1px solid rgba(255, 255, 255, 0.2)',
                 backdropFilter: 'blur(10px)',
               },
-              success: {
-                iconTheme: {
-                  primary: '#10b981',
-                  secondary: '#fff',
-                },
-              },
-              error: {
-                iconTheme: {
-                  primary: '#ef4444',
-                  secondary: '#fff',
-                },
-              },
             }}
           />
         </LanguageProvider>
