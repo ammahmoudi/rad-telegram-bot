@@ -6,7 +6,7 @@ import { PackMessageForm } from './PackMessageForm';
 
 interface User {
   id: string;
-  firstName: string;
+  firstName: string | null;
   lastName?: string | null;
   username?: string | null;
 }
