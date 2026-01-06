@@ -288,7 +288,7 @@ bot.use(sequentialize((ctx) => {
 }));
 
 // ============================================================================
-// Bot Startup with Connection Retry
+// Bot Startup with Connection Retry and Graceful Shutdown
 // ============================================================================
 
 async function startBotWithRetry(maxRetries = 5, retryDelay = 5000) {
@@ -307,7 +307,7 @@ async function startBotWithRetry(maxRetries = 5, retryDelay = 5000) {
       
       // Start bot with runner (production-grade)
       console.log('[telegram-bot] 🚀 Starting bot with Grammy runner...');
-      const runner = run(bot, {
+      const handle = run(bot, {
         runner: {
           fetch: {
             allowed_updates: ['message', 'edited_message', 'callback_query', 'inline_query'],
@@ -329,20 +329,21 @@ async function startBotWithRetry(maxRetries = 5, retryDelay = 5000) {
       console.log('[telegram-bot]   • @grammyjs/commands - Advanced command handling');
       console.log('[telegram-bot] 🎯 Ready to accept messages!');
 
-      // Graceful shutdown handlers
-      const stopRunner = () => {
-        console.log('[telegram-bot] 🛑 Received shutdown signal, stopping runner...');
-        if (runner.isRunning()) {
-          runner.stop();
+      // Graceful shutdown handlers - properly stop the runner
+      const stopRunner = async () => {
+        console.log('[telegram-bot] 🛑 Received shutdown signal, stopping runner gracefully...');
+        if (handle.isRunning()) {
+          await handle.stop();
+          console.log('[telegram-bot] ✅ Runner stopped successfully');
         }
       };
 
       process.once('SIGINT', stopRunner);  // Ctrl+C
       process.once('SIGTERM', stopRunner); // Docker/K8s termination
 
-      // Wait for runner to stop
-      await runner.task();
-      console.log('[telegram-bot] ✅ Runner stopped gracefully');
+      // Wait for runner to complete - this keeps the process alive
+      await handle.task();
+      console.log('[telegram-bot] 🏁 Runner task completed');
       break; // Exit retry loop on success
       
     } catch (error) {
@@ -350,6 +351,25 @@ async function startBotWithRetry(maxRetries = 5, retryDelay = 5000) {
       
       if (error instanceof Error) {
         console.error(`[telegram-bot] 💥 Error: ${error.message}`);
+        
+        // Check if this is a 409 Conflict (multiple instances running)
+        if ('error_code' in error && (error as any).error_code === 409) {
+          console.error('[telegram-bot] ⚠️  CONFLICT DETECTED: Another bot instance is already running!');
+          console.error('[telegram-bot] 🔍 Possible causes:');
+          console.error('[telegram-bot]   • Old deployment still running on Dokploy');
+          console.error('[telegram-bot]   • Local dev instance still active');
+          console.error('[telegram-bot]   • Multiple services with same bot token');
+          console.error('[telegram-bot] 💡 Solution: Stop all other bot instances before starting this one');
+          
+          // Wait longer for 409 errors to give time for other instance to stop
+          if (attempt < maxRetries) {
+            const longerDelay = retryDelay * 2;
+            console.log(`[telegram-bot] ⏳ Waiting ${longerDelay / 1000} seconds for other instance to stop...`);
+            await new Promise(resolve => setTimeout(resolve, longerDelay));
+            continue;
+          }
+        }
+        
         if ('code' in error) {
           console.error(`[telegram-bot] 🔍 Error code: ${(error as any).code}`);
         }

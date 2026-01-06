@@ -309,11 +309,18 @@ export async function initializeMcpServers(): Promise<void> {
       url: rastarUrl,
     });
 
-    console.log(`[MCP] Connecting to Time MCP server at ${timeUrl}...`);
-    await manager.connect({
-      name: 'time',
-      url: timeUrl,
-    });
+    // Try to connect to Time MCP (optional)
+    try {
+      console.log(`[MCP] Connecting to Time MCP server at ${timeUrl}...`);
+      await manager.connect({
+        name: 'time',
+        url: timeUrl,
+      });
+      console.log(`[MCP] Successfully connected to time`);
+    } catch (error) {
+      console.warn(`[MCP] Failed to connect to Time MCP server (optional):`, error instanceof Error ? error.message : error);
+      console.warn(`[MCP] Bot will continue without Time tools`);
+    }
   }
 
   console.log('[MCP] All servers initialized successfully');
