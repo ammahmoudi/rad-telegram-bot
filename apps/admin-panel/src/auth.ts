@@ -1,4 +1,4 @@
-import NextAuth, { DefaultSession, type NextAuthConfig } from 'next-auth';
+import NextAuth, { DefaultSession, type NextAuthConfig, type NextAuthResult } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { compare } from 'bcryptjs';
 import { getPrisma } from '@rad/shared';
@@ -91,9 +91,9 @@ const config = {
   secret: process.env.NEXTAUTH_SECRET,
 } satisfies NextAuthConfig;
 
-const nextAuth = NextAuth(config);
+const nextAuth: NextAuthResult = NextAuth(config);
 
-export const handlers = nextAuth.handlers;
-export const auth = nextAuth.auth;
-export const signIn = nextAuth.signIn;
-export const signOut = nextAuth.signOut;
+export const handlers: NextAuthResult['handlers'] = nextAuth.handlers;
+export const auth: NextAuthResult['auth'] = nextAuth.auth;
+export const signIn: NextAuthResult['signIn'] = nextAuth.signIn;
+export const signOut: NextAuthResult['signOut'] = nextAuth.signOut;
