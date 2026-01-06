@@ -102,8 +102,8 @@ ENV NODE_ENV=production \
     DATABASE_URL="file:/app/data/rastar.db"
 
 # Health check
-# HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-#     CMD node -e "require('http').get('http://localhost:3001/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})" || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:3001/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})" || exit 1
 
 # Expose port if needed (for health checks)
 EXPOSE 3001
@@ -113,3 +113,4 @@ ENTRYPOINT ["dumb-init", "--"]
 
 # Use entrypoint script that handles migrations and admin creation
 CMD ["/app/docker-entrypoint.sh"]
+
