@@ -50,7 +50,7 @@ export async function executeMcpTool(
     if (toolName.includes('getDailyReportProjects') || toolName.includes('get_daily_report_projects')) {
       const categoryId = await getSystemConfig('PLANKA_DAILY_REPORT_CATEGORY_ID').catch(() => null);
       if (categoryId) {
-        toolArgs.categoryId = categoryId;
+        (toolArgs as any).categoryId = categoryId;
         console.log('[MCP:planka] Injected categoryId:', categoryId);
       }
     }
