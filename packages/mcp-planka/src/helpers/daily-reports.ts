@@ -19,7 +19,6 @@ import { filterCards } from '../api-optimized/cards.js';
 import type { DailyReportEntry } from './types.js';
 import { getUserActions } from './user-activity.js';
 import { parseDate, now, fromUTC, type DualDate } from '../utils/date-time.js';
-import { getSystemConfig } from '@rad/shared';
 
 /**
  * Resolve user ID - if "me" or undefined, get current user
@@ -43,10 +42,12 @@ export function isDailyReportProject(projectName: string): boolean {
 /**
  * Get all daily report projects with their boards
  * Returns projects with board information (each board represents a person)
- * Filters by project category if PLANKA_DAILY_REPORT_CATEGORY_ID is set in system config,
+ * Filters by project category if categoryId is provided,
  * otherwise falls back to filtering by name (projects starting with \"Daily report\")
+ * @param auth - Planka authentication
+ * @param categoryId - Optional category ID to filter projects (passed from telegram bot)
  */
-export async function getDailyReportProjects(auth: PlankaAuth): Promise<Array<{
+export async function getDailyReportProjects(auth: PlankaAuth, categoryId?: string): Promise<Array<{
   id: string;
   name: string;
   boards: Array<{
@@ -56,10 +57,7 @@ export async function getDailyReportProjects(auth: PlankaAuth): Promise<Array<{
 }>> {
   const projects = await listProjects(auth);
   
-  // Try to get daily report category ID from system config
-  const categoryId = await getSystemConfig('PLANKA_DAILY_REPORT_CATEGORY_ID').catch(() => null);
-  
-  // Filter projects by category if configured, otherwise by name
+  // Filter projects by category if provided (from telegram bot), otherwise by name
   const dailyReportProjects = categoryId
     ? projects.filter((p: any) => p.categoryId === categoryId)
     : projects.filter((p: any) => isDailyReportProject(p.name));

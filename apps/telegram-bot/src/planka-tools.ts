@@ -1,5 +1,5 @@
 import { getMcpManager } from './mcp-client.js';
-import { getPlankaToken, deletePlankaToken } from '@rad/shared';
+import { getPlankaToken, deletePlankaToken, getSystemConfig } from '@rad/shared';
 import { t } from './utils/i18n-helper.js';
 
 export interface ToolExecutionResult {
@@ -45,6 +45,15 @@ export async function executeMcpTool(
       plankaBaseUrl: plankaAuth.plankaBaseUrl,
       plankaToken: plankaAuth.accessToken,
     };
+
+    // Inject system-wide categoryId for daily report tools (if configured)
+    if (toolName.includes('getDailyReportProjects') || toolName.includes('get_daily_report_projects')) {
+      const categoryId = await getSystemConfig('PLANKA_DAILY_REPORT_CATEGORY_ID').catch(() => null);
+      if (categoryId) {
+        toolArgs.categoryId = categoryId;
+        console.log('[MCP:planka] Injected categoryId:', categoryId);
+      }
+    }
 
     // Call the MCP server (Planka tools all start with 'planka.')
     const result = await manager.callTool('planka', toolName, toolArgs, telegramUserId, sessionId, messageId);

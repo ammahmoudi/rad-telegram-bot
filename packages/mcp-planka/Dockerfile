@@ -10,18 +10,14 @@ COPY tsconfig*.json ./
 # Copy workspace package files
 COPY packages/mcp-planka/package*.json ./packages/mcp-planka/
 COPY packages/mcp-planka/tsconfig.json ./packages/mcp-planka/
-COPY packages/shared/package*.json ./packages/shared/
-COPY packages/shared/tsconfig.json ./packages/shared/
 
 # Install dependencies
 RUN npm ci --workspaces
 
 # Copy source code
-COPY packages/shared ./packages/shared
 COPY packages/mcp-planka ./packages/mcp-planka
 
-# Build TypeScript (only mcp-planka and shared)
-RUN npm run build -w packages/shared
+# Build TypeScript
 RUN npm run build -w packages/mcp-planka
 
 # Production image
@@ -37,14 +33,12 @@ WORKDIR /app
 # Copy package files
 COPY --chown=nodejs:nodejs package*.json ./
 COPY --chown=nodejs:nodejs packages/mcp-planka/package*.json ./packages/mcp-planka/
-COPY --chown=nodejs:nodejs packages/shared/package*.json ./packages/shared/
 
 # Install production dependencies
-RUN npm ci --workspaces
+RUN npm ci --workspaces --omit=dev
 
 # Copy built artifacts
 COPY --from=builder --chown=nodejs:nodejs /app/packages/mcp-planka/dist ./packages/mcp-planka/dist
-COPY --from=builder --chown=nodejs:nodejs /app/packages/shared/dist ./packages/shared/dist
 COPY --from=builder --chown=nodejs:nodejs /app/packages/shared/prisma ./packages/shared/prisma
 COPY --from=builder --chown=nodejs:nodejs /app/packages/shared/prisma.config.ts ./packages/shared/prisma.config.ts
 COPY --from=builder --chown=nodejs:nodejs /app/node_modules/.prisma ./node_modules/.prisma

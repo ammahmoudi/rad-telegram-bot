@@ -213,13 +213,17 @@ export const helperTools = [
   },
   {
     name: 'planka.helper.getDailyReportProjects',
-    description: 'List all daily report projects (projects named "Daily report - ...").',
+    description: 'List all daily report projects (projects named "Daily report - ..."). The system may provide a category ID for filtering.',
     inputSchema: {
       type: 'object',
       required: [],
       properties: {
         plankaBaseUrl: { type: 'string', description: 'Planka server base URL' },
         plankaToken: { type: 'string', description: 'Planka access token' },
+        categoryId: { 
+          type: 'string', 
+          description: 'INTERNAL: Category ID to filter projects (automatically provided by system, not for user specification)' 
+        },
       },
     },
   },

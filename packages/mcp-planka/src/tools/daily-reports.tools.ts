@@ -105,7 +105,7 @@ export const dailyReportsTools = [
 export async function handleDailyReportsTool(auth: PlankaAuth, toolName: string, args: any): Promise<any> {
   switch (toolName) {
     case 'planka_get_daily_report_projects': {
-      return await getDailyReportProjects(auth);
+      return await getDailyReportProjects(auth, args.categoryId);
     }
 
     case 'planka_get_user_daily_reports': {

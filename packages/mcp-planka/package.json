@@ -29,7 +29,6 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.7.0",
-    "@rad/shared": "*",
     "dayjs": "^1.11.19",
     "dotenv": "^16.4.7",
     "i18next": "^25.7.3",
