@@ -39,22 +39,12 @@ RUN npm ci --workspaces --omit=dev
 
 # Copy built artifacts
 COPY --from=builder --chown=nodejs:nodejs /app/packages/mcp-planka/dist ./packages/mcp-planka/dist
-COPY --from=builder --chown=nodejs:nodejs /app/packages/shared/prisma ./packages/shared/prisma
-COPY --from=builder --chown=nodejs:nodejs /app/packages/shared/prisma.config.ts ./packages/shared/prisma.config.ts
-COPY --from=builder --chown=nodejs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder --chown=nodejs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
-
-# Install Prisma CLI at the same version as @prisma/client
-RUN npm install --global --save-exact "prisma@$(node --print 'require("./node_modules/@prisma/client/package.json").version')"
-
-RUN mkdir -p /app/data && chown -R nodejs:nodejs /app/data
 
 USER nodejs
 
 ENV NODE_ENV=production \
     MCP_TRANSPORT=http \
-    PORT=3100 \
-    DATABASE_URL="file:/app/data/rastar.db"
+    PORT=3100
 
 # Health check
 # HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
@@ -64,4 +54,4 @@ ENV NODE_ENV=production \
 EXPOSE 3100
 
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["sh", "-c", "cd packages/shared && prisma migrate deploy && cd ../.. && node packages/mcp-planka/dist/index.js"]
+CMD ["node", "packages/mcp-planka/dist/index.js"]
