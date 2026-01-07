@@ -1,4 +1,4 @@
-import { getPrisma } from '../packages/shared/dist/db.js';
+import { getPrisma } from '../packages/shared/dist/prisma.js';
 import bcrypt from 'bcryptjs';
 
 /**
