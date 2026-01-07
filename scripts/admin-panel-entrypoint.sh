@@ -5,7 +5,7 @@ echo "🚀 Starting Admin Panel..."
 
 # Run database migrations
 echo "📊 Running database migrations..."
-npx prisma migrate deploy --schema=packages/shared/prisma/schema.prisma
+npx prisma migrate deploy --schema=./packages/shared/prisma/schema.prisma
 
 # Create default admin if credentials are provided
 if [ -n "$DEFAULT_ADMIN_USERNAME" ] && [ -n "$DEFAULT_ADMIN_PASSWORD" ]; then
