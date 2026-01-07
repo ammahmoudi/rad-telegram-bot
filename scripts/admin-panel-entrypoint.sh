@@ -20,9 +20,9 @@ cd /app
 # Note: Default admin and character pack creation moved to telegram bot
 # Admin panel only handles migrations and serves the UI
 
-# Start Next.js server (standalone output is at /app/server.js)
+# Start Next.js server (standalone output preserves workspace structure)
 echo "✅ Starting Next.js server..."
-exec node /app/server.js
+exec node apps/admin-panel/server.js
   
   (async () => {
     const prisma = getPrisma();
