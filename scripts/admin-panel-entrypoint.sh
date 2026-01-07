@@ -3,9 +3,17 @@ set -e
 
 echo "🚀 Starting Admin Panel..."
 
+# Check DATABASE_URL
+if [ -z "$DATABASE_URL" ]; then
+  echo "❌ ERROR: DATABASE_URL environment variable is not set!"
+  exit 1
+fi
+
+echo "📊 Database URL: ${DATABASE_URL:0:30}..."
+
 # Run database migrations
 echo "📊 Running database migrations..."
-npx prisma migrate deploy --schema=../../packages/shared/prisma/schema.prisma
+DATABASE_URL="$DATABASE_URL" npx prisma migrate deploy --schema=../../packages/shared/prisma/schema.prisma
 
 # Create default admin if credentials are provided
 if [ -n "$DEFAULT_ADMIN_USERNAME" ] && [ -n "$DEFAULT_ADMIN_PASSWORD" ]; then
