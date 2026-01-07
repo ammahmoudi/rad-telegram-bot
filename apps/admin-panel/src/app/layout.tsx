@@ -4,6 +4,7 @@ import './globals.css';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const dynamicParams = true;
 
 export const metadata = {
   title: 'Admin Panel',

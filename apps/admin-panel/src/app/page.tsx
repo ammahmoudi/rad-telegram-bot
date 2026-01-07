@@ -5,9 +5,6 @@ import AdminLayout from './AdminLayout';
 import { SettingsPageHeader } from '@/components/SettingsPageHeader';
 import { SettingsForm } from '@/components/SettingsForm';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
 export default async function DashboardPage() {
   const session = await auth();
   
