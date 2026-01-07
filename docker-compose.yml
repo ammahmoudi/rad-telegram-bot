@@ -128,6 +128,8 @@ services:
     build:
       context: .
       dockerfile: ./apps/telegram-bot/Dockerfile
+      args:
+        - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/rastar
     container_name: rastar-telegram-bot
     restart: unless-stopped
     environment:
@@ -178,6 +180,8 @@ services:
     build:
       context: .
       dockerfile: ./apps/link-portal/Dockerfile
+      args:
+        - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/rastar
     container_name: rastar-link-portal
     restart: unless-stopped
     environment:

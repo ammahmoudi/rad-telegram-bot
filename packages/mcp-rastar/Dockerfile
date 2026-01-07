@@ -20,9 +20,6 @@ RUN npm ci --workspaces
 COPY packages/shared ./packages/shared
 COPY packages/mcp-rastar ./packages/mcp-rastar
 
-# Generate Prisma client
-RUN npm run prisma:generate
-
 # Build TypeScript (only mcp-rastar and shared)
 RUN npm run build -w packages/shared
 RUN npm run build -w packages/mcp-rastar
