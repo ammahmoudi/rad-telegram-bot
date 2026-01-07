@@ -13,7 +13,9 @@ echo "📊 Database URL: ${DATABASE_URL:0:30}..."
 
 # Run database migrations
 echo "📊 Running database migrations..."
-DATABASE_URL="$DATABASE_URL" npx prisma migrate deploy --schema=../../packages/shared/prisma/schema.prisma
+cd ../../packages/shared
+npx prisma migrate deploy --schema=./prisma/schema.prisma
+cd ../..
 
 # Create default admin if credentials are provided
 if [ -n "$DEFAULT_ADMIN_USERNAME" ] && [ -n "$DEFAULT_ADMIN_PASSWORD" ]; then
