@@ -43,7 +43,16 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { name, description, copyFromDefault } = await request.json();
+    const { 
+      name, 
+      description, 
+      isDefault,
+      systemPromptEn, 
+      systemPromptFa,
+      welcomeMessageEn,
+      welcomeMessageFa,
+      copyFromDefault 
+    } = await request.json();
 
     if (!name) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 });
@@ -52,19 +61,78 @@ export async function POST(request: Request) {
     const prisma = getPrisma();
     const now = Date.now();
 
+    // If setting as default, unset other defaults
+    if (isDefault) {
+      await prisma.characterPack.updateMany({
+        where: { isDefault: true },
+        data: { isDefault: false, updatedAt: now },
+      });
+    }
+
     // Create the pack
     const pack = await prisma.characterPack.create({
       data: {
         name,
         description: description || null,
-        isDefault: false,
+        isDefault: isDefault || false,
         createdAt: now,
         updatedAt: now,
       },
     });
 
-    // If copyFromDefault, copy messages from default pack
-    if (copyFromDefault) {
+    // Create messages if provided
+    const messages = [];
+    
+    if (systemPromptEn) {
+      messages.push({
+        packId: pack.id,
+        language: 'en' as const,
+        messageType: 'system_prompt' as const,
+        content: systemPromptEn,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+    
+    if (systemPromptFa) {
+      messages.push({
+        packId: pack.id,
+        language: 'fa' as const,
+        messageType: 'system_prompt' as const,
+        content: systemPromptFa,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+    
+    if (welcomeMessageEn) {
+      messages.push({
+        packId: pack.id,
+        language: 'en' as const,
+        messageType: 'welcome' as const,
+        content: welcomeMessageEn,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+    
+    if (welcomeMessageFa) {
+      messages.push({
+        packId: pack.id,
+        language: 'fa' as const,
+        messageType: 'welcome' as const,
+        content: welcomeMessageFa,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    if (messages.length > 0) {
+      await prisma.packMessage.createMany({ data: messages });
+    }
+
+    // If copyFromDefault and no messages provided, copy from default pack
+    if (copyFromDefault && messages.length === 0) {
       const defaultPack = await prisma.characterPack.findFirst({
         where: { isDefault: true },
         include: { messages: true },
@@ -77,13 +145,14 @@ export async function POST(request: Request) {
             language: msg.language,
             messageType: msg.messageType,
             content: msg.content,
+            createdAt: now,
             updatedAt: now,
           })),
         });
       }
     }
 
-    return NextResponse.json({ pack });
+    return NextResponse.json({ id: pack.id, pack });
   } catch (error) {
     console.error('Error creating pack:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
