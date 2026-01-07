@@ -11,6 +11,11 @@ fi
 
 echo "📊 Database URL: ${DATABASE_URL:0:30}..."
 
+# Debug: Check if migrations exist
+echo "🔍 DEBUG: Checking migrations directory..."
+ls -la /app/packages/shared/prisma/ || echo "❌ prisma directory not found"
+ls -la /app/packages/shared/prisma/migrations/ || echo "❌ migrations directory not found"
+
 # Run database migrations
 echo "📊 Running database migrations..."
 cd /app/packages/shared
