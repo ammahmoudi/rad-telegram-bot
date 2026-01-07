@@ -88,4 +88,4 @@ EXPOSE 3002
 ENTRYPOINT ["dumb-init", "--"]
 
 # Run migrations and start the server
-CMD ["sh", "-c", "npx prisma migrate deploy --schema=./packages/shared/prisma/schema.prisma --config=./packages/shared/prisma.config.ts && node apps/link-portal/dist/server.js"]
+CMD ["sh", "-c", "cd packages/shared && npx prisma migrate deploy && cd ../.. && node apps/link-portal/dist/server.js"]

@@ -6,7 +6,7 @@ echo "🚀 Starting Rastar Telegram Bot..."
 # Run database migrations
 echo "📊 Running database migrations..."
 cd packages/shared
-npx prisma migrate deploy --schema=./prisma/schema.prisma
+npx prisma migrate deploy
 cd ../..
 
 # Create default admin if credentials are provided
