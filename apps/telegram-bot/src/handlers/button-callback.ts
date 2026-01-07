@@ -75,6 +75,47 @@ export async function handleButtonCallback(ctx: BotContext) {
     return;
   }
 
+  // Settings callbacks
+  if (callbackData === 'settings_language') {
+    await ctx.answerCallbackQuery();
+    const { getLanguageKeyboard } = await import('./keyboards.js');
+    const { t } = await import('../utils/i18n.js');
+    const language = ctx.from?.language_code === 'fa' ? 'fa' : 'en';
+    await ctx.editMessageText(
+      t(language, 'settings-select-language'),
+      { reply_markup: getLanguageKeyboard() }
+    );
+    return;
+  }
+
+  if (callbackData === 'settings_back') {
+    await ctx.answerCallbackQuery();
+    const { handleSettingsCommand } = await import('./commands/index.js');
+    await handleSettingsCommand(ctx);
+    return;
+  }
+
+  // Language selection callbacks
+  if (callbackData === 'lang_fa' || callbackData === 'lang_en') {
+    await ctx.answerCallbackQuery();
+    const newLang = callbackData === 'lang_fa' ? 'fa' : 'en';
+    const { setUserLanguage } = await import('../utils/language-manager.js');
+    const { t } = await import('../utils/i18n.js');
+    const { syncCommandsForUser } = await import('../utils/sync-commands.js');
+    
+    const telegramUserId = ctx.from?.id?.toString();
+    if (telegramUserId) {
+      await setUserLanguage(telegramUserId, newLang);
+      await syncCommandsForUser(ctx.api, telegramUserId, newLang);
+      
+      await ctx.editMessageText(
+        t(newLang, 'settings-language-changed'),
+        { reply_markup: undefined }
+      );
+    }
+    return;
+  }
+
   if (callbackData === 'link_rastar' || callbackData === 'rastar_link') {
     await ctx.answerCallbackQuery();
     const { handleLinkRastarCommand } = await import('./commands/index.js');
