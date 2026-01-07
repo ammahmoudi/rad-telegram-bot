@@ -1,4 +1,4 @@
-import { getPrisma } from '@rad/shared';
+import { getPrisma } from '../packages/shared/dist/db.js';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
