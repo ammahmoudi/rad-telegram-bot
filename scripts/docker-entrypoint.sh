@@ -3,11 +3,8 @@ set -e
 
 echo "🚀 Starting Rastar Telegram Bot..."
 
-# Run database migrations
-echo "📊 Running database migrations..."
-cd packages/shared
-npx prisma migrate deploy
-cd ../..
+# Note: Database migrations are handled by admin panel
+# Telegram bot only connects to existing database
 
 # Create default admin if credentials are provided
 if [ -n "$DEFAULT_ADMIN_USERNAME" ] && [ -n "$DEFAULT_ADMIN_PASSWORD" ]; then
