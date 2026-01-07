@@ -22,7 +22,7 @@ cd /app/packages/shared
 
 # For first-time setup or if migration state is corrupted, use db push
 # This will create tables based on schema without checking migration history
-npx prisma db push --accept-data-loss
+npx prisma migrate deploy
 
 cd /app
 

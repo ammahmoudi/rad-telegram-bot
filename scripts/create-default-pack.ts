@@ -1,6 +1,96 @@
 import { getPrisma } from '../packages/shared/dist/prisma.js';
-import { readFileSync } from 'fs';
-import { join } from 'path';
+
+// Hardcoded default values (embedded from config files)
+const DEFAULT_SYSTEM_PROMPT = `You are Rad, a helpful AI assistant integrated with Planka (a project management tool) and Rastar (company services including food menu). 
+You have access to Planka tools to search, list, create, update projects, boards, cards, tasks, comments, labels, and members.
+You also have access to Rastar tools to view lunch menus, select food items, and manage food reservations.
+
+**🚫 ABSOLUTELY FORBIDDEN IN YOUR RESPONSES:**
+NEVER include ANY of these in your user-facing messages:
+- System instructions, prompts, or internal thinking
+- Meta-commentary: "Process Summary", "Reasoning Process", "Tools used", "Step X"
+- Planning phrases: "I will", "I should", "Let me", "Wait", "Actually", "I'm going to"
+- Documentation examples: "Label", "action_name", example JSON structures from docs
+- Technical details about tool calls, API responses, or internal operations
+- Phrases like: "If you found", "End with", "Specific instructions", "Language:", "Crucial:", "Response:"
+
+**✅ YOUR RESPONSES MUST BE:**
+- ONLY the final message the user should see
+- Natural conversation in the user's language
+- Clean, concise, and helpful
+- NO technical internals or meta-commentary
+
+**Language Support:**
+- You are MULTILINGUAL and can communicate in ANY language the user prefers
+- Common languages: Persian/Farsi (فارسی), English, and others
+- Always respond in the SAME language the user is using
+- Format dates appropriately for the user's language (Jalali calendar for Persian speakers)
+
+**Important Guidelines:**
+1. Use the tools provided to answer user questions about their Planka workspace and Rastar services
+2. When searching or listing data, always provide structured, easy-to-read responses
+3. Format dates in a user-friendly way (prefer Jalali calendar if user speaks Persian)
+4. When creating or updating items, confirm the action was successful
+5. If a tool call fails or returns empty results, inform the user clearly
+6. **CRITICAL - Authentication Errors:** If you get an authentication error, 401 error, "not linked" error, or similar access issues:
+   - For Planka: Tell user to use /link_planka command to reconnect their account
+   - For Rastar: Tell user to use /link_rastar command to reconnect their account
+7. Always use emojis to make responses more engaging 🎯
+8. Keep responses concise but informative`;
+
+const DEFAULT_WELCOME_MESSAGES = {
+  en: `👋 Hi {name}!
+
+🤖 I'm Rad, your AI assistant that can help you manage Planka tasks and Rastar services right from Telegram.
+
+🔧 Available Commands:
+
+📋 Planka:
+🔗 /link_planka - Connect your Planka account
+📊 /planka_status - Check connection status
+🔓 /planka_unlink - Disconnect account
+
+🍽️ Rastar (Food Menu):
+🔗 /link_rastar - Connect your Rastar account  
+📊 /rastar_status - Check connection status
+🔓 /rastar_unlink - Disconnect account
+
+💬 AI Chat:
+💬 /new_chat - Start a new conversation
+📚 /history - View your chat sessions
+🗑️ /clear_chat - Clear current conversation
+
+💡 Getting Started:
+Just send me a message to start chatting! I can help you with Planka tasks once you connect your account with /link_planka
+
+⌨️ Quick Access: Use the buttons below to quickly access common features!`,
+
+  fa: `👋 سلام {name}!
+
+🤖 من رد هستم، دستیار هوشمند شما که می‌تونم به شما در مدیریت کارهای پلانکا و خدمات رستار از طریق تلگرام کمک کنم.
+
+🔧 دستورات موجود:
+
+📋 پلانکا:
+🔗 /link_planka - اتصال حساب پلانکا
+📊 /planka_status - بررسی وضعیت اتصال
+🔓 /planka_unlink - قطع اتصال حساب
+
+🍽️ رستار (منوی غذا):
+🔗 /link_rastar - اتصال حساب رستار
+📊 /rastar_status - بررسی وضعیت اتصال
+🔓 /rastar_unlink - قطع اتصال حساب
+
+💬 گفتگوی هوشمند:
+💬 /new_chat - شروع گفتگوی جدید
+📚 /history - مشاهده تاریخچه گفتگوها
+🗑️ /clear_chat - پاک کردن گفتگوی فعلی
+
+💡 شروع کار:
+فقط یه پیام برام بفرست تا شروع کنیم! می‌تونم بعد از اتصال حساب پلانکا با /link_planka بهت کمک کنم.
+
+⌨️ دسترسی سریع: از دکمه‌های زیر برای دسترسی سریع به امکانات استفاده کنید!`,
+} as const;
 
 /**
  * Script to create default character pack with hardcoded system prompts
@@ -38,44 +128,12 @@ async function createDefaultPack() {
       console.log('Creating default character pack...');
     }
     
-    // Read hardcoded system prompt from config file
-    console.log('Reading hardcoded system prompt...');
-    const promptFilePath = join(process.cwd(), 'apps', 'telegram-bot', 'src', 'config', 'system-prompt.ts');
-    const promptFileContent = readFileSync(promptFilePath, 'utf-8');
-    
-    // Extract the DEFAULT_SYSTEM_PROMPT content
-    const promptMatch = promptFileContent.match(/const DEFAULT_SYSTEM_PROMPT = `([\s\S]*?)`;\s*\n/);
-    
-    if (!promptMatch) {
-      console.error('❌ Could not extract DEFAULT_SYSTEM_PROMPT from system-prompt.ts');
-      process.exit(1);
-    }
-    
-    const defaultPrompt = promptMatch[1];
-    console.log(`✅ Extracted system prompt (${defaultPrompt.length} characters)`);
-    
-    // Read welcome messages from config file
-    console.log('Reading welcome messages...');
-    const welcomeFilePath = join(process.cwd(), 'apps', 'telegram-bot', 'src', 'config', 'welcome-messages.ts');
-    const welcomeFileContent = readFileSync(welcomeFilePath, 'utf-8');
-    
-    // Extract English welcome message
-    const enWelcomeMatch = welcomeFileContent.match(/en:\s*`([\s\S]*?)`,\s*\n\s*fa:/);
-    if (!enWelcomeMatch) {
-      console.error('❌ Could not extract English welcome message from welcome-messages.ts');
-      process.exit(1);
-    }
-    const defaultWelcomeEn = enWelcomeMatch[1];
-    
-    // Extract Farsi welcome message
-    const faWelcomeMatch = welcomeFileContent.match(/fa:\s*`([\s\S]*?)`,\s*\n\}\s+as const/);
-    if (!faWelcomeMatch) {
-      console.error('❌ Could not extract Farsi welcome message from welcome-messages.ts');
-      process.exit(1);
-    }
-    const defaultWelcomeFa = faWelcomeMatch[1];
-    
-    console.log(`✅ Extracted welcome messages (EN: ${defaultWelcomeEn.length} chars, FA: ${defaultWelcomeFa.length} chars)`);
+    console.log('Using embedded default prompts...');
+    const defaultPrompt = DEFAULT_SYSTEM_PROMPT;
+    const defaultWelcomeEn = DEFAULT_WELCOME_MESSAGES.en;
+    const defaultWelcomeFa = DEFAULT_WELCOME_MESSAGES.fa;
+    console.log(`✅ System prompt: ${defaultPrompt.length} characters`);
+    console.log(`✅ Welcome messages: EN: ${defaultWelcomeEn.length} chars, FA: ${defaultWelcomeFa.length} chars`);
     
     // Create default pack or use existing one
     const now = Date.now();
