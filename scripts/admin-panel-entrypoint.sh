@@ -13,53 +13,24 @@ echo "📊 Database URL: ${DATABASE_URL:0:30}..."
 
 # Run database migrations
 echo "📊 Running database migrations..."
-cd ../../packages/shared
+cd packages/shared
 npx prisma migrate deploy
 cd ../..
 
 # Create default admin if credentials are provided
 if [ -n "$DEFAULT_ADMIN_USERNAME" ] && [ -n "$DEFAULT_ADMIN_PASSWORD" ]; then
   echo "👤 Creating default admin user..."
-  node -e "
-    const { getPrisma } = require('./packages/shared/dist/db');
-    const bcrypt = require('bcryptjs');
-    
-    (async () => {
-      const prisma = getPrisma();
-      const username = process.env.DEFAULT_ADMIN_USERNAME;
-      const password = process.env.DEFAULT_ADMIN_PASSWORD;
-      
-      try {
-        const existing = await prisma.admin.findUnique({ where: { username } });
-        if (!existing) {
-          const passwordHash = await bcrypt.hash(password, 10);
-          const now = Date.now();
-          await prisma.admin.create({
-            data: {
-              id: 'admin_' + username + '_' + now,
-              username,
-              passwordHash,
-              createdAt: now,
-              updatedAt: now,
-            },
-          });
-          console.log('✅ Default admin created:', username);
-        } else {
-          console.log('ℹ️  Admin already exists:', username);
-        }
-      } catch (error) {
-        console.log('⚠️  Could not create default admin:', error.message);
-      }
-    })();
-  " || echo "⚠️  Admin creation failed (non-critical)"
+  tsx scripts/create-admin.ts "$DEFAULT_ADMIN_USERNAME" "$DEFAULT_ADMIN_PASSWORD" || echo "⚠️  Admin creation failed (non-critical)"
 fi
 
 # Create default character pack
 echo "🎭 Creating default character pack..."
-node -e "
-  const { getPrisma } = require('./packages/shared/dist/db');
-  const fs = require('fs');
-  const path = require('path');
+tsx scripts/create-default-pack.ts || echo "⚠️  Default pack creation failed (non-critical)"
+
+# Start Next.js server
+echo "✅ Starting Next.js server..."
+cd apps/admin-panel
+exec node standalone/server.js
   
   (async () => {
     const prisma = getPrisma();
