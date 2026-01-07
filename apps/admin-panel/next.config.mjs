@@ -10,6 +10,9 @@ config({ path: resolve(__dirname, '.env.local'), override: true });
 const nextConfig = {
   output: 'standalone',
   turbopack: {},
+  generateBuildId: async () => {
+    return 'build-' + Date.now();
+  },
   env: {
     DATABASE_URL: process.env.DATABASE_URL || 'file:C:/Users/ammah/Documents/GitHub/rastar-telegram-bot/data/rastar.db',
   },
