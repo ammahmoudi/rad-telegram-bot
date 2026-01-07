@@ -17,20 +17,12 @@ cd /app/packages/shared
 npx prisma migrate deploy
 cd /app
 
-# Create default admin if credentials are provided
-if [ -n "$DEFAULT_ADMIN_USERNAME" ] && [ -n "$DEFAULT_ADMIN_PASSWORD" ]; then
-  echo "👤 Creating default admin user..."
-  tsx scripts/create-admin.ts "$DEFAULT_ADMIN_USERNAME" "$DEFAULT_ADMIN_PASSWORD" || echo "⚠️  Admin creation failed (non-critical)"
-fi
+# Note: Default admin and character pack creation moved to telegram bot
+# Admin panel only handles migrations and serves the UI
 
-# Create default character pack
-echo "🎭 Creating default character pack..."
-tsx scripts/create-default-pack.ts || echo "⚠️  Default pack creation failed (non-critical)"
-
-# Start Next.js server
+# Start Next.js server (standalone output is at /app/server.js)
 echo "✅ Starting Next.js server..."
-cd /app/apps/admin-panel
-exec node standalone/server.js
+exec node /app/server.js
   
   (async () => {
     const prisma = getPrisma();
