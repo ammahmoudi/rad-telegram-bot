@@ -21,6 +21,7 @@ RUN npm ci --workspaces
 # Copy source code
 COPY packages/shared ./packages/shared
 COPY apps/admin-panel ./apps/admin-panel
+COPY scripts/admin-panel-entrypoint.sh ./scripts/admin-panel-entrypoint.sh
 
 # Generate Prisma client
 RUN npm run prisma:generate
