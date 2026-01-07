@@ -68,9 +68,6 @@ RUN npm install --global --save-exact "prisma@$(node --print 'require("./node_mo
 COPY --from=builder --chown=nodejs:nodejs /app/scripts/admin-panel-entrypoint.sh /app/admin-panel-entrypoint.sh
 RUN chmod +x /app/admin-panel-entrypoint.sh
 
-# Install bcryptjs for admin creation
-RUN npm install bcryptjs
-
 # Create data directory for SQLite database
 RUN mkdir -p /app/data && chown -R nodejs:nodejs /app/data
 

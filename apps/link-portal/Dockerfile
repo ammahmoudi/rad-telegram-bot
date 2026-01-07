@@ -61,16 +61,7 @@ COPY --from=builder --chown=nodejs:nodejs /app/packages/shared/dist ./packages/s
 # Copy locale files for i18n
 COPY --from=builder --chown=nodejs:nodejs /app/apps/link-portal/src/locales ./apps/link-portal/dist/locales
 
-# Copy Prisma schema and generated client
-COPY --from=builder --chown=nodejs:nodejs /app/packages/shared/prisma ./packages/shared/prisma
-COPY --from=builder --chown=nodejs:nodejs /app/packages/shared/prisma.config.ts ./packages/shared/prisma.config.ts
-COPY --from=builder --chown=nodejs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder --chown=nodejs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
-
-# Install Prisma CLI at the same version as @prisma/client
-RUN npm install --global --save-exact "prisma@$(node --print 'require("./node_modules/@prisma/client/package.json").version')"
-
-# Create data directory for SQLite database
+# Create data directory
 RUN mkdir -p /app/data && chown -R nodejs:nodejs /app/data
 
 # Switch to non-root user
@@ -78,8 +69,7 @@ USER nodejs
 
 # Set environment variables
 ENV NODE_ENV=production \
-    PORT=3002 \
-    DATABASE_URL="file:/app/data/rastar.db"
+    PORT=3002
 
 # Health check
 # HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
@@ -91,5 +81,5 @@ EXPOSE 3002
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
 
-# Run migrations and start the server
-CMD ["sh", "-c", "cd packages/shared && npx prisma migrate deploy && cd ../.. && node apps/link-portal/dist/server.js"]
+# Start the server (no migrations - admin panel handles database)
+CMD ["node", "apps/link-portal/dist/server.js"]
