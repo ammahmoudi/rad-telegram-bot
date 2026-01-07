@@ -4,19 +4,17 @@ import { Toaster } from 'sonner';
 import './globals.css';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+export const metadata = {
+  title: 'Admin Panel',
+  description: 'Rastar Telegram Bot Admin Panel',
+};
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className="dark">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-        <style>{`
-          body { font-family: 'Inter', system-ui, sans-serif; }
-        `}</style>
-      </head>
-      <body className="min-h-screen bg-slate-50 dark:bg-slate-950">
+      <body className="min-h-screen bg-slate-50 dark:bg-slate-950" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
         <LanguageProvider>
           {children}
           <Toaster

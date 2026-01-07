@@ -1,9 +1,8 @@
 import { auth } from './auth';
 import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-export const runtime = 'nodejs';
-
-export default auth((req) => {
+const proxy: any = auth((req): ReturnType<typeof NextResponse.next | typeof NextResponse.redirect> => {
   const isAuthPage = req.nextUrl.pathname.startsWith('/auth');
   const isApiRoute = req.nextUrl.pathname.startsWith('/api');
   const isLoggedIn = !!req.auth;
@@ -22,6 +21,8 @@ export default auth((req) => {
 
   return NextResponse.next();
 });
+
+export default proxy;
 
 export const config = {
   matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],

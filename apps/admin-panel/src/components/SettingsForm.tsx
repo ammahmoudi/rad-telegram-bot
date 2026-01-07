@@ -407,7 +407,7 @@ export function SettingsForm({ config, hasApiKey, usingEnvApiKey, envPlankaUrl, 
                     ✓ Configured in DB
                   </span>
                 )}
-                {usingEnvApiKey && (
+                {usingEnvApiKey && envApiKey && (
                   <span className={`${dir === 'rtl' ? 'mr-2' : 'ml-2'} text-xs text-blue-400`}>
                     ✓ Using .env (sk-or-v1-...{envApiKey.slice(-4)})
                   </span>
