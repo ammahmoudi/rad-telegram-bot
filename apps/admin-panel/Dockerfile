@@ -64,9 +64,19 @@ COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
 # Install Prisma CLI at the same version as @prisma/client
 RUN npm install --global --save-exact "prisma@$(node --print 'require("./node_modules/@prisma/client/package.json").version')"
 
+# Install tsx for running TypeScript scripts
+RUN npm install --global tsx
+
 # Copy entrypoint script
 COPY --from=builder --chown=nodejs:nodejs /app/scripts/admin-panel-entrypoint.sh /app/admin-panel-entrypoint.sh
 RUN chmod +x /app/admin-panel-entrypoint.sh
+
+# Copy initialization scripts
+COPY --from=builder --chown=nodejs:nodejs /app/scripts/create-admin.ts /app/scripts/create-admin.ts
+COPY --from=builder --chown=nodejs:nodejs /app/scripts/create-default-pack.ts /app/scripts/create-default-pack.ts
+
+# Copy shared package dist (needed by scripts)
+COPY --from=builder --chown=nodejs:nodejs /app/packages/shared/dist /app/packages/shared/dist
 
 # Create data directory for SQLite database
 RUN mkdir -p /app/data && chown -R nodejs:nodejs /app/data

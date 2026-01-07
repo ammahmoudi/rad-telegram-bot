@@ -4,7 +4,7 @@ set -e
 echo "🚀 Starting Rastar Telegram Bot..."
 
 # Note: Database migrations and initial setup are handled by admin panel
-# Telegram bot only connects to existing database and starts immediately
+# Telegram bot only connects to existing database
 
 # Start the application
 echo "✅ Starting application..."
