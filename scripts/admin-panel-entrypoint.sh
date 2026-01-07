@@ -13,9 +13,9 @@ echo "📊 Database URL: ${DATABASE_URL:0:30}..."
 
 # Run database migrations
 echo "📊 Running database migrations..."
-cd packages/shared
+cd /app/packages/shared
 npx prisma migrate deploy
-cd ../..
+cd /app
 
 # Create default admin if credentials are provided
 if [ -n "$DEFAULT_ADMIN_USERNAME" ] && [ -n "$DEFAULT_ADMIN_PASSWORD" ]; then
@@ -29,7 +29,7 @@ tsx scripts/create-default-pack.ts || echo "⚠️  Default pack creation failed
 
 # Start Next.js server
 echo "✅ Starting Next.js server..."
-cd apps/admin-panel
+cd /app/apps/admin-panel
 exec node standalone/server.js
   
   (async () => {
