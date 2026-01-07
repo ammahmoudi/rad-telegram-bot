@@ -27,6 +27,10 @@ COPY packages/mcp-planka ./packages/mcp-planka
 COPY packages/mcp-rastar ./packages/mcp-rastar
 COPY apps/telegram-bot ./apps/telegram-bot
 
+# Accept DATABASE_URL as build argument from Dokploy
+ARG DATABASE_URL
+ENV DATABASE_URL=${DATABASE_URL}
+
 # Generate Prisma client
 RUN npm run prisma:generate
 

@@ -21,6 +21,10 @@ RUN npm ci --workspaces
 COPY packages/shared ./packages/shared
 COPY apps/link-portal ./apps/link-portal
 
+# Accept DATABASE_URL as build argument from Dokploy
+ARG DATABASE_URL
+ENV DATABASE_URL=${DATABASE_URL}
+
 # Generate Prisma client
 RUN npm run prisma:generate
 

@@ -23,6 +23,10 @@ COPY packages/shared ./packages/shared
 COPY apps/admin-panel ./apps/admin-panel
 COPY scripts/admin-panel-entrypoint.sh ./scripts/admin-panel-entrypoint.sh
 
+# Accept DATABASE_URL as build argument from Dokploy
+ARG DATABASE_URL
+ENV DATABASE_URL=${DATABASE_URL}
+
 # Generate Prisma client
 RUN npm run prisma:generate
 
