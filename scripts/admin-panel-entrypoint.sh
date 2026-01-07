@@ -17,10 +17,16 @@ cd /app/packages/shared
 npx prisma migrate deploy
 cd /app
 
+# Debug: Check if env vars are set
+echo "🔍 DEBUG: DEFAULT_ADMIN_USERNAME=${DEFAULT_ADMIN_USERNAME:-NOT_SET}"
+echo "🔍 DEBUG: DEFAULT_ADMIN_PASSWORD length: ${#DEFAULT_ADMIN_PASSWORD}"
+
 # Create default admin if credentials are provided
 if [ -n "$DEFAULT_ADMIN_USERNAME" ] && [ -n "$DEFAULT_ADMIN_PASSWORD" ]; then
   echo "👤 Creating default admin user..."
   tsx /app/scripts/create-admin.ts "$DEFAULT_ADMIN_USERNAME" "$DEFAULT_ADMIN_PASSWORD" || echo "⚠️  Admin creation failed (non-critical)"
+else
+  echo "⚠️  Skipping admin creation - credentials not provided"
 fi
 
 # Create default character pack
