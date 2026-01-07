@@ -22,6 +22,8 @@ RUN npm ci --workspaces
 COPY packages/shared ./packages/shared
 COPY apps/admin-panel ./apps/admin-panel
 COPY scripts/admin-panel-entrypoint.sh ./scripts/admin-panel-entrypoint.sh
+COPY scripts/create-admin.ts ./scripts/create-admin.ts
+COPY scripts/create-default-pack.ts ./scripts/create-default-pack.ts
 
 # Accept DATABASE_URL as build argument from Dokploy
 ARG DATABASE_URL
