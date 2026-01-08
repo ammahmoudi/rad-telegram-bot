@@ -45,7 +45,8 @@ export async function handleToolCall(request: { params: { name: string; argument
 
     // User Activity tools
     if (name === 'planka_get_user_notifications' ||
-        name === 'planka_get_user_activity_summary') {
+        name === 'planka_get_user_activity_summary' ||
+        name === 'planka_get_incomplete_tasks') {
       const result = await handleUserActivityTool(auth, name, args);
       return textHelper(JSON.stringify(result, null, 2));
     }
