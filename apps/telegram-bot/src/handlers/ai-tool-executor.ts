@@ -102,7 +102,22 @@ export async function executeAiTools(
       // Track tool for display
       if (!activeTools.has(toolCall.name)) {
         activeTools.add(toolCall.name);
-        allToolCallsMade.push({ name: toolCall.name, args: JSON.parse(toolCall.arguments) });
+        
+        // Parse arguments safely
+        let parsedArgs: any;
+        try {
+          parsedArgs = JSON.parse(toolCall.arguments);
+        } catch (parseError) {
+          console.error('[ai-tools] Failed to parse tool arguments:', {
+            tool: toolCall.name,
+            arguments: toolCall.arguments,
+            error: parseError instanceof Error ? parseError.message : String(parseError)
+          });
+          // Skip this tool call
+          continue;
+        }
+        
+        allToolCallsMade.push({ name: toolCall.name, args: parsedArgs });
         
         // Add to display list
         const toolDisplayName = formatToolName(toolCall.name);
@@ -160,11 +175,37 @@ export async function executeAiTools(
       const userLanguage = ctx.session.language || 'en';
       
       let toolResult;
+      
+      // Parse arguments with error handling
+      let toolArgs: any;
+      try {
+        toolArgs = JSON.parse(toolCall.arguments);
+      } catch (parseError) {
+        console.error('[ai-tools] Failed to parse arguments for tool execution:', {
+          tool: mcpToolName,
+          arguments: toolCall.arguments,
+          error: parseError instanceof Error ? parseError.message : String(parseError)
+        });
+        // Create error result
+        toolResult = `Error: Invalid tool arguments - ${parseError instanceof Error ? parseError.message : 'Failed to parse JSON'}`;
+        
+        // Add error result to history
+        const userMessages: ChatMessage[] = [{
+          role: 'tool',
+          content: toolResult,
+          toolCallId: toolCall.id,
+          name: toolCall.name,
+        }];
+        await addMessage(sessionId, 'user', toolResult, undefined, toolCall.name, undefined, toolCall.id);
+        trimmedHistory.push(...userMessages);
+        continue;
+      }
+      
       if (mcpToolName.startsWith('rastar.') || mcpToolName.startsWith('rastar_')) {
         toolResult = await executeRastarTool(
           String(ctx.from?.id ?? ''),
           mcpToolName,
-          JSON.parse(toolCall.arguments),
+          toolArgs,
           sessionId,
           assistantMessageId,
           userLanguage,
@@ -173,7 +214,7 @@ export async function executeAiTools(
         toolResult = await executeMcpTool(
           String(ctx.from?.id ?? ''),
           mcpToolName,
-          JSON.parse(toolCall.arguments),
+          toolArgs,
           sessionId,
           assistantMessageId,
           userLanguage,
@@ -182,7 +223,7 @@ export async function executeAiTools(
         // Time tools or other MCP servers
         toolResult = await executeTimeTool(
           mcpToolName,
-          JSON.parse(toolCall.arguments),
+          toolArgs,
           String(ctx.from?.id ?? ''),
           sessionId,
           assistantMessageId,
