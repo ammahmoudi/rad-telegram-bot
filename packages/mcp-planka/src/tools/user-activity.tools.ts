@@ -66,7 +66,7 @@ export const userActivityTools = [
   {
     name: 'planka_get_incomplete_tasks',
     description:
-      'Get all incomplete/not-done tasks for a user, organized by urgency. This is THE BEST tool for queries like: "what tasks are not done", "show me incomplete work", "what\'s pending", "what do I need to finish". Returns tasks categorized as: OVERDUE (past deadline), DUE TODAY, DUE THIS WEEK (within 7 days), DUE LATER (> 7 days), NO DEADLINE. Each task includes card details, deadline, board/project context, and current list status. Perfect for understanding what work remains and prioritizing by urgency.',
+      'Get all incomplete/not-done tasks for a user, organized by urgency. This is THE BEST tool for queries like: "what tasks are not done", "show me incomplete work", "what\'s pending", "what do I need to finish". Returns tasks categorized as: OVERDUE (past deadline), DUE TODAY, DUE THIS WEEK (within 7 days), DUE LATER (> 7 days), NO DEADLINE. Each task includes card details, deadline, board/project context, and current list status. Perfect for understanding what work remains and prioritizing by urgency. IMPORTANT: For admins managing many projects with hundreds of tasks, use projectIds filter to focus on specific projects, or use summaryOnly=true for counts only, or set limit=0 for unlimited results (may be slow).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -85,7 +85,7 @@ export const userActivityTools = [
         },
         limit: {
           type: 'number',
-          description: 'Maximum number of tasks to return per category (default: 20, max: 100). Use lower values for quick overviews.',
+          description: 'Maximum number of tasks to return per category (default: 20, max: 500). Use 0 for unlimited (may be slow for admins with many tasks). For large result sets, filter by projectIds or use summaryOnly instead.',
         },
         summaryOnly: {
           type: 'boolean',
@@ -119,7 +119,9 @@ export async function handleUserActivityTool(auth: PlankaAuth, toolName: string,
     case 'planka_get_incomplete_tasks': {
       const userId = args.userId || undefined;
       const includeNoDeadline = args.includeNoDealine !== false;
-      const limitPerCategory = Math.min(args.limit || 20, 100); // Default 20, max 100 per category
+      const requestedLimit = args.limit ?? 20;
+      // Allow 0 for unlimited, otherwise cap at 500
+      const limitPerCategory = requestedLimit === 0 ? Infinity : Math.min(requestedLimit, 500);
       const summaryOnly = args.summaryOnly || false;
       
       // Get open cards for the user
@@ -210,12 +212,13 @@ export async function handleUserActivityTool(auth: PlankaAuth, toolName: string,
         dueLater: categories.dueLater.length,
         noDeadline: categories.noDeadline.length,
         total: result.items.length,
-        limitPerCategory,
-        truncated: categories.overdue.length > limitPerCategory || 
+        limitPerCategory: limitPerCategory === Infinity ? 'unlimited' : limitPerCategory,
+        truncated: limitPerCategory !== Infinity && (
+                   categories.overdue.length > limitPerCategory || 
                    categories.dueToday.length > limitPerCategory ||
                    categories.dueThisWeek.length > limitPerCategory ||
                    categories.dueLater.length > limitPerCategory ||
-                   categories.noDeadline.length > limitPerCategory,
+                   categories.noDeadline.length > limitPerCategory),
       };
 
       // Return summary only if requested
@@ -234,7 +237,11 @@ export async function handleUserActivityTool(auth: PlankaAuth, toolName: string,
         summary,
         categories: limitedCategories,
         metadata: result.included,
-        note: summary.truncated ? `Results limited to ${limitPerCategory} tasks per category. Increase limit parameter or use summaryOnly=true for counts only.` : undefined,
+        note: limitPerCategory === Infinity && result.items.length > 100 
+          ? `⚠️ Showing all ${result.items.length} tasks (unlimited mode). For better performance, use projectIds filter or set a limit.`
+          : summary.truncated 
+          ? `Results limited to ${limitPerCategory} tasks per category. Increase limit (max 500) or use limit=0 for all tasks, or use summaryOnly=true for counts only.` 
+          : undefined,
       };
     }
 

@@ -38,6 +38,11 @@ export function stripBase64Images(text: string | null | undefined): string {
 /**
  * Recursively sanitize an object by stripping base64 images from all string fields.
  * Applies to commonly used fields: description, text, content, comments, etc.
+ * 
+ * IMPORTANT: This is automatically applied to ALL tool responses in tool-handlers.ts
+ * to prevent large base64 image data from bloating response sizes and causing
+ * context length errors. Images are replaced with "[Image data removed - size reduced]"
+ * placeholders while preserving alt text.
  */
 export function sanitizeObject(obj: any): any {
   if (obj === null || obj === undefined) {
