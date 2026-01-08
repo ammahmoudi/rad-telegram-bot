@@ -36,17 +36,52 @@ const timeTools = [
   },
   {
     name: 'get_time_range',
-    description: 'Get the start and end times for a named time range like "this week", "last month", "this year", "today", etc. Returns both start and end timestamps.',
+    description: 'Get start and end times for a time range. Supports dynamic expressions like "last 5 days", "next 2 weeks", "last 3 months", plus fixed ranges like today/yesterday/tomorrow, this/last/next week/month/quarter/year/season, last 7/30/60/90 days. Returns full date/time details for both start and end.',
   },
 ];
 
 /**
  * Create Zod schemas from tool definitions
- * All time tools accept optional parameters
  */
-function createZodSchemaFromTool(_tool: any) {
-  // All time tools accept any object
-  return z.object({}).passthrough();
+function createZodSchemaFromTool(tool: any) {
+  switch (tool.name) {
+    case 'get_current_time':
+      return z.object({
+        timezone: z.string().optional(),
+        format: z.enum(['full', 'iso', 'unix', 'gregorian', 'jalali']).optional(),
+      });
+    
+    case 'calculate_relative_date':
+      return z.object({
+        expression: z.string().describe('Relative date expression like "today", "yesterday", "2 days ago", "last week"'),
+        timezone: z.string().optional(),
+        format: z.enum(['full', 'iso', 'unix', 'gregorian', 'jalali']).optional(),
+      });
+    
+    case 'add_duration':
+      return z.object({
+        baseTime: z.string().optional(),
+        duration: z.string().describe('Duration like "2h", "3d", "1w", "-2h"'),
+        timezone: z.string().optional(),
+        format: z.enum(['full', 'iso', 'unix', 'gregorian', 'jalali']).optional(),
+      });
+    
+    case 'get_time_range':
+      return z.object({
+        range_name: z.string().describe(
+          'Time range name. Examples: ' +
+          'today, yesterday, tomorrow, ' +
+          'this/last/next week/month/quarter/year/season, ' +
+          'last 5 days, next 2 weeks, last 3 months, ' +
+          'last 7/30/60/90 days, past week/month/quarter'
+        ),
+        timezone: z.string().optional(),
+        format: z.enum(['full', 'iso', 'unix', 'gregorian', 'jalali']).optional(),
+      });
+    
+    default:
+      return z.object({}).passthrough();
+  }
 }
 
 /**
@@ -94,7 +129,11 @@ function createServer() {
               break;
               
             case 'get_time_range':
-              const rangeResult = getTimeRange(args.range, args?.timezone);
+              const rangeName = args.range_name;
+              if (!rangeName) {
+                throw new Error('Missing required parameter: range_name');
+              }
+              const rangeResult = getTimeRange(rangeName, args?.timezone);
               const format = args?.format || 'full';
               formatted = {
                 start: formatTimeResult(rangeResult.start, format),

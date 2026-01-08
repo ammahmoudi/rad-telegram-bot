@@ -5,11 +5,13 @@
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc.js';
 import timezone from 'dayjs/plugin/timezone.js';
+import quarterOfYear from 'dayjs/plugin/quarterOfYear.js';
 import moment from 'moment-jalaali';
 
 // Extend dayjs with plugins
 dayjs.extend(utc);
 dayjs.extend(timezone);
+dayjs.extend(quarterOfYear);
 
 /**
  * Time format options
@@ -182,38 +184,177 @@ export function getTimeRange(
   range: string,
   timezone: string = 'Asia/Tehran'
 ): { start: TimeResult; end: TimeResult } {
+  if (!range || typeof range !== 'string') {
+    throw new Error('Invalid range parameter: must be a non-empty string');
+  }
+  
   const lower = range.toLowerCase().trim();
   let start = dayjs().tz(timezone);
   let end = dayjs().tz(timezone);
   
+  // Day ranges
   if (lower === 'today') {
     start = start.startOf('day');
     end = end.endOf('day');
   } else if (lower === 'yesterday') {
     start = start.subtract(1, 'day').startOf('day');
     end = start.endOf('day');
-  } else if (lower === 'this week') {
+  } else if (lower === 'tomorrow') {
+    start = start.add(1, 'day').startOf('day');
+    end = start.endOf('day');
+  }
+  
+  // Week ranges
+  else if (lower === 'this week') {
     start = start.startOf('week');
     end = end.endOf('week');
   } else if (lower === 'last week') {
     start = start.subtract(1, 'week').startOf('week');
     end = start.endOf('week');
-  } else if (lower === 'this month') {
+  } else if (lower === 'next week') {
+    start = start.add(1, 'week').startOf('week');
+    end = start.endOf('week');
+  }
+  
+  // Month ranges
+  else if (lower === 'this month') {
     start = start.startOf('month');
     end = end.endOf('month');
   } else if (lower === 'last month') {
     start = start.subtract(1, 'month').startOf('month');
     end = start.endOf('month');
-  } else if (lower === 'this year') {
+  } else if (lower === 'next month') {
+    start = start.add(1, 'month').startOf('month');
+    end = start.endOf('month');
+  }
+  
+  // Quarter ranges
+  else if (lower === 'this quarter') {
+    start = start.startOf('quarter');
+    end = end.endOf('quarter');
+  } else if (lower === 'last quarter') {
+    start = start.subtract(1, 'quarter').startOf('quarter');
+    end = start.endOf('quarter');
+  } else if (lower === 'next quarter') {
+    start = start.add(1, 'quarter').startOf('quarter');
+    end = start.endOf('quarter');
+  }
+  
+  // Year ranges
+  else if (lower === 'this year') {
     start = start.startOf('year');
     end = end.endOf('year');
   } else if (lower === 'last year') {
     start = start.subtract(1, 'year').startOf('year');
     end = start.endOf('year');
-  } else if (lower.match(/^last (\d+) days?$/)) {
+  } else if (lower === 'next year') {
+    start = start.add(1, 'year').startOf('year');
+    end = start.endOf('year');
+  }
+  
+  // Common day ranges
+  else if (lower === 'last 7 days' || lower === 'past week') {
+    start = start.subtract(7, 'day').startOf('day');
+    end = end.endOf('day');
+  } else if (lower === 'last 30 days' || lower === 'past month') {
+    start = start.subtract(30, 'day').startOf('day');
+    end = end.endOf('day');
+  } else if (lower === 'last 60 days') {
+    start = start.subtract(60, 'day').startOf('day');
+    end = end.endOf('day');
+  } else if (lower === 'last 90 days' || lower === 'past quarter') {
+    start = start.subtract(90, 'day').startOf('day');
+    end = end.endOf('day');
+  }
+  
+  // Season ranges
+  else if (lower === 'this season') {
+    const month = start.month();
+    // Winter: Dec-Feb, Spring: Mar-May, Summer: Jun-Aug, Fall: Sep-Nov
+    if (month >= 11 || month <= 1) {
+      // Winter
+      start = start.month(11).startOf('month');
+      end = start.add(2, 'month').endOf('month');
+    } else if (month >= 2 && month <= 4) {
+      // Spring
+      start = start.month(2).startOf('month');
+      end = start.add(2, 'month').endOf('month');
+    } else if (month >= 5 && month <= 7) {
+      // Summer
+      start = start.month(5).startOf('month');
+      end = start.add(2, 'month').endOf('month');
+    } else {
+      // Fall
+      start = start.month(8).startOf('month');
+      end = start.add(2, 'month').endOf('month');
+    }
+  } else if (lower === 'last season') {
+    const month = start.month();
+    // Go back one season (3 months)
+    const prevSeason = start.subtract(3, 'month');
+    const prevMonth = prevSeason.month();
+    
+    if (prevMonth >= 11 || prevMonth <= 1) {
+      // Winter
+      start = prevSeason.month(11).startOf('month');
+      end = start.add(2, 'month').endOf('month');
+    } else if (prevMonth >= 2 && prevMonth <= 4) {
+      // Spring
+      start = prevSeason.month(2).startOf('month');
+      end = start.add(2, 'month').endOf('month');
+    } else if (prevMonth >= 5 && prevMonth <= 7) {
+      // Summer
+      start = prevSeason.month(5).startOf('month');
+      end = start.add(2, 'month').endOf('month');
+    } else {
+      // Fall
+      start = prevSeason.month(8).startOf('month');
+      end = start.add(2, 'month').endOf('month');
+    }
+  }
+  
+  // Dynamic day ranges
+  else if (lower.match(/^last (\d+) days?$/)) {
     const days = parseInt(lower.match(/^last (\d+)/)?.[1] || '0');
     start = start.subtract(days, 'day').startOf('day');
     end = end.endOf('day');
+  } else if (lower.match(/^next (\d+) days?$/)) {
+    const days = parseInt(lower.match(/^next (\d+)/)?.[1] || '0');
+    start = start.startOf('day');
+    end = start.add(days, 'day').endOf('day');
+  }
+  
+  // Dynamic week ranges
+  else if (lower.match(/^last (\d+) weeks?$/)) {
+    const weeks = parseInt(lower.match(/^last (\d+)/)?.[1] || '0');
+    start = start.subtract(weeks, 'week').startOf('day');
+    end = end.endOf('day');
+  } else if (lower.match(/^next (\d+) weeks?$/)) {
+    const weeks = parseInt(lower.match(/^next (\d+)/)?.[1] || '0');
+    start = start.startOf('day');
+    end = start.add(weeks, 'week').endOf('day');
+  }
+  
+  // Dynamic month ranges
+  else if (lower.match(/^last (\d+) months?$/)) {
+    const months = parseInt(lower.match(/^last (\d+)/)?.[1] || '0');
+    start = start.subtract(months, 'month').startOf('day');
+    end = end.endOf('day');
+  } else if (lower.match(/^next (\d+) months?$/)) {
+    const months = parseInt(lower.match(/^next (\d+)/)?.[1] || '0');
+    start = start.startOf('day');
+    end = start.add(months, 'month').endOf('day');
+  }
+  
+  // If no match, throw helpful error
+  else {
+    throw new Error(
+      `Unsupported time range: "${range}". Supported ranges: ` +
+      `today, yesterday, tomorrow, ` +
+      `this/last/next week/month/quarter/year/season, ` +
+      `last/next X days/weeks/months (e.g. "last 5 days", "next 2 weeks"), ` +
+      `last 7/30/60/90 days, past week/month/quarter`
+    );
   }
   
   return {
