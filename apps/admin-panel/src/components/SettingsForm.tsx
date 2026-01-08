@@ -23,6 +23,7 @@ interface SettingsFormProps {
     CHAT_RESTORE_TOOL_RESULTS: string;
     MCP_TOOL_LOGGING_ENABLED: string;
     SHOW_REASONING_TO_USERS: string;
+    ENABLE_MIDDLE_OUT_TRANSFORM: string;
   };
   hasApiKey: boolean;
   usingEnvApiKey: boolean;
@@ -568,6 +569,25 @@ export function SettingsForm({ config, hasApiKey, usingEnvApiKey, envPlankaUrl, 
                   </label>
                   <p className="text-xs text-slate-400 mt-1">
                     When enabled, users see the AI&apos;s internal reasoning process and tool usage. When disabled, users only see a &quot;🤔 Thinking...&quot; indicator and the final response.
+                  </p>
+                </div>
+              </div>
+
+              {/* Enable Middle-Out Transform */}
+              <div className="flex items-start gap-3 bg-white/5 rounded-lg p-4" dir={dir}>
+                <input
+                  id="enableMiddleOutTransform"
+                  type="checkbox"
+                  name="enableMiddleOutTransform"
+                  defaultChecked={config.ENABLE_MIDDLE_OUT_TRANSFORM !== 'false'}
+                  className="mt-1 h-4 w-4 rounded border-white/20 bg-white/5 text-blue-500 focus:ring-2 focus:ring-blue-500"
+                />
+                <div className="flex-1">
+                  <label htmlFor="enableMiddleOutTransform" className="text-sm font-medium text-white block cursor-pointer">
+                    🗜️ Enable Context Compression (Middle-Out)
+                  </label>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Automatically compress large conversation contexts using OpenRouter&apos;s middle-out transform. Helps prevent &quot;context too large&quot; errors when viewing many tasks or long histories. Recommended: enabled.
                   </p>
                 </div>
               </div>

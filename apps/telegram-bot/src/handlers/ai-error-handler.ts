@@ -57,6 +57,18 @@ export async function handleAiError(ctx: BotContext, error: unknown, client: { m
         ctx.t('errors-auth-description') + '\n\n' +
         ctx.t('errors-auth-ask-admin');
     } 
+    else if (errorStr.includes('maximum context length') || errorStr.includes('tokens') || errorStr.includes('too many tokens')) {
+      errorMessage = `<b>⚠️ Response Too Large</b>\n\n` +
+        `The data returned is too large to process. This usually happens with:\n` +
+        `• Viewing too many tasks at once (try limiting to specific projects)\n` +
+        `• Long time periods with lots of activity\n` +
+        `• Cards with very long descriptions\n\n` +
+        `<b>💡 What to do:</b>\n` +
+        `• Ask for a specific project or time period\n` +
+        `• Request a summary instead of full details\n` +
+        `• Break your request into smaller queries\n\n` +
+        `<i>Example: "Show me overdue tasks only" or "Summary of my tasks"</i>`;
+    }
     else if (errorStr.includes('timeout') || errorStr.includes('timed out')) {
       errorMessage = `<b>${ctx.t('errors-timeout-title')}</b>\n\n` +
         ctx.t('errors-timeout-description') + '\n\n' +

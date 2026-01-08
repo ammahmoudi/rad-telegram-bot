@@ -5,7 +5,7 @@
 
 import type { BotContext } from '../bot.js';
 import type { ChatMessage } from '@rad/shared';
-import { addMessage, getUserLanguage } from '@rad/shared';
+import { addMessage, getUserLanguage, getSystemConfig } from '@rad/shared';
 import { executeMcpTool } from '../planka-tools.js';
 import { executeRastarTool } from '../rastar-tools.js';
 import { executeTimeTool } from '../time-tools.js';
@@ -49,8 +49,15 @@ export async function executeAiTools(
   
   console.log('[ai-tools] Starting tool execution...');
   
+  // Check if middle-out transform is enabled (default: true)
+  const enableMiddleOut = (await getSystemConfig('ENABLE_MIDDLE_OUT_TRANSFORM')) !== 'false';
+  
   // Get full response with tool calls
-  let response = await client.chat(trimmedHistory, { systemPrompt }, tools);
+  // Enable middle-out transform to automatically compress large contexts
+  let response = await client.chat(trimmedHistory, { 
+    systemPrompt, 
+    useMiddleOutTransform: enableMiddleOut 
+  }, tools);
   
   // Handle tool calls iteratively
   while (response.toolCalls && response.toolCalls.length > 0 && maxToolCalls > 0) {
@@ -240,7 +247,10 @@ export async function executeAiTools(
     }
     
     // Get next response from AI
-    response = await client.chat(trimmedHistory, { systemPrompt }, tools);
+    response = await client.chat(trimmedHistory, { 
+      systemPrompt,
+      useMiddleOutTransform: enableMiddleOut 
+    }, tools);
   }
   
   return {

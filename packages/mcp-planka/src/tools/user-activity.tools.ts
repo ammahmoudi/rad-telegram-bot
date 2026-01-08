@@ -83,6 +83,14 @@ export const userActivityTools = [
           type: 'boolean',
           description: 'Include tasks with no deadline set (default: true)',
         },
+        limit: {
+          type: 'number',
+          description: 'Maximum number of tasks to return per category (default: 20, max: 100). Use lower values for quick overviews.',
+        },
+        summaryOnly: {
+          type: 'boolean',
+          description: 'If true, return only summary counts without detailed task data. Use this for quick status checks to avoid large responses.',
+        },
       },
     },
   },
@@ -111,6 +119,8 @@ export async function handleUserActivityTool(auth: PlankaAuth, toolName: string,
     case 'planka_get_incomplete_tasks': {
       const userId = args.userId || undefined;
       const includeNoDeadline = args.includeNoDealine !== false;
+      const limitPerCategory = Math.min(args.limit || 20, 100); // Default 20, max 100 per category
+      const summaryOnly = args.summaryOnly || false;
       
       // Get open cards for the user
       const result = await filterCards(auth, {
@@ -184,19 +194,47 @@ export async function handleUserActivityTool(auth: PlankaAuth, toolName: string,
         }
       }
 
+      // Apply limits to each category
+      const limitedCategories = {
+        overdue: categories.overdue.slice(0, limitPerCategory),
+        dueToday: categories.dueToday.slice(0, limitPerCategory),
+        dueThisWeek: categories.dueThisWeek.slice(0, limitPerCategory),
+        dueLater: categories.dueLater.slice(0, limitPerCategory),
+        noDeadline: categories.noDeadline.slice(0, limitPerCategory),
+      };
+
+      const summary = {
+        overdue: categories.overdue.length,
+        dueToday: categories.dueToday.length,
+        dueThisWeek: categories.dueThisWeek.length,
+        dueLater: categories.dueLater.length,
+        noDeadline: categories.noDeadline.length,
+        total: result.items.length,
+        limitPerCategory,
+        truncated: categories.overdue.length > limitPerCategory || 
+                   categories.dueToday.length > limitPerCategory ||
+                   categories.dueThisWeek.length > limitPerCategory ||
+                   categories.dueLater.length > limitPerCategory ||
+                   categories.noDeadline.length > limitPerCategory,
+      };
+
+      // Return summary only if requested
+      if (summaryOnly) {
+        return {
+          error: false,
+          message: 'Task summary retrieved successfully (details omitted for size)',
+          summary,
+          note: 'Use summaryOnly=false or increase limit parameter to see detailed task data',
+        };
+      }
+
       return {
         error: false,
         message: 'Incomplete tasks retrieved successfully',
-        summary: {
-          overdue: categories.overdue.length,
-          dueToday: categories.dueToday.length,
-          dueThisWeek: categories.dueThisWeek.length,
-          dueLater: categories.dueLater.length,
-          noDeadline: categories.noDeadline.length,
-          total: result.items.length,
-        },
-        categories,
+        summary,
+        categories: limitedCategories,
         metadata: result.included,
+        note: summary.truncated ? `Results limited to ${limitPerCategory} tasks per category. Increase limit parameter or use summaryOnly=true for counts only.` : undefined,
       };
     }
 

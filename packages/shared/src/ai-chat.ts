@@ -16,6 +16,7 @@ export interface ChatOptions {
   temperature?: number;
   maxTokens?: number;
   systemPrompt?: string;
+  useMiddleOutTransform?: boolean; // Enable OpenRouter's middle-out compression for large contexts
 }
 
 export class OpenRouterClient {
@@ -134,6 +135,13 @@ export class OpenRouterClient {
         max_tokens: options.maxTokens ?? 2000,
         tools: tools && tools.length > 0 ? tools : undefined,
       };
+      
+      // Enable middle-out transform for automatic context compression (OpenRouter feature)
+      // This helps handle large prompts by automatically compressing the middle of the conversation
+      if (options.useMiddleOutTransform) {
+        requestBody.transforms = ['middle-out'];
+        console.log('[ai-chat] Enabled middle-out transform for context compression');
+      }
       
       // Enable reasoning for Gemini models
       if (isGemini) {

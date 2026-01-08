@@ -23,6 +23,7 @@ export default async function DashboardPage() {
   const plankaDailyReportCategoryId = (await getSystemConfig('PLANKA_DAILY_REPORT_CATEGORY_ID')) || '';
   const mcpToolLoggingEnabled = (await getSystemConfig('MCP_TOOL_LOGGING_ENABLED')) || 'false';
   const showReasoningToUsers = (await getSystemConfig('SHOW_REASONING_TO_USERS')) || 'true';
+  const enableMiddleOutTransform = (await getSystemConfig('ENABLE_MIDDLE_OUT_TRANSFORM')) || 'true';
   const plankaAuthToken = (await getSystemConfig('PLANKA_AUTH_TOKEN')) || '';
   const chatMode = (await getSystemConfig('CHAT_MODE')) || process.env.CHAT_MODE || 'thread';
   const chatHistoryMode = (await getSystemConfig('CHAT_HISTORY_MODE')) || 'message_count';
@@ -46,6 +47,7 @@ export default async function DashboardPage() {
     CHAT_RESTORE_TOOL_RESULTS: chatRestoreToolResults,
     MCP_TOOL_LOGGING_ENABLED: mcpToolLoggingEnabled,
     SHOW_REASONING_TO_USERS: showReasoningToUsers,
+    ENABLE_MIDDLE_OUT_TRANSFORM: enableMiddleOutTransform,
   };
   
   const hasApiKey = openRouterKey.length > 0;

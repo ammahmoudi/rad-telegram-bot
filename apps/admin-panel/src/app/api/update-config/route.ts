@@ -27,6 +27,7 @@ export async function POST(request: Request) {
     const chatRestoreToolResults = formData.get('chatRestoreToolResults');
     const mcpToolLogging = formData.get('mcpToolLogging');
     const showReasoningToUsers = formData.get('showReasoningToUsers');
+    const enableMiddleOutTransform = formData.get('enableMiddleOutTransform');
 
     // Update Planka Base URL if provided
     if (plankaBaseUrl && typeof plankaBaseUrl === 'string' && plankaBaseUrl.trim()) {
@@ -120,6 +121,9 @@ export async function POST(request: Request) {
 
     // Update show reasoning to users setting
     await setSystemConfig('SHOW_REASONING_TO_USERS', showReasoningToUsers === 'on' ? 'true' : 'false');
+
+    // Update middle-out transform setting (enabled by default)
+    await setSystemConfig('ENABLE_MIDDLE_OUT_TRANSFORM', enableMiddleOutTransform === 'on' ? 'true' : 'false');
 
     // Return success response
     return NextResponse.json({ 

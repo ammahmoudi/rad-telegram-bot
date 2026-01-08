@@ -227,8 +227,14 @@ export async function handleAiMessage(ctx: BotContext): Promise<void> {
       
       trimmedHistory = toolResult.trimmedHistory;
       
+      // Check if middle-out transform is enabled (default: true)
+      const enableMiddleOut = (await getSystemConfig('ENABLE_MIDDLE_OUT_TRANSFORM')) !== 'false';
+      
       // Get final response after tool execution
-      const finalResponseAfterTools = await client.chat(trimmedHistory, { systemPrompt });
+      const finalResponseAfterTools = await client.chat(trimmedHistory, { 
+        systemPrompt,
+        useMiddleOutTransform: enableMiddleOut 
+      });
       const showReasoning = (await getSystemConfig('SHOW_REASONING_TO_USERS')) !== 'false';
       const finalContent = buildFinalResponse(
         finalResponseAfterTools.content,
