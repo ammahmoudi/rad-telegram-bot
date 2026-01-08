@@ -104,6 +104,7 @@ export async function handleButtonCallback(ctx: BotContext) {
   if (callbackData === 'lang_fa' || callbackData === 'lang_en') {
     await ctx.answerCallbackQuery();
     const newLang = callbackData === 'lang_fa' ? 'fa' : 'en';
+    const languageName = newLang === 'fa' ? 'فارسی' : 'English';
     const { setUserLanguage } = await import('@rad/shared');
     const { t } = await import('../utils/i18n-helper.js');
     const { clearCommandCache } = await import('../middleware/sync-commands.js');
@@ -114,7 +115,7 @@ export async function handleButtonCallback(ctx: BotContext) {
       clearCommandCache(telegramUserId);
       
       await ctx.editMessageText(
-        t(newLang, 'settings-language-changed'),
+        t(newLang, 'settings-language-changed', { language: languageName }),
         { reply_markup: undefined }
       );
     }
