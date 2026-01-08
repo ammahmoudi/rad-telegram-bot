@@ -51,7 +51,40 @@ Each service has default ports set in their Dockerfile:
 
 Dokploy handles external port mapping automatically. If you need to override the internal port, uncomment the `PORT` variable in the service env.
 
-### 5. Security Configuration
+### 5. Link Portal Environment
+
+Link Portal needs these variables:
+
+```env
+# Runtime
+NODE_ENV=production
+PORT=3002
+
+# Database (Prisma)
+DATABASE_URL=${{project.DATABASE_URL}}
+
+# Telegram Bot (notifications + deep links)
+TELEGRAM_BOT_TOKEN=${{project.TELEGRAM_BOT_TOKEN}}
+TELEGRAM_BOT_USERNAME=${{project.TELEGRAM_BOT_USERNAME}}
+
+# Public URL of this service (used for retry links)
+LINK_PORTAL_URL=${{project.LINK_PORTAL_URL}}
+
+# Rastar (Supabase) Auth Settings
+RASTAR_SUPABASE_URL=${{project.RASTAR_SUPABASE_URL}}
+RASTAR_SUPABASE_ANON_KEY=${{project.RASTAR_SUPABASE_ANON_KEY}}
+
+# Optional overrides
+# RASTAR_SUPABASE_AUTH_PATH=${{project.RASTAR_SUPABASE_AUTH_PATH}} # default: /auth/v1/token
+# RASTAR_SUPABASE_KEY_HEADER=${{project.RASTAR_SUPABASE_KEY_HEADER}} # default: apikey
+```
+
+Notes:
+- `PLANKA_BASE_URL` is managed in Admin Panel → System Config, not via env.
+- Ensure `LINK_PORTAL_URL` matches your public domain (e.g., `https://link-portal.rastar.dev`).
+- `TELEGRAM_BOT_USERNAME` must be your bot's username (without `@`).
+
+### 6. Security Configuration
 
 **IMPORTANT:** For MCP servers to accept external requests, you **MUST** set `ALLOWED_HOSTS` at the project level:
 
@@ -61,7 +94,7 @@ ALLOWED_HOSTS=rastar-mcp.rastar.dev,planka-mcp.rastar.dev,time-mcp.rastar.dev
 
 This prevents DNS rebinding attacks while allowing your production domains.
 
-### 6. Database Setup
+### 7. Database Setup
 
 After deploying all services, run migrations on any service (e.g., telegram-bot):
 

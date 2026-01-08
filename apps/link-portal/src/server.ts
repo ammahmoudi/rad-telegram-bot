@@ -862,7 +862,11 @@ async function rastarLogin(email: string, password: string): Promise<RastarToken
     throw new Error('RASTAR_SUPABASE_URL and RASTAR_SUPABASE_ANON_KEY environment variables are required');
   }
   
-  const url = `${baseUrl}${tokenPath}?grant_type=password`;
+  // Add grant_type=password if not already present in tokenPath
+  const hasGrantType = tokenPath.includes('grant_type=');
+  const url = hasGrantType 
+    ? `${baseUrl}${tokenPath}` 
+    : `${baseUrl}${tokenPath}?grant_type=password`;
 
   const resp = await fetch(url, {
     method: 'POST',
