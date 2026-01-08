@@ -4,6 +4,7 @@ import {
   getUserActions,
   getUserActivitySummary,
 } from '../helpers/index.js';
+import { filterCards } from '../api-optimized/index.js';
 
 export const userActivityTools = [
   {
@@ -62,6 +63,29 @@ export const userActivityTools = [
       },
     },
   },
+  {
+    name: 'planka_get_incomplete_tasks',
+    description:
+      'Get all incomplete/not-done tasks for a user, organized by urgency. This is THE BEST tool for queries like: "what tasks are not done", "show me incomplete work", "what\'s pending", "what do I need to finish". Returns tasks categorized as: OVERDUE (past deadline), DUE TODAY, DUE THIS WEEK (within 7 days), DUE LATER (> 7 days), NO DEADLINE. Each task includes card details, deadline, board/project context, and current list status. Perfect for understanding what work remains and prioritizing by urgency.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        userId: {
+          type: 'string',
+          description: 'User ID to get incomplete tasks for. OPTIONAL: If omitted, gets tasks for CURRENT user. Only specify when checking someone else\'s pending work.',
+        },
+        projectIds: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Optional: Filter to specific project IDs only',
+        },
+        includeNoDealine: {
+          type: 'boolean',
+          description: 'Include tasks with no deadline set (default: true)',
+        },
+      },
+    },
+  },
 ];
 
 export async function handleUserActivityTool(auth: PlankaAuth, toolName: string, args: any): Promise<any> {
@@ -82,6 +106,98 @@ export async function handleUserActivityTool(auth: PlankaAuth, toolName: string,
         includeNotifications: args.includeNotifications,
         limit: args.limit || 100,
       });
+    }
+
+    case 'planka_get_incomplete_tasks': {
+      const userId = args.userId || undefined;
+      const includeNoDeadline = args.includeNoDealine !== false;
+      
+      // Get open cards for the user
+      const result = await filterCards(auth, {
+        assignedToUserId: userId || 'me',
+        status: 'open',
+        projectIds: args.projectIds,
+        sortBy: 'dueDate',
+        sortOrder: 'asc',
+        pageSize: 500, // Get more cards to properly categorize
+      });
+
+      if (!result || !result.items || result.items.length === 0) {
+        return {
+          error: false,
+          message: 'No incomplete tasks found',
+          summary: {
+            overdue: 0,
+            dueToday: 0,
+            dueThisWeek: 0,
+            dueLater: 0,
+            noDeadline: 0,
+            total: 0,
+          },
+          categories: {
+            overdue: [],
+            dueToday: [],
+            dueThisWeek: [],
+            dueLater: [],
+            noDeadline: [],
+          },
+        };
+      }
+
+      // Categorize by urgency
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayTime = today.getTime();
+      
+      const weekFromNow = new Date(today);
+      weekFromNow.setDate(weekFromNow.getDate() + 7);
+      const weekTime = weekFromNow.getTime();
+
+      const categories = {
+        overdue: [] as any[],
+        dueToday: [] as any[],
+        dueThisWeek: [] as any[],
+        dueLater: [] as any[],
+        noDeadline: [] as any[],
+      };
+
+      for (const card of result.items) {
+        if (!card.dueDate) {
+          if (includeNoDeadline) {
+            categories.noDeadline.push(card);
+          }
+          continue;
+        }
+
+        const dueDate = new Date(card.dueDate);
+        dueDate.setHours(0, 0, 0, 0);
+        const dueTime = dueDate.getTime();
+
+        if (dueTime < todayTime) {
+          categories.overdue.push(card);
+        } else if (dueTime === todayTime) {
+          categories.dueToday.push(card);
+        } else if (dueTime <= weekTime) {
+          categories.dueThisWeek.push(card);
+        } else {
+          categories.dueLater.push(card);
+        }
+      }
+
+      return {
+        error: false,
+        message: 'Incomplete tasks retrieved successfully',
+        summary: {
+          overdue: categories.overdue.length,
+          dueToday: categories.dueToday.length,
+          dueThisWeek: categories.dueThisWeek.length,
+          dueLater: categories.dueLater.length,
+          noDeadline: categories.noDeadline.length,
+          total: result.items.length,
+        },
+        categories,
+        metadata: result.included,
+      };
     }
 
     default:

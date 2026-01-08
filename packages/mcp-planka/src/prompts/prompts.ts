@@ -8,6 +8,39 @@ export const prompts = [
     ],
   },
   {
+    name: 'write-daily-report',
+    description: 'Assist user in writing their daily report by analyzing their actions and suggesting content based on what they actually did',
+    arguments: [
+      { name: 'telegramUserId', description: 'Telegram user ID', required: true },
+      { name: 'userName', description: 'User name for the report', required: true },
+      { name: 'date', description: 'Date for the report (default: today)', required: false },
+    ],
+  },
+  {
+    name: 'check-person-status',
+    description: 'Get comprehensive status of a team member: recent activity, daily reports, assigned tasks, and work progress',
+    arguments: [
+      { name: 'telegramUserId', description: 'Telegram user ID', required: true },
+      { name: 'targetUserName', description: 'Name of the person to check', required: true },
+    ],
+  },
+  {
+    name: 'find-incomplete-tasks',
+    description: 'Find all not-done/incomplete tasks for a user, organized by urgency (overdue, due today, due soon, others)',
+    arguments: [
+      { name: 'telegramUserId', description: 'Telegram user ID', required: true },
+      { name: 'userName', description: 'User name to find tasks for (optional - defaults to current user)', required: false },
+    ],
+  },
+  {
+    name: 'my-work-today',
+    description: 'Show comprehensive summary of what the user did today: actions performed, notifications received, cards worked on',
+    arguments: [
+      { name: 'telegramUserId', description: 'Telegram user ID', required: true },
+      { name: 'includeNotifications', description: 'Include notifications (default: true)', required: false },
+    ],
+  },
+  {
     name: 'create-sprint-card',
     description: 'Template for creating a well-structured sprint card with acceptance criteria',
     arguments: [
@@ -39,6 +72,14 @@ export const prompts = [
     arguments: [
       { name: 'telegramUserId', description: 'Telegram user ID', required: true },
       { name: 'boardId', description: 'Board ID to check', required: true },
+    ],
+  },
+  {
+    name: 'team-status-overview',
+    description: 'Get overview of entire team status: who is working on what, recent activity, daily reports compliance',
+    arguments: [
+      { name: 'telegramUserId', description: 'Telegram user ID', required: true },
+      { name: 'projectId', description: 'Project ID to check team for (optional)', required: false },
     ],
   },
 ] as const;

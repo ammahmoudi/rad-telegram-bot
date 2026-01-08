@@ -111,8 +111,14 @@ export async function handleButtonCallback(ctx: BotContext) {
     
     const telegramUserId = ctx.from?.id;
     if (telegramUserId) {
+      console.log(`[button-callback] Setting language to ${newLang} for user ${telegramUserId}`);
       await setUserLanguage(String(telegramUserId), newLang);
+      console.log(`[button-callback] Language saved to database`);
       clearCommandCache(telegramUserId);
+      console.log(`[button-callback] Command cache cleared`);
+      
+      // Update session language
+      ctx.session.language = newLang;
       
       await ctx.editMessageText(
         t(newLang, 'settings-language-changed', { language: languageName }),

@@ -6,12 +6,15 @@ A comprehensive **Model Context Protocol (MCP) server** for [Planka](https://pla
 [![MCP](https://img.shields.io/badge/MCP-1.x-green.svg)](https://modelcontextprotocol.io/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
+> **✨ NEW!** Enhanced with comprehensive AI guidance, specialized prompts for common scenarios, and better tools for finding incomplete tasks. See [USAGE_IMPROVEMENTS.md](./USAGE_IMPROVEMENTS.md) for details.
+
 ---
 
 ## 📋 Table of Contents
 
 - [Quick Start](#-quick-start)
 - [Features](#-features)
+- [AI Usage Guide](#-ai-usage-guide)
 - [Architecture](#-architecture)
 - [Documentation](#-documentation)
 - [Installation](#-installation)
@@ -51,6 +54,70 @@ PLANKA_API_URL=https://your-planka-instance.com
 ```bash
 npm run dev  # Development mode
 npm run build && node build/index.js  # Production
+```
+
+---
+
+## 🤖 AI Usage Guide
+
+**NEW!** We've added comprehensive guidance to help AI assistants provide better responses for common scenarios:
+
+### 📖 Key Documents
+
+| Document | Purpose |
+|----------|---------|
+| **[AI_USAGE_GUIDE.md](./AI_USAGE_GUIDE.md)** | Complete guide for AI assistants on handling common user scenarios |
+| **[USAGE_IMPROVEMENTS.md](./USAGE_IMPROVEMENTS.md)** | Details on recent enhancements and new features |
+
+### 🎯 Common Scenarios Covered
+
+1. **Checking person status** - How to get comprehensive user activity and work status
+2. **Writing daily reports** - Assisted report creation with AI suggestions
+3. **Finding incomplete tasks** - Categorized by urgency (overdue, due today, etc.)
+4. **"What did I do today?"** - Comprehensive activity summaries
+5. **Project status queries** - Board-by-board analysis with metrics
+6. **Team oversight** - Checking team activity and daily report compliance
+7. **Notifications** - Understanding what's happening in the company
+
+### 🔧 Enhanced Tools
+
+- **`planka_get_incomplete_tasks`** - NEW! Find and categorize not-done tasks by urgency
+- **`planka_get_user_activity_summary`** - Enhanced for better date handling
+- **`planka_create_daily_report_card`** - Smart formatting with user context
+
+### 🎨 New Prompts
+
+- **`write-daily-report`** - Assists in writing daily reports with activity analysis
+- **`check-person-status`** - Gets comprehensive team member status
+- **`find-incomplete-tasks`** - Organized incomplete work by priority
+- **`my-work-today`** - Shows what you accomplished today
+- **`team-status-overview`** - Team activity and compliance overview
+
+### 🌐 Multi-Language Support
+
+Full support for **Persian (Farsi)** and **English**:
+- Daily report creation in both languages
+- Persian calendar dates (۱۴۰۳/۱۰/۱۷)
+- Search across both character sets
+- Mixed-language content handling
+
+### 📊 Quick Example
+
+```typescript
+// User asks: "What did I do today?"
+// AI automatically:
+1. Uses planka_get_user_activity_summary(startDate: "today")
+2. Organizes by action type (created cards, posted comments, etc.)
+3. Highlights key accomplishments
+4. Presents in user's preferred language
+
+// User asks: "Create my daily report"
+// AI automatically:
+1. Analyzes today's activity
+2. Finds tasks due today
+3. Suggests report content
+4. Gets user confirmation
+5. Creates formatted report
 ```
 
 ---
@@ -136,9 +203,11 @@ packages/mcp-planka/
 
 | Document | Description |
 |----------|-------------|
-| **[TOOLS.md](docs/TOOLS.md)** | Complete reference for all 21 MCP tools with examples and parameters |
-| **[HELPERS.md](docs/HELPERS.md)** | Guide to helper functions with type signatures and use cases |
-| **[API.md](docs/API.md)** | Raw Planka API functions reference with endpoints and responses |
+| **[AI_USAGE_GUIDE.md](./AI_USAGE_GUIDE.md)** | ⭐ Comprehensive guide for AI assistants on common scenarios |
+| **[USAGE_IMPROVEMENTS.md](./USAGE_IMPROVEMENTS.md)** | Recent enhancements and new features overview |
+| **[TOOLS.md](docs/TOOLS.md)** | Complete reference for all 21+ MCP tools with examples |
+| **[HELPERS.md](docs/HELPERS.md)** | Guide to helper functions with type signatures |
+| **[API.md](docs/API.md)** | Raw Planka API functions reference |
 
 ---
 
