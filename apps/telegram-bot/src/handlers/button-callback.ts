@@ -54,24 +54,29 @@ export async function handleButtonCallback(ctx: BotContext) {
     return;
   }
 
+  // Planka quick action buttons - simulate user message to AI
   if (callbackData === 'planka_list_boards') {
     await ctx.answerCallbackQuery();
-    await ctx.reply('📋 Listing your Planka boards...');
-    // TODO: Implement board listing
+    const { handleMessageWithAi } = await import('./message.js');
+    // Create a message context as if user typed this
+    const simulatedCtx = { ...ctx, message: { ...ctx.message, text: 'Show me my Planka boards' } };
+    await handleMessageWithAi(simulatedCtx as BotContext);
     return;
   }
 
   if (callbackData === 'planka_delayed_tasks') {
     await ctx.answerCallbackQuery();
-    await ctx.reply('🔴 Fetching delayed tasks...');
-    // TODO: Implement delayed tasks
+    const { handleMessageWithAi } = await import('./message.js');
+    const simulatedCtx = { ...ctx, message: { ...ctx.message, text: 'Show me my delayed Planka tasks' } };
+    await handleMessageWithAi(simulatedCtx as BotContext);
     return;
   }
 
   if (callbackData === 'planka_create_card') {
     await ctx.answerCallbackQuery();
-    await ctx.reply('➕ Starting card creation...');
-    // TODO: Implement card creation flow
+    const { handleMessageWithAi } = await import('./message.js');
+    const simulatedCtx = { ...ctx, message: { ...ctx.message, text: 'Create a new Planka card' } };
+    await handleMessageWithAi(simulatedCtx as BotContext);
     return;
   }
 
@@ -137,24 +142,28 @@ export async function handleButtonCallback(ctx: BotContext) {
     return;
   }
 
+  // Rastar quick action buttons - simulate user message to AI
   if (callbackData === 'rastar_today_menu') {
     await ctx.answerCallbackQuery();
-    await ctx.reply('📋 Fetching today\'s menu...');
-    // TODO: Implement today's menu
+    const { handleMessageWithAi } = await import('./message.js');
+    const simulatedCtx = { ...ctx, message: { ...ctx.message, text: "What's today's menu?" } };
+    await handleMessageWithAi(simulatedCtx as BotContext);
     return;
   }
 
   if (callbackData === 'rastar_unselected_days') {
     await ctx.answerCallbackQuery();
-    await ctx.reply('⚠️ Checking unselected days...');
-    // TODO: Implement unselected days check
+    const { handleMessageWithAi } = await import('./message.js');
+    const simulatedCtx = { ...ctx, message: { ...ctx.message, text: 'Show me unselected days' } };
+    await handleMessageWithAi(simulatedCtx as BotContext);
     return;
   }
 
   if (callbackData === 'rastar_week_menu') {
     await ctx.answerCallbackQuery();
-    await ctx.reply('📅 Fetching this week\'s menu...');
-    // TODO: Implement week menu
+    const { handleMessageWithAi } = await import('./message.js');
+    const simulatedCtx = { ...ctx, message: { ...ctx.message, text: "What's this week's menu?" } };
+    await handleMessageWithAi(simulatedCtx as BotContext);
     return;
   }
 

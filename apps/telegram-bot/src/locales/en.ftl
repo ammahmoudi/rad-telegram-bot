@@ -320,6 +320,18 @@ errors-rate-limit-wait = • Wait a moment and try again
 errors-rate-limit-message-saved = • Your message was saved
 errors-rate-limit-note = This usually clears in 30-60 seconds
 
+# Button callback messages
+button-callback-invalid-button-data = ❌ Invalid button data
+button-callback-failed-to-process = ❌ Failed to process button action
+
+# AI button messages
+ai-buttons-invalid-data = ❌ Invalid button data
+ai-buttons-not-for-you = ❌ This button is not for you
+ai-buttons-processing = ⚙️ Processing...
+ai-buttons-cancelled = ✅ Action cancelled
+ai-buttons-unknown-action = ❌ Unknown action: {$action}
+ai-buttons-error = ❌ An error occurred
+
 # Success
 success-action-completed = ✅ Action completed successfully!
 success-saved = ✅ Saved!

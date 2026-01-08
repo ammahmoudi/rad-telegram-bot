@@ -316,6 +316,18 @@ errors-rate-limit-wait = • یه لحظه صبر کنید و دوباره ام�
 errors-rate-limit-message-saved = • پیام شما ذخیره شد
 errors-rate-limit-note = معمولاً این محدودیت ظرف 30-60 ثانیه برطرف می‌شه
 
+# Button callback messages  
+button-callback-invalid-button-data = ❌ داده دکمه نامعتبر است
+button-callback-failed-to-process = ❌ خطا در پردازش دکمه
+
+# AI button messages
+ai-buttons-invalid-data = ❌ داده دکمه نامعتبر است
+ai-buttons-not-for-you = ❌ این دکمه برای شما نیست
+ai-buttons-processing = ⚙️ در حال پردازش...
+ai-buttons-cancelled = ✅ عملیات لغو شد
+ai-buttons-unknown-action = ❌ عملیات ناشناخته: {$action}
+ai-buttons-error = ❌ خطایی رخ داد
+
 # Success
 success-action-completed = ✅ عملیات با موفقیت انجام شد!
 success-saved = ✅ ذخیره شد!

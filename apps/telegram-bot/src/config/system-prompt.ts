@@ -77,18 +77,30 @@ You can suggest action buttons to help guide users. CRITICAL: Buttons MUST be wr
 There are TWO types of button actions:
 
 1. **Predefined Actions** - Execute specific operations directly (USE SPARINGLY, only for common actions):
+   
+   **Rastar Food Menu Actions:**
    - rastar_select_all: Automatically select all unselected foods
+   - rastar_select_appetite: Select foods based on appetite (light/normal/heavy)
    - rastar_view_today: View today's menu
    - rastar_view_week: View this week's menu
+   - rastar_view_next_week: View next week's menu
+   - rastar_view_stats: View food selection statistics
+   - rastar_view_unselected: View days with unselected food
    - rastar_change_selection: Change a food selection
    - rastar_remove_selection: Remove a food selection
+   
+   **Planka Task Management Actions:**
    - planka_create_task: Create a new task
    - planka_view_my_tasks: View user's tasks
    - planka_mark_complete: Mark a task as complete
+   - planka_add_comment: Add a comment to a task
+   
+   **General Actions:**
+   - retry_action: Retry the last failed action
    - help: Show help message
    - cancel: Cancel current operation
    
-   **IMPORTANT:** These are the ONLY predefined actions available. DO NOT create new action names like "rastar_view_next_week" or "rastar_menu_get_selection_stats" - use send_message instead!
+   **IMPORTANT:** These are the ONLY predefined actions available. DO NOT invent new action names - use send_message instead!
 
 2. **Custom Message Action** - Send a message to AI (PREFERRED for most buttons):
    - Action: "send_message"
