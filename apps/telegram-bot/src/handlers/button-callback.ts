@@ -57,26 +57,26 @@ export async function handleButtonCallback(ctx: BotContext) {
   // Planka quick action buttons - simulate user message to AI
   if (callbackData === 'planka_list_boards') {
     await ctx.answerCallbackQuery();
-    const { handleMessageWithAi } = await import('./message.js');
+    const { handleAiMessage } = await import('./ai-message.js');
     // Create a message context as if user typed this
     const simulatedCtx = { ...ctx, message: { ...ctx.message, text: 'Show me my Planka boards' } };
-    await handleMessageWithAi(simulatedCtx as BotContext);
+    await handleAiMessage(simulatedCtx as BotContext);
     return;
   }
 
   if (callbackData === 'planka_delayed_tasks') {
     await ctx.answerCallbackQuery();
-    const { handleMessageWithAi } = await import('./message.js');
+    const { handleAiMessage } = await import('./ai-message.js');
     const simulatedCtx = { ...ctx, message: { ...ctx.message, text: 'Show me my delayed Planka tasks' } };
-    await handleMessageWithAi(simulatedCtx as BotContext);
+    await handleAiMessage(simulatedCtx as BotContext);
     return;
   }
 
   if (callbackData === 'planka_create_card') {
     await ctx.answerCallbackQuery();
-    const { handleMessageWithAi } = await import('./message.js');
+    const { handleAiMessage } = await import('./ai-message.js');
     const simulatedCtx = { ...ctx, message: { ...ctx.message, text: 'Create a new Planka card' } };
-    await handleMessageWithAi(simulatedCtx as BotContext);
+    await handleAiMessage(simulatedCtx as BotContext);
     return;
   }
 
@@ -106,12 +106,12 @@ export async function handleButtonCallback(ctx: BotContext) {
     const newLang = callbackData === 'lang_fa' ? 'fa' : 'en';
     const { setUserLanguage } = await import('@rad/shared');
     const { t } = await import('../utils/i18n-helper.js');
-    const { syncCommandsForUser } = await import('../plugins/command-sync.js');
+    const { clearCommandCache } = await import('../middleware/sync-commands.js');
     
-    const telegramUserId = ctx.from?.id?.toString();
+    const telegramUserId = ctx.from?.id;
     if (telegramUserId) {
-      await setUserLanguage(telegramUserId, newLang);
-      await syncCommandsForUser(ctx.api, telegramUserId, newLang);
+      await setUserLanguage(String(telegramUserId), newLang);
+      clearCommandCache(telegramUserId);
       
       await ctx.editMessageText(
         t(newLang, 'settings-language-changed'),
@@ -145,25 +145,25 @@ export async function handleButtonCallback(ctx: BotContext) {
   // Rastar quick action buttons - simulate user message to AI
   if (callbackData === 'rastar_today_menu') {
     await ctx.answerCallbackQuery();
-    const { handleMessageWithAi } = await import('./message.js');
+    const { handleAiMessage } = await import('./ai-message.js');
     const simulatedCtx = { ...ctx, message: { ...ctx.message, text: "What's today's menu?" } };
-    await handleMessageWithAi(simulatedCtx as BotContext);
+    await handleAiMessage(simulatedCtx as BotContext);
     return;
   }
 
   if (callbackData === 'rastar_unselected_days') {
     await ctx.answerCallbackQuery();
-    const { handleMessageWithAi } = await import('./message.js');
+    const { handleAiMessage } = await import('./ai-message.js');
     const simulatedCtx = { ...ctx, message: { ...ctx.message, text: 'Show me unselected days' } };
-    await handleMessageWithAi(simulatedCtx as BotContext);
+    await handleAiMessage(simulatedCtx as BotContext);
     return;
   }
 
   if (callbackData === 'rastar_week_menu') {
     await ctx.answerCallbackQuery();
-    const { handleMessageWithAi } = await import('./message.js');
+    const { handleAiMessage } = await import('./ai-message.js');
     const simulatedCtx = { ...ctx, message: { ...ctx.message, text: "What's this week's menu?" } };
-    await handleMessageWithAi(simulatedCtx as BotContext);
+    await handleAiMessage(simulatedCtx as BotContext);
     return;
   }
 
