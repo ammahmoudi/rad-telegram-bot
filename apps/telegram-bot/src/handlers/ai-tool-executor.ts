@@ -194,7 +194,7 @@ export async function executeAiTools(
           role: 'tool',
           content: toolResult,
           toolCallId: toolCall.id,
-          name: toolCall.name,
+          toolName: toolCall.name,
         }];
         await addMessage(sessionId, 'user', toolResult, undefined, toolCall.name, undefined, toolCall.id);
         trimmedHistory.push(...userMessages);
