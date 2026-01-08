@@ -79,7 +79,7 @@ export async function handleButtonCallback(ctx: BotContext) {
   if (callbackData === 'settings_language') {
     await ctx.answerCallbackQuery();
     const { getLanguageKeyboard } = await import('./keyboards.js');
-    const { t } = await import('../utils/i18n.js');
+    const { t } = await import('../utils/i18n-helper.js');
     const language = ctx.from?.language_code === 'fa' ? 'fa' : 'en';
     await ctx.editMessageText(
       t(language, 'settings-select-language'),
@@ -90,7 +90,7 @@ export async function handleButtonCallback(ctx: BotContext) {
 
   if (callbackData === 'settings_back') {
     await ctx.answerCallbackQuery();
-    const { handleSettingsCommand } = await import('./commands/index.js');
+    const { handleSettingsCommand } = await import('./settings.js');
     await handleSettingsCommand(ctx);
     return;
   }
@@ -99,9 +99,9 @@ export async function handleButtonCallback(ctx: BotContext) {
   if (callbackData === 'lang_fa' || callbackData === 'lang_en') {
     await ctx.answerCallbackQuery();
     const newLang = callbackData === 'lang_fa' ? 'fa' : 'en';
-    const { setUserLanguage } = await import('../utils/language-manager.js');
-    const { t } = await import('../utils/i18n.js');
-    const { syncCommandsForUser } = await import('../utils/sync-commands.js');
+    const { setUserLanguage } = await import('@rad/shared');
+    const { t } = await import('../utils/i18n-helper.js');
+    const { syncCommandsForUser } = await import('../plugins/command-sync.js');
     
     const telegramUserId = ctx.from?.id?.toString();
     if (telegramUserId) {
