@@ -5,7 +5,7 @@ import { handleDailyReportsTool } from './daily-reports.tools.js';
 import { handleCardsFilterTool } from './cards-filter.tools.js';
 import { handleAdvancedSearchTool } from './advanced-search.tools.js';
 import { handleActivityFeedTool } from './activity-feed.tools.js';
-import { requireAuth, text as textHelper } from './helpers.js';
+import { requireAuth, text as textHelper, sanitizeObject } from './helpers.js';
 
 type ToolResponse = {
   content: Array<{ type: 'text'; text: string }>;
@@ -22,7 +22,7 @@ export async function handleToolCall(request: { params: { name: string; argument
     // Cards Filter tool
     if (name === 'planka_filter_cards') {
       const result = await handleCardsFilterTool(auth, name, args);
-      return textHelper(JSON.stringify(result, null, 2));
+      return textHelper(JSON.stringify(sanitizeObject(result), null, 2));
     }
 
     // Advanced Search tools
@@ -32,7 +32,7 @@ export async function handleToolCall(request: { params: { name: string; argument
         name === 'planka_search_cards_advanced' ||
         name === 'planka_global_search_advanced') {
       const result = await handleAdvancedSearchTool(auth, name, args);
-      return textHelper(JSON.stringify(result, null, 2));
+      return textHelper(JSON.stringify(sanitizeObject(result), null, 2));
     }
 
     // Activity Feed tools
@@ -40,7 +40,7 @@ export async function handleToolCall(request: { params: { name: string; argument
         name === 'planka_get_system_history' ||
         name === 'planka_get_activity_feed') {
       const result = await handleActivityFeedTool(auth, name, args);
-      return textHelper(JSON.stringify(result, null, 2));
+      return textHelper(JSON.stringify(sanitizeObject(result), null, 2));
     }
 
     // User Activity tools
@@ -48,14 +48,14 @@ export async function handleToolCall(request: { params: { name: string; argument
         name === 'planka_get_user_activity_summary' ||
         name === 'planka_get_incomplete_tasks') {
       const result = await handleUserActivityTool(auth, name, args);
-      return textHelper(JSON.stringify(result, null, 2));
+      return textHelper(JSON.stringify(sanitizeObject(result), null, 2));
     }
 
     // Project Status tools
     if (name === 'planka_get_project_status' || 
         name === 'planka_get_board_status') {
       const result = await handleProjectStatusTool(auth, name, args);
-      return textHelper(JSON.stringify(result, null, 2));
+      return textHelper(JSON.stringify(sanitizeObject(result), null, 2));
     }
 
     // Daily Reports tools
@@ -64,7 +64,7 @@ export async function handleToolCall(request: { params: { name: string; argument
         name === 'planka_get_missing_daily_reports' ||
         name === 'planka_create_daily_report_card') {
       const result = await handleDailyReportsTool(auth, name, args);
-      return textHelper(JSON.stringify(result, null, 2));
+      return textHelper(JSON.stringify(sanitizeObject(result), null, 2));
     }
 
     throw new Error(`Unknown tool: ${name}`);
