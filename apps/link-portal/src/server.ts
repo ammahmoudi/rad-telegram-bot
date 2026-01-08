@@ -1,14 +1,16 @@
-import dotenv from 'dotenv';
-
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
-
-// Load .env.local first (for local development), then .env (for Docker)
-// .env.local takes precedence if it exists
-dotenv.config({ path: path.join(repoRoot, '.env.local') });
-dotenv.config({ path: path.join(repoRoot, '.env') });
+// Only load .env files in development
+if (process.env.NODE_ENV !== 'production') {
+  const { default: dotenv } = await import('dotenv');
+  const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
+  
+  // Load .env.local first (for local development), then .env (for Docker)
+  // .env.local takes precedence if it exists
+  dotenv.config({ path: path.join(repoRoot, '.env.local') });
+  dotenv.config({ path: path.join(repoRoot, '.env') });
+}
 
 import express from 'express';
 
