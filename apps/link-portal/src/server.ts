@@ -63,20 +63,7 @@ app.get('/health', (_req, res) => {
 
 app.get('/link/planka', async (req, res) => {
   const state = typeof req.query.state === 'string' ? req.query.state : '';
-  
-  // Notify user they're on the page (without consuming the state)
-  if (state) {
-    const linkInfo = await peekLinkState(state);
-    if (linkInfo) {
-      const language = await getUserLanguage(linkInfo.telegramUserId);
-      await sendTelegramMessage(
-        linkInfo.telegramUserId,
-        `👀 <b>${t(language, 'notifications.link_opened.title')}</b>\n\n` +
-        t(language, 'notifications.link_opened.planka_message'),
-        { parse_mode: 'HTML' }
-      );
-    }
-  }
+  // NOTE: Temporarily disabled the "link opened" Telegram message to avoid noisy notifications.
   
   if (!state) {
     res.status(400).send(`<!doctype html>
@@ -714,20 +701,7 @@ app.post('/link/planka', async (req, res) => {
 
 app.get('/link/rastar', async (req, res) => {
   const state = typeof req.query.state === 'string' ? req.query.state : '';
-  
-  // Notify user they're on the page (without consuming the state)
-  if (state) {
-    const linkInfo = await peekLinkState(state);
-    if (linkInfo) {
-      const language = await getUserLanguage(linkInfo.telegramUserId);
-      await sendTelegramMessage(
-        linkInfo.telegramUserId,
-        `👀 <b>${t(language, 'notifications.link_opened.title')}</b>\n\n` +
-        t(language, 'notifications.link_opened.rastar_message'),
-        { parse_mode: 'HTML' }
-      );
-    }
-  }
+  // NOTE: Temporarily disabled the "link opened" Telegram message to avoid noisy notifications.
   
   if (!state) {
     res.status(400).send(renderErrorPage(
