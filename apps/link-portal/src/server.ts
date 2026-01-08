@@ -42,7 +42,22 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 app.use('/public', express.static(path.join(__dirname, '../public')));
 
+// Add logging middleware
+app.use((req, _res, next) => {
+  console.log(`[link-portal] ${req.method} ${req.url}`);
+  next();
+});
+
+// Root route
+app.get('/', (_req, res) => {
+  res.status(200).send('Link Portal is running');
+});
+
 app.get('/healthz', (_req, res) => {
+  res.status(200).send('ok');
+});
+
+app.get('/health', (_req, res) => {
   res.status(200).send('ok');
 });
 
