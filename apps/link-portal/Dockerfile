@@ -54,6 +54,10 @@ COPY --chown=nodejs:nodejs packages/shared/package*.json ./packages/shared/
 # Install production dependencies only
 RUN npm ci --workspaces
 
+# Copy generated Prisma client from builder (must be after npm ci)
+COPY --from=builder --chown=nodejs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder --chown=nodejs:nodejs /app/node_modules/@prisma/client ./node_modules/@prisma/client
+
 # Copy built artifacts from builder
 COPY --from=builder --chown=nodejs:nodejs /app/apps/link-portal/dist ./apps/link-portal/dist
 COPY --from=builder --chown=nodejs:nodejs /app/packages/shared/dist ./packages/shared/dist
