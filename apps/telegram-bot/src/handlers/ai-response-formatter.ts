@@ -9,6 +9,35 @@ import { splitHtmlSafely } from '../utils/html-splitter.js';
 import { getMainMenuKeyboard, getThreadQuickActionsKeyboard } from './keyboards.js';
 import { getUserLanguage, getPlankaToken, getRastarToken } from '@rad/shared';
 import { InlineKeyboard } from 'grammy';
+import crypto from 'node:crypto';
+
+function registerAiButtonMessage(ctx: BotContext, message: string): string {
+  if (!ctx.session) return '';
+
+  const now = Date.now();
+  const key = `${now.toString(36)}_${crypto.randomBytes(4).toString('base64url')}`;
+
+  const store = (ctx.session.aiButtonMessages ??= {});
+  store[key] = { message, ts: now };
+
+  // Prune: drop entries older than 24h and keep at most 50
+  const cutoff = now - 24 * 60 * 60 * 1000;
+  for (const [k, v] of Object.entries(store)) {
+    if (!v || typeof v.ts !== 'number' || v.ts < cutoff) {
+      delete store[k];
+    }
+  }
+
+  const entries = Object.entries(store);
+  if (entries.length > 50) {
+    entries.sort((a, b) => (a[1]?.ts ?? 0) - (b[1]?.ts ?? 0));
+    for (const [k] of entries.slice(0, entries.length - 50)) {
+      delete store[k];
+    }
+  }
+
+  return key;
+}
 
 /**
  * Format and send final AI response with optional buttons
@@ -26,7 +55,11 @@ export async function sendFinalResponse(
   
   // Parse AI-suggested buttons from response
   const { messageText, buttons } = parseAiButtons(finalContent);
-  const keyboard = buttons.length > 0 ? createButtonKeyboard(buttons, telegramUserId) : undefined;
+  const keyboard = buttons.length > 0
+    ? createButtonKeyboard(buttons, telegramUserId, {
+        registerSendMessage: (message) => registerAiButtonMessage(ctx, message),
+      })
+    : undefined;
   
   console.log('[ai-response] Parsed buttons:', buttons.length);
   

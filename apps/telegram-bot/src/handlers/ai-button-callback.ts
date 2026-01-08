@@ -24,7 +24,7 @@ export async function handleAiButtonCallback(ctx: BotContext) {
     return;
   }
 
-  const { action, data, userId, message } = parsed;
+  const { action, data, userId, message, messageKey } = parsed;
   
   // Verify the button belongs to this user
   if (telegramUserId !== userId) {
@@ -32,7 +32,7 @@ export async function handleAiButtonCallback(ctx: BotContext) {
     return;
   }
 
-  console.log('[ai-button-callback]', { action, data, userId, message });
+  console.log('[ai-button-callback]', { action, data, userId, message, messageKey });
 
   try {
     // Show processing indicator
@@ -41,7 +41,7 @@ export async function handleAiButtonCallback(ctx: BotContext) {
     // Handle different button actions
     switch (action) {
       case BUTTON_ACTIONS.SEND_MESSAGE:
-        await handleSendMessage(ctx, message);
+        await handleSendMessage(ctx, resolveSendMessage(ctx, message, messageKey));
         break;
 
       case BUTTON_ACTIONS.SELECT_ALL_FOODS:
@@ -180,6 +180,16 @@ async function handleSendMessage(
   };
 
   await handleAiMessage(fakeCtx as any);
+}
+
+function resolveSendMessage(
+  ctx: BotContext,
+  message: string | undefined,
+  messageKey: string | undefined
+): string | undefined {
+  if (message) return message;
+  if (!messageKey) return undefined;
+  return ctx.session?.aiButtonMessages?.[messageKey]?.message;
 }
 
 /**
@@ -323,7 +333,7 @@ async function handleRetryAction(
   telegramUserId: string,
   data: Record<string, any>
 ) {
-  const originalMessage = data.original_message;
+  const originalMessage = data.original_message || ctx.session?.lastUserMessage;
 
   if (!originalMessage) {
     await ctx.reply(ctx.t('ai-buttons-action-not-found'));

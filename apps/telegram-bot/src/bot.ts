@@ -40,6 +40,10 @@ export interface SessionData {
   // AI conversation state
   conversationId?: string;
   maxToolCalls?: number;
+
+  // AI button helpers
+  lastUserMessage?: string;
+  aiButtonMessages?: Record<string, { message: string; ts: number }>;
   
   // Feature states
   plankaLinked?: boolean;

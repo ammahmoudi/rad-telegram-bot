@@ -141,6 +141,11 @@ export async function handleAiMessage(ctx: BotContext): Promise<void> {
     const userMessage = replyContext 
       ? `[Replying to: "${replyContext}"]\n\n${text}`
       : text;
+
+    // Persist last message for retry_action and other UX helpers
+    if (ctx.session) {
+      ctx.session.lastUserMessage = userMessage;
+    }
     
     // Add user message to database with metadata
     await addMessage(

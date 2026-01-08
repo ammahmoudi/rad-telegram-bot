@@ -155,7 +155,14 @@ export function parseAiButtons(responseText: string): ParsedAiResponse {
  */
 export function createButtonKeyboard(
   buttons: AiButton[],
-  telegramUserId: string
+  telegramUserId: string,
+  options?: {
+    /**
+     * Optional callback to register a full send_message payload and return a short key.
+     * This is used to keep Telegram callback_data under 64 bytes.
+     */
+    registerSendMessage?: (message: string) => string;
+  }
 ): InlineKeyboard {
   const keyboard = new InlineKeyboard();
 
@@ -163,17 +170,26 @@ export function createButtonKeyboard(
     const button = buttons[i];
     
     // Create minimal callback data (max 64 bytes in Telegram)
-    // For send_message action, use ultra-short format
     let callbackData: string;
     if (button.action === 'send_message' && button.message) {
-      // Ultra-compact: just action type and a short message key
-      // Store first 10 chars only (enough to identify intent)
-      const shortMsg = button.message.substring(0, 10);
-      callbackData = JSON.stringify({
-        a: 'sm', // 'sm' = send_message
-        u: telegramUserId,
-        m: shortMsg,
-      });
+      const messageKey = options?.registerSendMessage?.(button.message);
+
+      // Preferred: store a short key only; full message is kept in session.
+      if (messageKey) {
+        callbackData = JSON.stringify({
+          a: 'sm', // 'sm' = send_message
+          u: telegramUserId,
+          k: messageKey,
+        });
+      } else {
+        // Backward/standalone fallback: store first 10 chars only.
+        const shortMsg = button.message.substring(0, 10);
+        callbackData = JSON.stringify({
+          a: 'sm',
+          u: telegramUserId,
+          m: shortMsg,
+        });
+      }
     } else {
       callbackData = JSON.stringify({
         a: button.action,
@@ -210,6 +226,7 @@ export function parseButtonCallback(callbackData: string): {
   data: Record<string, any>;
   userId: string;
   message?: string;
+  messageKey?: string;
 } | null {
   try {
     const parsed = JSON.parse(callbackData);
@@ -218,6 +235,7 @@ export function parseButtonCallback(callbackData: string): {
       data: parsed.d || {},
       userId: parsed.u,
       message: parsed.m,
+      messageKey: parsed.k,
     };
   } catch (error) {
     console.error('[parseButtonCallback] Failed to parse callback data:', error);

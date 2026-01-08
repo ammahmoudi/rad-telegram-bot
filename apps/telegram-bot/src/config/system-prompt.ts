@@ -99,6 +99,8 @@ There are TWO types of button actions:
    - retry_action: Retry the last failed action
    - help: Show help message
    - cancel: Cancel current operation
+
+  **Note:** For retry_action you DO NOT need to include any extra data.
    
    **IMPORTANT:** These are the ONLY predefined actions available. DO NOT invent new action names - use send_message instead!
 
