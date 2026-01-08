@@ -1217,7 +1217,10 @@ async function sendTelegramMessage(
   options?: { parse_mode?: 'HTML' | 'Markdown'; reply_markup?: any }
 ): Promise<void> {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
-  if (!botToken) return;
+  if (!botToken) {
+    console.error('[link-portal] Cannot send Telegram message: TELEGRAM_BOT_TOKEN not set');
+    return;
+  }
 
   try {
     const body: any = {
@@ -1230,14 +1233,23 @@ async function sendTelegramMessage(
       body.reply_markup = options.reply_markup;
     }
     
-    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+    console.log(`[link-portal] Sending Telegram message to ${chatId}`);
+    const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
     });
-  } catch {
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[link-portal] Failed to send Telegram message:', response.status, errorText);
+    } else {
+      console.log('[link-portal] Telegram message sent successfully');
+    }
+  } catch (error) {
+    console.error('[link-portal] Error sending Telegram message:', error);
     // Ignore: linking should succeed even if notification fails.
   }
 }
