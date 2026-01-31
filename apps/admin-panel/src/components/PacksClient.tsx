@@ -32,7 +32,7 @@ export function PacksClient({ packs }: PacksClientProps) {
         </p>
         <Link
           href="/packs/new"
-          className="inline-block px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-medium rounded-lg transition-all"
+          className="inline-block px-6 py-3 bg-linear-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-medium rounded-lg transition-all"
         >
           {t.packs.createNew}
         </Link>

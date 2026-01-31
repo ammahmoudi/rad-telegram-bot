@@ -444,7 +444,7 @@ export default function ToolLogsClient() {
                                 <div className="font-semibold text-blue-400 mb-1">
                                   ↩️ Replying to {repliedMessage.role === 'user' ? 'User' : 'Assistant'}:
                                 </div>
-                                <div className="text-muted-foreground line-clamp-2 break-words">
+                                <div className="text-muted-foreground line-clamp-2 wrap-break-word">
                                   {repliedMessage.content ? parseMessageContent(repliedMessage.content).text : '[No content]'}
                                 </div>
                               </div>
@@ -474,7 +474,7 @@ export default function ToolLogsClient() {
                               
                               {text ? (
                                 <div 
-                                  className="whitespace-pre-wrap break-words prose prose-sm max-w-none dark:prose-invert [&>*]:my-1"
+                                  className="whitespace-pre-wrap wrap-break-word prose prose-sm max-w-none dark:prose-invert *:my-1"
                                   dangerouslySetInnerHTML={{ __html: text }}
                                 />
                               ) : msg.toolCalls.length > 0 ? (

@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { getSystemConfig } from '@rad/shared';
 import AdminLayout from './AdminLayout';
 import { SettingsPageHeader } from '@/components/SettingsPageHeader';
-import { SettingsForm } from '@/components/SettingsForm';
+import { SettingsForm } from '@/components/SettingsFormTabbed';
 
 export default async function DashboardPage() {
   const session = await auth();

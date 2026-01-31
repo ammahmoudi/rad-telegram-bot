@@ -118,7 +118,7 @@ export function UserDetailClient({
           {t.users.backToUsers}
         </Link>
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+          <div className="w-16 h-16 rounded-full bg-linear-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
             <span className="text-white font-bold text-2xl">
               {(user.firstName || user.username || 'U')[0].toUpperCase()}
             </span>
@@ -143,7 +143,7 @@ export function UserDetailClient({
           <div className="space-y-3">
             <div>
               <p className="text-sm text-slate-400">{t.users.role}</p>
-              <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold text-white bg-gradient-to-r ${roleInfo.color}`}>
+              <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold text-white bg-linear-to-r ${roleInfo.color}`}>
                 {t.users.roles[user.role as keyof typeof t.users.roles] || roleInfo.label}
               </span>
             </div>
@@ -253,7 +253,7 @@ export function UserDetailClient({
           <button
             type="submit"
             disabled={loading}
-            className="w-full px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full px-4 py-2 bg-linear-to-r from-blue-600 to-blue-700 text-white font-medium rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {loading ? (
               <>

@@ -40,18 +40,54 @@ export function SettingsForm({ config, hasApiKey, usingEnvApiKey, envPlankaUrl, 
   const [categoriesLoading, setCategoriesLoading] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(config.PLANKA_DAILY_REPORT_CATEGORY_ID || envDailyReportCategoryId || '');
+  const [plankaConnected, setPlankaConnected] = useState(false);
+  const [plankaStatusLoading, setPlankaStatusLoading] = useState(false);
+  const [plankaStatusError, setPlankaStatusError] = useState<string | null>(null);
 
-  // Fetch categories when authenticated
+  // Check Planka connection status on mount
+  useEffect(() => {
+    checkPlankaStatus();
+  }, []);
+
+  // Check Planka status when token changes
   useEffect(() => {
     if (config.PLANKA_AUTH_TOKEN) {
-      fetchCategories();
+      checkPlankaStatus();
     }
   }, [config.PLANKA_AUTH_TOKEN]);
+
+  // Fetch categories when actually connected
+  useEffect(() => {
+    if (config.PLANKA_AUTH_TOKEN && plankaConnected) {
+      fetchCategories();
+    }
+  }, [config.PLANKA_AUTH_TOKEN, plankaConnected]);
 
   // Update selected category when config changes
   useEffect(() => {
     setSelectedCategory(config.PLANKA_DAILY_REPORT_CATEGORY_ID || envDailyReportCategoryId || '');
   }, [config.PLANKA_DAILY_REPORT_CATEGORY_ID, envDailyReportCategoryId]);
+
+  const checkPlankaStatus = async () => {
+    setPlankaStatusLoading(true);
+    try {
+      const response = await fetch('/api/planka-status');
+      const data = await response.json();
+      if (response.ok && data.connected) {
+        setPlankaConnected(true);
+        setPlankaStatusError(null);
+      } else {
+        setPlankaConnected(false);
+        setPlankaStatusError(data.reason || 'Not connected');
+      }
+    } catch (error) {
+      setPlankaConnected(false);
+      setPlankaStatusError('Failed to check connection');
+      console.error('Failed to check Planka status:', error);
+    } finally {
+      setPlankaStatusLoading(false);
+    }
+  };
 
   const fetchCategories = async () => {
     setCategoriesLoading(true);
@@ -251,7 +287,7 @@ export function SettingsForm({ config, hasApiKey, usingEnvApiKey, envPlankaUrl, 
                 <button
                   type="submit"
                   disabled={loginLoading}
-                  className="flex-1 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 px-4 py-2.5 bg-linear-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loginLoading ? '🔄 Logging in...' : '🔐 Login'}
                 </button>
@@ -268,26 +304,37 @@ export function SettingsForm({ config, hasApiKey, usingEnvApiKey, envPlankaUrl, 
         </p>
       </div>
 
-      {/* System Configuration Section */}
+      {/* System Configuration Section - Reorganized */}
       <div className="bg-white/10 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20">
         <div className="p-6 border-b border-white/20">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
+            <div className="w-10 h-10 bg-linear-to-br from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
               <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-white">{t.settings.sectionTitle}</h2>
-              <p className="text-slate-400 text-sm">{t.settings.subtitle}</p>
+              <h2 className="text-xl font-semibold text-white">System Settings</h2>
+              <p className="text-slate-400 text-sm">Configure integrations and AI behavior</p>
             </div>
           </div>
         </div>
-        <div className="p-6">
-          <form onSubmit={handleSaveSettings} className="space-y-6">
-            {/* Planka Base URL */}
-            <div className="space-y-2">
+        <div className="p-6 space-y-8">
+          <form onSubmit={handleSaveSettings} className="space-y-8">
+            {/* ============= PLANKA INTEGRATION ============= */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 pb-4 border-b border-white/20">
+                <div className="w-8 h-8 bg-linear-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-white">Planka Integration</h3>
+              </div>
+
+              {/* Planka Base URL */}
+              <div className="space-y-2">
               <label htmlFor="plankaBaseUrl" className="text-sm font-medium text-white block" dir={dir}>
                 {t.settings.plankaUrl}
                 {config.PLANKA_BASE_URL === 'Not set' && envPlankaUrl && (
@@ -315,24 +362,36 @@ export function SettingsForm({ config, hasApiKey, usingEnvApiKey, envPlankaUrl, 
           <div className="p-4 bg-white/5 rounded-lg border border-emerald-500/30 mt-6">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-medium text-white">
-                  Planka Authentication
-                  {config.PLANKA_AUTH_TOKEN && (
-                    <span className="ml-2 text-xs text-green-400">
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="text-sm font-medium text-white">
+                    Planka Authentication
+                  </h3>
+                  {plankaStatusLoading ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-500/20 text-blue-300 text-xs font-medium rounded-full border border-blue-500/30">
+                      🔄 Checking...
+                    </span>
+                  ) : plankaConnected ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-500/20 text-green-300 text-xs font-medium rounded-full border border-green-500/30">
                       ✓ Connected
                     </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-500/20 text-red-300 text-xs font-medium rounded-full border border-red-500/30" title={plankaStatusError || 'Not connected'}>
+                      ✗ Disconnected
+                    </span>
                   )}
-                </h3>
-                <p className="text-xs text-slate-400 mt-1">
-                  {config.PLANKA_AUTH_TOKEN 
-                    ? 'You are authenticated. Click to re-login if needed.'
-                    : 'Login to enable project category fetching.'}
+                </div>
+                <p className="text-xs text-slate-400">
+                  {plankaStatusLoading
+                    ? 'Verifying connection...'
+                    : plankaConnected
+                    ? 'Connected to Planka. Click to re-login if needed.'
+                    : `${plankaStatusError || 'Not connected'}. Login to enable project category fetching.`}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowLoginModal(true)}
-                className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white text-sm font-medium rounded-lg transition-all shadow-lg hover:shadow-xl"
+                className="px-4 py-2 bg-linear-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white text-sm font-medium rounded-lg transition-all shadow-lg hover:shadow-xl"
               >
                 🔐 Login
               </button>
@@ -349,55 +408,60 @@ export function SettingsForm({ config, hasApiKey, usingEnvApiKey, envPlankaUrl, 
                   </span>
                 )}
               </label>
-              {config.PLANKA_AUTH_TOKEN ? (
-                <div className="space-y-2">
-                  <select
-                    id="plankaDailyReportCategoryId"
-                    name="plankaDailyReportCategoryId"
-                    value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="w-full h-10 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    dir="ltr"
-                    disabled={categoriesLoading}
-                  >
-                    <option value="">-- No category (filter by project name) --</option>
-                    {categoriesLoading ? (
-                      <option disabled>Loading categories...</option>
-                    ) : (
-                      categories.map((cat) => (
-                        <option key={cat.id} value={cat.id}>
-                          {cat.name} (ID: {cat.id})
-                        </option>
-                      ))
-                    )}
-                  </select>
-                  {categories.length > 0 && (
-                    <p className="text-xs text-slate-400" dir={dir}>
-                      {categories.length} categories available. Select one to filter daily report projects.
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <input
-                    id="plankaDailyReportCategoryId"
-                    type="text"
-                    name="plankaDailyReportCategoryId"
-                    defaultValue={config.PLANKA_DAILY_REPORT_CATEGORY_ID || envDailyReportCategoryId || ''}
-                    placeholder="e.g., 1637176448517146026"
-                    className="w-full h-10 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    dir="ltr"
-                    disabled
-                  />
-                  <p className="text-xs text-yellow-400" dir={dir}>
-                    ⚠️ Please login to Planka above to select from available categories.
-                  </p>
-                </div>
+              <select
+                id="plankaDailyReportCategoryId"
+                name="plankaDailyReportCategoryId"
+                title="Select a Planka project category"
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-full h-10 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                dir="ltr"
+                disabled={!plankaConnected || categoriesLoading}
+              >
+                <option value="">-- No category (filter by project name) --</option>
+                {plankaConnected && categories.length === 0 && !categoriesLoading && (
+                  <option disabled>No categories available</option>
+                )}
+                {categoriesLoading && (
+                  <option disabled>Loading categories...</option>
+                )}
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name} (ID: {cat.id})
+                  </option>
+                ))}
+              </select>
+              {!plankaConnected && (
+                <p className="text-xs text-red-400" dir={dir}>
+                  ✗ Disabled: Please connect to Planka first to view available categories.
+                </p>
+              )}
+              {plankaConnected && categories.length > 0 && (
+                <p className="text-xs text-slate-400" dir={dir}>
+                  {categories.length} categories available. Select one to filter daily report projects.
+                </p>
+              )}
+              {plankaConnected && categories.length === 0 && !categoriesLoading && (
+                <p className="text-xs text-amber-400" dir={dir}>
+                  ⚠️ No categories found. You may need to create some in Planka first.
+                </p>
               )}
               <p className="text-xs text-slate-400" dir={dir}>
                 If set, daily report tools will filter projects by this category instead of by name pattern.
               </p>
             </div>
+            </div>
+
+            {/* ============= AI MODEL & API ============= */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 pb-4 border-b border-white/20">
+                <div className="w-8 h-8 bg-linear-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5.36 5.36l-.707.707M5.36 5.36l-.707-.707m12.728 0l-.707.707" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-white">AI Model & API</h3>
+              </div>
 
             {/* OpenRouter API Key */}
             <div className="space-y-2">
@@ -524,7 +588,7 @@ export function SettingsForm({ config, hasApiKey, usingEnvApiKey, envPlankaUrl, 
             {/* Debug & Monitoring Settings */}
             <div className="pt-4 border-t border-white/10 space-y-4">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-linear-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
                   <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
@@ -592,9 +656,20 @@ export function SettingsForm({ config, hasApiKey, usingEnvApiKey, envPlankaUrl, 
                 </div>
               </div>
             </div>
+            </div>
 
-            {/* Hardcoded Prompts Setting */}
-            <div className="pt-4 border-t border-white/10">
+            {/* ============= CHAT & CONVERSATION HISTORY ============= */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 pb-4 border-b border-white/20">
+                <div className="w-8 h-8 bg-linear-to-br from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-white">Chat & Conversation History</h3>
+              </div>
+
+              {/* Chat Mode Setting */}
               <div className="flex items-start gap-3" dir={dir}>
                 <input
                   id="useHardcodedPrompts"
@@ -621,6 +696,7 @@ export function SettingsForm({ config, hasApiKey, usingEnvApiKey, envPlankaUrl, 
               </label>
               <select
                 name="chatMode"
+                title="Select chat mode"
                 defaultValue={config.CHAT_MODE}
                 className="w-full h-10 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 dir="ltr"
@@ -638,7 +714,7 @@ export function SettingsForm({ config, hasApiKey, usingEnvApiKey, envPlankaUrl, 
             {/* Chat History Configuration */}
             <div className="pt-4 border-t border-white/10 space-y-4">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-linear-to-br from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center">
                   <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
@@ -717,7 +793,7 @@ export function SettingsForm({ config, hasApiKey, usingEnvApiKey, envPlankaUrl, 
               <button
                 type="submit"
                 disabled={saveLoading}
-                className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-2.5 bg-linear-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {saveLoading ? '💾 Saving...' : t.settings.saveSettings}
               </button>

@@ -119,7 +119,7 @@ export function UsersClient({ users, roleConfig, assignmentMap, plankaSet, rasta
                 <tr key={user.id} className="border-b border-white/10 hover:bg-white/5 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                      <div className="relative w-10 h-10 rounded-full overflow-hidden bg-linear-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
                         <span className="text-white font-bold text-sm">
                           {(user.firstName || user.username || 'U')[0].toUpperCase()}
                         </span>
@@ -137,7 +137,7 @@ export function UsersClient({ users, roleConfig, assignmentMap, plankaSet, rasta
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold text-white bg-gradient-to-r ${roleInfo.color}`}>
+                    <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold text-white bg-linear-to-r ${roleInfo.color}`}>
                       {t.users.roles[user.role as keyof typeof t.users.roles] || roleInfo.label}
                     </span>
                   </td>

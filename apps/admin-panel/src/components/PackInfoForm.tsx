@@ -48,6 +48,8 @@ export function PackInfoForm({ packId, defaultName, defaultDescription }: PackIn
         </label>
         <input
           type="text"
+          placeholder={t.packs.packNamePlaceholder || "Pack name"}
+          title="Pack name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           className="w-full px-4 py-2 border border-white/10 bg-white/5 rounded-lg text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
@@ -71,7 +73,7 @@ export function PackInfoForm({ packId, defaultName, defaultDescription }: PackIn
       <button
         type="submit"
         disabled={loading}
-        className="w-full px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        className="w-full px-4 py-2 bg-linear-to-r from-blue-600 to-blue-700 text-white font-medium rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
         {loading ? (
           <>

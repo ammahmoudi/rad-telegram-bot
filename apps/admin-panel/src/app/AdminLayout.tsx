@@ -17,7 +17,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   ];
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-gray-900 flex" dir={dir}>
+    <div className="min-h-screen bg-linear-to-br from-slate-900 via-slate-800 to-gray-900 flex" dir={dir}>
       {/* Sidebar - Sticky */}
       <aside className="w-64 bg-white/10 backdrop-blur-md border-r border-white/20 flex flex-col sticky top-0 h-screen">
         <div className="p-6 border-b border-white/20">

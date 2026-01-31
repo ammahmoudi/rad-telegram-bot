@@ -105,7 +105,7 @@ export function PackDetailClient({ pack, users, usersMap, messagesByType }: Pack
                       key={assignment.telegramUserId}
                       className="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/10"
                     >
-                      <div className="flex-shrink-0 w-10 h-10 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold">
+                      <div className="shrink-0 w-10 h-10 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold">
                         {user?.firstName?.[0] || '?'}
                       </div>
                       <div className="flex-1 min-w-0">

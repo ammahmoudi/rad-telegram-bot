@@ -14,8 +14,8 @@ export default async function NewPackPage() {
     <AdminLayout>
       <div className="p-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Create New Character Pack</h1>
-          <p className="text-gray-600">Define custom system prompts and welcome messages for your AI assistant</p>
+          <h1 className="text-3xl font-bold text-white mb-2">🎭 Create New Character Pack</h1>
+          <p className="text-slate-300">Define custom system prompts and welcome messages for your AI assistant</p>
         </div>
         
         <PackFormClient />
