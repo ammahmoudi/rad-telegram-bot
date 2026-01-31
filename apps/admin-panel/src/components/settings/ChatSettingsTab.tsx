@@ -1,5 +1,7 @@
 'use client';
 
+import { useLanguage } from '@/contexts/LanguageContext';
+
 interface ChatSettingsTabProps {
   config: {
     CHAT_MODE: string;
@@ -12,12 +14,13 @@ interface ChatSettingsTabProps {
 }
 
 export function ChatSettingsTab({ config, dir }: ChatSettingsTabProps) {
+  const { t } = useLanguage();
   return (
     <div className="space-y-6">
       {/* Chat Mode Setting */}
       <div className="space-y-2">
         <label htmlFor="chatMode" className="text-sm font-medium text-white block" dir={dir}>
-          Chat Mode
+          {t.settings.chat.modeLabel}
         </label>
         <select
           id="chatMode"
@@ -27,27 +30,27 @@ export function ChatSettingsTab({ config, dir }: ChatSettingsTabProps) {
           className="w-full h-10 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
           dir="ltr"
         >
-          <option value="thread">Thread Mode (Topics/Threads)</option>
-          <option value="simple">Simple Mode (Single Chat)</option>
+          <option value="thread">{t.settings.chat.modeThread}</option>
+          <option value="simple">{t.settings.chat.modeSimple}</option>
         </select>
         <p className="text-xs text-slate-400" dir={dir}>
-          <strong>Thread Mode (Default):</strong> Uses Telegram&apos;s threaded mode. Each conversation creates a new thread/topic. <code>/clear_chat</code> deletes the current thread.
+          <strong>{t.settings.chat.modeThreadTitle}</strong> {t.settings.chat.modeThreadHelp}
           <br />
-          <strong>Simple Mode:</strong> All chats in main private chat without threads. <code>/clear_chat</code> only clears AI history but keeps messages visible.
+          <strong>{t.settings.chat.modeSimpleTitle}</strong> {t.settings.chat.modeSimpleHelp}
         </p>
       </div>
 
       {/* Chat History Configuration */}
       <div className="space-y-4 p-4 bg-white/5 rounded-lg border border-white/10">
         <div>
-          <h4 className="text-sm font-semibold text-white mb-3">Conversation History Settings</h4>
-          <p className="text-xs text-slate-400 mb-4">Control how much conversation history is kept in memory</p>
+          <h4 className="text-sm font-semibold text-white mb-3">{t.settings.chat.historyTitle}</h4>
+          <p className="text-xs text-slate-400 mb-4">{t.settings.chat.historySubtitle}</p>
         </div>
 
         {/* History Mode */}
         <div className="space-y-2">
           <label htmlFor="chatHistoryMode" className="text-sm font-medium text-white block" dir={dir}>
-            History Mode
+            {t.settings.chat.historyModeLabel}
           </label>
           <select
             id="chatHistoryMode"
@@ -56,20 +59,20 @@ export function ChatSettingsTab({ config, dir }: ChatSettingsTabProps) {
             className="w-full h-10 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
             dir="ltr"
           >
-            <option value="message_count">Message Count (Simple & Predictable)</option>
-            <option value="token_size">Token Size (Better for AI Context)</option>
+            <option value="message_count">{t.settings.chat.historyModeMessageCount}</option>
+            <option value="token_size">{t.settings.chat.historyModeTokenSize}</option>
           </select>
           <p className="text-xs text-slate-400" dir={dir}>
-            <strong>Message Count:</strong> Keep last N messages (faster, simpler).
+            <strong>{t.settings.chat.historyModeMessageCountTitle}</strong> {t.settings.chat.historyModeMessageCountHelp}
             <br />
-            <strong>Token Size:</strong> Keep messages up to N tokens (~4 chars = 1 token).
+            <strong>{t.settings.chat.historyModeTokenSizeTitle}</strong> {t.settings.chat.historyModeTokenSizeHelp}
           </p>
         </div>
 
         {/* History Limit */}
         <div className="space-y-2">
           <label htmlFor="chatHistoryLimit" className="text-sm font-medium text-white block" dir={dir}>
-            History Limit
+            {t.settings.chat.historyLimitLabel}
           </label>
           <input
             id="chatHistoryLimit"
@@ -82,9 +85,9 @@ export function ChatSettingsTab({ config, dir }: ChatSettingsTabProps) {
             dir="ltr"
           />
           <p className="text-xs text-slate-400" dir={dir}>
-            Default: <strong>20</strong> for message_count mode, <strong>4000</strong> for token_size mode.
+            {t.settings.chat.historyLimitHelpLine1}
             <br />
-            Token size: 4000 tokens ≈ 16,000 characters ≈ 3,000 words.
+            {t.settings.chat.historyLimitHelpLine2}
           </p>
         </div>
 
@@ -99,12 +102,12 @@ export function ChatSettingsTab({ config, dir }: ChatSettingsTabProps) {
           />
           <div className="flex-1">
             <label htmlFor="chatRestoreToolResults" className="text-sm font-medium text-white block cursor-pointer">
-              🔧 Restore Tool Results from Database
+              {t.settings.chat.restoreToolResultsLabel}
             </label>
             <p className="text-xs text-slate-400 mt-1">
-              When enabled, tool outputs are restored from logs when loading history. This uses more context but provides richer memory.
+              {t.settings.chat.restoreToolResultsHelpLine1}
               <br />
-              <strong>Recommended:</strong> Keep disabled for better performance.
+              <strong>{t.settings.chat.restoreToolResultsRecommended}</strong> {t.settings.chat.restoreToolResultsHelpLine2}
             </p>
           </div>
         </div>
@@ -121,10 +124,10 @@ export function ChatSettingsTab({ config, dir }: ChatSettingsTabProps) {
         />
         <div className="flex-1">
           <label htmlFor="useHardcodedPrompts" className="text-sm font-medium text-white block cursor-pointer">
-            📝 Use Hardcoded Prompts
+            {t.settings.useHardcoded}
           </label>
           <p className="text-xs text-slate-400 mt-1">
-            When enabled, uses predefined AI system prompts instead of dynamic ones. Useful for consistent behavior.
+            {t.settings.useHardcodedHelp}
           </p>
         </div>
       </div>

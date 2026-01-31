@@ -1,5 +1,7 @@
 'use client';
 
+import { useLanguage } from '@/contexts/LanguageContext';
+
 interface DebugSettingsTabProps {
   config: {
     mcpProjectScanLimit: string;
@@ -12,15 +14,16 @@ interface DebugSettingsTabProps {
 }
 
 export function DebugSettingsTab({ config, dir }: DebugSettingsTabProps) {
+  const { t } = useLanguage();
   return (
     <div className="space-y-6">
       {/* MCP Settings */}
       <div className="space-y-4 p-4 bg-white/5 rounded-lg border border-white/10">
-        <h4 className="text-sm font-semibold text-white">MCP Project Scanning</h4>
+        <h4 className="text-sm font-semibold text-white">{t.settings.debug.mcpScanningTitle}</h4>
 
         <div className="space-y-2">
           <label htmlFor="mcpProjectScanLimit" className="text-sm font-medium text-white block" dir={dir}>
-            Project Scan Limit
+            {t.settings.projectScanLimit}
           </label>
           <input
             id="mcpProjectScanLimit"
@@ -33,13 +36,13 @@ export function DebugSettingsTab({ config, dir }: DebugSettingsTabProps) {
             dir="ltr"
           />
           <p className="text-xs text-slate-400" dir={dir}>
-            Limit number of projects scanned when listing all users (default: 5). Set to 0 for unlimited.
+            {t.settings.projectScanLimitHelp}
           </p>
         </div>
 
         <div className="space-y-2">
           <label htmlFor="mcpProjectScanDelay" className="text-sm font-medium text-white block" dir={dir}>
-            Project Scan Delay (ms)
+            {t.settings.projectScanDelay}
           </label>
           <input
             id="mcpProjectScanDelay"
@@ -52,7 +55,7 @@ export function DebugSettingsTab({ config, dir }: DebugSettingsTabProps) {
             dir="ltr"
           />
           <p className="text-xs text-slate-400" dir={dir}>
-            Delay between processing each project (default: 100ms). Set to 0 for no delay.
+            {t.settings.projectScanDelayHelp}
           </p>
         </div>
       </div>
@@ -68,10 +71,10 @@ export function DebugSettingsTab({ config, dir }: DebugSettingsTabProps) {
         />
         <div className="flex-1">
           <label htmlFor="mcpToolLogging" className="text-sm font-medium text-white block cursor-pointer">
-            🔍 Enable MCP Tool Call Logging
+            {t.settings.debug.mcpToolLoggingLabel}
           </label>
           <p className="text-xs text-slate-400 mt-1">
-            Logs all MCP tool calls (inputs/outputs) to database for debugging. Includes execution time and error tracking.
+            {t.settings.debug.mcpToolLoggingHelp}
           </p>
         </div>
       </div>
@@ -87,10 +90,10 @@ export function DebugSettingsTab({ config, dir }: DebugSettingsTabProps) {
         />
         <div className="flex-1">
           <label htmlFor="showReasoningToUsers" className="text-sm font-medium text-white block cursor-pointer">
-            🧠 Show AI Reasoning to Users
+            {t.settings.debug.showReasoningLabel}
           </label>
           <p className="text-xs text-slate-400 mt-1">
-            When enabled, users see the AI&apos;s internal reasoning process and tool usage. When disabled, users only see a &quot;🤔 Thinking...&quot; indicator and the final response.
+            {t.settings.debug.showReasoningHelp}
           </p>
         </div>
       </div>
@@ -106,10 +109,10 @@ export function DebugSettingsTab({ config, dir }: DebugSettingsTabProps) {
         />
         <div className="flex-1">
           <label htmlFor="enableMiddleOutTransform" className="text-sm font-medium text-white block cursor-pointer">
-            🗜️ Enable Context Compression (Middle-Out)
+            {t.settings.debug.middleOutLabel}
           </label>
           <p className="text-xs text-slate-400 mt-1">
-            Automatically compress large conversation contexts using OpenRouter&apos;s middle-out transform. Helps prevent &quot;context too large&quot; errors when viewing many tasks or long histories. Recommended: enabled.
+            {t.settings.debug.middleOutHelp}
           </p>
         </div>
       </div>

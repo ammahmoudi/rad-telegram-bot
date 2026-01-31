@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface PlankaSettingsTabProps {
   config: {
@@ -25,6 +26,7 @@ export function PlankaSettingsTab({
   envDailyReportCategoryId,
   dir,
 }: PlankaSettingsTabProps) {
+  const { t } = useLanguage();
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -35,6 +37,11 @@ export function PlankaSettingsTab({
   const [plankaConnected, setPlankaConnected] = useState(false);
   const [plankaStatusLoading, setPlankaStatusLoading] = useState(false);
   const [plankaStatusError, setPlankaStatusError] = useState<string | null>(null);
+
+  const categoriesAvailableText = t.settings.planka.categoriesAvailable.replace(
+    '{count}',
+    String(categories.length)
+  );
 
   useEffect(() => {
     checkPlankaStatus();
@@ -97,7 +104,7 @@ export function PlankaSettingsTab({
     setLoginLoading(true);
 
     const formData = new FormData(e.currentTarget);
-    const loadingToast = toast.loading('🔐 Logging in to Planka...');
+    const loadingToast = toast.loading(t.settings.planka.toasts.loginLoading);
 
     try {
       const response = await fetch('/api/planka-login', {
@@ -108,15 +115,15 @@ export function PlankaSettingsTab({
       const data = await response.json();
 
       if (response.ok) {
-        toast.success('✓ Successfully authenticated with Planka!', { id: loadingToast });
+        toast.success(t.settings.planka.toasts.loginSuccess, { id: loadingToast });
         (e.target as HTMLFormElement).reset();
         setShowLoginModal(false);
         setTimeout(() => window.location.reload(), 1000);
       } else {
-        toast.error(`✗ ${data.error || 'Login failed'}`, { id: loadingToast });
+        toast.error(`✗ ${data.error || t.settings.planka.toasts.loginFailed}`, { id: loadingToast });
       }
     } catch (error) {
-      toast.error('✗ Failed to connect to server', {
+      toast.error(t.settings.planka.toasts.serverError, {
         id: loadingToast,
       });
     } finally {
@@ -129,10 +136,10 @@ export function PlankaSettingsTab({
       {/* Planka Base URL */}
       <div className="space-y-2">
         <label htmlFor="plankaBaseUrl" className="text-sm font-medium text-white block" dir={dir}>
-          Planka Server URL
+          {t.settings.plankaUrl}
           {config.PLANKA_BASE_URL === 'Not set' && envPlankaUrl && (
             <span className={`${dir === 'rtl' ? 'mr-2' : 'ml-2'} text-xs text-blue-400`}>
-              (using .env: {envPlankaUrl})
+              ({t.settings.planka.usingEnv}: {envPlankaUrl})
             </span>
           )}
         </label>
@@ -141,13 +148,13 @@ export function PlankaSettingsTab({
           type="url"
           name="plankaBaseUrl"
           defaultValue={config.PLANKA_BASE_URL === 'Not set' ? envPlankaUrl || '' : config.PLANKA_BASE_URL}
-          placeholder="https://planka.example.com"
+          placeholder={t.settings.plankaUrlPlaceholder}
           className="w-full h-10 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
           dir="ltr"
           required
         />
         <p className="text-xs text-slate-400" dir={dir}>
-          This URL will be used for all new Planka account links. Existing links are not affected.
+          {t.settings.planka.urlHelpLong}
         </p>
       </div>
 
@@ -156,30 +163,30 @@ export function PlankaSettingsTab({
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <h3 className="text-sm font-medium text-white">Planka Authentication</h3>
+              <h3 className="text-sm font-medium text-white">{t.settings.planka.authTitle}</h3>
               {plankaStatusLoading ? (
                 <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-500/20 text-blue-300 text-xs font-medium rounded-full border border-blue-500/30">
-                  🔄 Checking...
+                  {t.settings.planka.statusChecking}
                 </span>
               ) : plankaConnected ? (
                 <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-500/20 text-green-300 text-xs font-medium rounded-full border border-green-500/30">
-                  ✓ Connected
+                  {t.settings.planka.statusConnected}
                 </span>
               ) : (
                 <span
                   className="inline-flex items-center gap-1 px-2 py-1 bg-red-500/20 text-red-300 text-xs font-medium rounded-full border border-red-500/30"
                   title={plankaStatusError || 'Not connected'}
                 >
-                  ✗ Disconnected
+                  {t.settings.planka.statusDisconnected}
                 </span>
               )}
             </div>
             <p className="text-xs text-slate-400">
               {plankaStatusLoading
-                ? 'Verifying connection...'
+                ? t.settings.planka.statusVerifying
                 : plankaConnected
-                  ? 'Connected to Planka. Click to re-login if needed.'
-                  : `${plankaStatusError || 'Not connected'}. Login to enable project category fetching.`}
+                  ? t.settings.planka.statusConnectedHelp
+                  : `${plankaStatusError || t.settings.planka.statusNotConnected}. ${t.settings.planka.statusDisconnectedHelp}`}
             </p>
           </div>
           <button
@@ -187,7 +194,7 @@ export function PlankaSettingsTab({
             onClick={() => setShowLoginModal(true)}
             className="px-4 py-2 bg-linear-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white text-sm font-medium rounded-lg transition-all shadow-lg hover:shadow-xl"
           >
-            🔐 Login
+            {t.settings.planka.loginButton}
           </button>
         </div>
       </div>
@@ -195,10 +202,10 @@ export function PlankaSettingsTab({
       {/* Planka Daily Report Category */}
       <div className="space-y-2">
         <label htmlFor="plankaDailyReportCategoryId" className="text-sm font-medium text-white block" dir={dir}>
-          Daily Report Category (Optional)
+          {t.settings.planka.dailyReportLabel}
           {!config.PLANKA_DAILY_REPORT_CATEGORY_ID && envDailyReportCategoryId && (
             <span className={`${dir === 'rtl' ? 'mr-2' : 'ml-2'} text-xs text-blue-400`}>
-              (using .env: {envDailyReportCategoryId})
+              ({t.settings.planka.usingEnv}: {envDailyReportCategoryId})
             </span>
           )}
         </label>
@@ -212,11 +219,11 @@ export function PlankaSettingsTab({
           dir="ltr"
           disabled={!plankaConnected || categoriesLoading}
         >
-          <option value="">-- No category (filter by project name) --</option>
+          <option value="">{t.settings.planka.dailyReportNone}</option>
           {plankaConnected && categories.length === 0 && !categoriesLoading && (
-            <option disabled>No categories available</option>
+            <option disabled>{t.settings.planka.dailyReportNoCategories}</option>
           )}
-          {categoriesLoading && <option disabled>Loading categories...</option>}
+          {categoriesLoading && <option disabled>{t.settings.planka.dailyReportLoading}</option>}
           {categories.map((cat) => (
             <option key={cat.id} value={cat.id}>
               {cat.name} (ID: {cat.id})
@@ -225,17 +232,17 @@ export function PlankaSettingsTab({
         </select>
         {!plankaConnected && (
           <p className="text-xs text-red-400" dir={dir}>
-            ✗ Disabled: Please connect to Planka first to view available categories.
+            {t.settings.planka.dailyReportDisabled}
           </p>
         )}
         {plankaConnected && categories.length > 0 && (
           <p className="text-xs text-slate-400" dir={dir}>
-            {categories.length} categories available. Select one to filter daily report projects.
+            {categoriesAvailableText}
           </p>
         )}
         {plankaConnected && categories.length === 0 && !categoriesLoading && (
           <p className="text-xs text-amber-400" dir={dir}>
-            ⚠️ No categories found. You may need to create some in Planka first.
+            {t.settings.planka.dailyReportNoCategoriesHelp}
           </p>
         )}
       </div>
@@ -245,7 +252,7 @@ export function PlankaSettingsTab({
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-slate-900 rounded-2xl shadow-2xl border border-white/20 max-w-md w-full">
             <div className="p-6 border-b border-white/20 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-white">Planka Login</h3>
+              <h3 className="text-lg font-semibold text-white">{t.settings.planka.loginModalTitle}</h3>
               <button
                 onClick={() => setShowLoginModal(false)}
                 className="text-slate-400 hover:text-white transition-colors"
@@ -259,17 +266,17 @@ export function PlankaSettingsTab({
             </div>
 
             <form onSubmit={handlePlankaLogin} className="p-6 space-y-4">
-              <p className="text-sm text-gray-400">Login with your Planka credentials to enable project category fetching.</p>
+              <p className="text-sm text-gray-400">{t.settings.planka.loginModalDescription}</p>
 
               <div className="space-y-2">
                 <label htmlFor="modalPlankaUsername" className="text-sm font-medium text-gray-300 block">
-                  Username or Email
+                  {t.settings.planka.usernameLabel}
                 </label>
                 <input
                   id="modalPlankaUsername"
                   type="text"
                   name="plankaUsername"
-                  placeholder="username or email@example.com"
+                  placeholder={t.settings.planka.usernamePlaceholder}
                   className="w-full h-10 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                   autoFocus
@@ -278,13 +285,13 @@ export function PlankaSettingsTab({
 
               <div className="space-y-2">
                 <label htmlFor="modalPlankaPassword" className="text-sm font-medium text-gray-300 block">
-                  Password
+                  {t.settings.planka.passwordLabel}
                 </label>
                 <input
                   id="modalPlankaPassword"
                   type="password"
                   name="plankaPassword"
-                  placeholder="Enter your Planka password"
+                  placeholder={t.settings.planka.passwordPlaceholder}
                   className="w-full h-10 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
@@ -296,14 +303,14 @@ export function PlankaSettingsTab({
                   onClick={() => setShowLoginModal(false)}
                   className="flex-1 px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-lg transition-all"
                 >
-                  Cancel
+                  {t.cancel}
                 </button>
                 <button
                   type="submit"
                   disabled={loginLoading}
                   className="flex-1 px-4 py-2.5 bg-linear-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loginLoading ? '🔄 Logging in...' : '🔐 Login'}
+                  {loginLoading ? t.settings.planka.loginSubmitting : t.settings.planka.loginButton}
                 </button>
               </div>
             </form>

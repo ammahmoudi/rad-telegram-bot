@@ -310,7 +310,7 @@ export function UserDetailClient({
                     size="sm"
                     asChild
                   >
-                    <Link href={`/tool-logs?sessionId=${session.id}`}>
+                    <Link href={`/chat-logs/${session.id}`}>
                       {t.users.viewChat || 'View Chat'}
                     </Link>
                   </Button>

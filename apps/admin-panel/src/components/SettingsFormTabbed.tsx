@@ -79,10 +79,10 @@ export function SettingsForm({
   };
 
   const tabs: Array<{ id: SettingsTab; label: string; icon: string }> = [
-    { id: 'planka', label: 'Planka', icon: '🔗' },
-    { id: 'ai', label: 'AI Model', icon: '🤖' },
-    { id: 'chat', label: 'Chat & History', icon: '💬' },
-    { id: 'debug', label: 'Debug', icon: '🔍' },
+    { id: 'planka', label: t.settings.tabs.planka, icon: '🔗' },
+    { id: 'ai', label: t.settings.tabs.ai, icon: '🤖' },
+    { id: 'chat', label: t.settings.tabs.chat, icon: '💬' },
+    { id: 'debug', label: t.settings.tabs.debug, icon: '🔍' },
   ];
 
   return (
@@ -106,8 +106,8 @@ export function SettingsForm({
               </svg>
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-white">System Settings</h2>
-              <p className="text-slate-400 text-sm">Configure integrations and AI behavior</p>
+              <h2 className="text-xl font-semibold text-white">{t.settings.title}</h2>
+              <p className="text-slate-400 text-sm">{t.settings.subtitle}</p>
             </div>
           </div>
         </div>

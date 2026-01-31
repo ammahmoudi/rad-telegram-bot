@@ -1,20 +1,20 @@
-'use client';
+/**
+ * @deprecated Use ChatLogsSessionsList and ChatSessionView components instead
+ * This component has been refactored into separate components for better routing:
+ * - ChatLogsSessionsList: Shows list of all sessions at /chat-logs
+ * - ChatSessionView: Shows individual session details at /chat-logs/[sessionId]
+ * 
+ * The old ToolLogsClient was a monolithic component that tried to handle both
+ * the sessions list and individual session viewing in one place with URL parameters.
+ * It's now split into two focused components with proper dynamic routing.
+ */
 
-import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { toast } from 'sonner';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Conversation, ConversationContent } from '@/components/ai-elements/conversation';
-import { Message, MessageContent, MessageResponse } from '@/components/ai-elements/message';
-import { Tool, ToolHeader, ToolContent } from '@/components/ai-elements/tool';
-import { cn } from '@/lib/utils';
-import { JsonViewer } from '@/components/JsonViewer';
+export default function ToolLogsClient() {
+  return null;
+}
+
+export { ToolLogsClient };
+
 
 interface McpToolLog {
   id: string;
@@ -60,6 +60,7 @@ interface ChatSessionInfo {
 
 export default function ToolLogsClient() {
   const searchParams = useSearchParams();
+  const { t } = useLanguage();
   const [logs, setLogs] = useState<McpToolLog[]>([]);
   const [sessionMessages, setSessionMessages] = useState<SessionMessage[]>([]);
   const [allSessions, setAllSessions] = useState<ChatSessionInfo[]>([]);
@@ -231,13 +232,13 @@ export default function ToolLogsClient() {
               variant={viewMode === 'sessions' ? 'default' : 'outline'}
               onClick={() => setViewMode('sessions')}
             >
-              📋 Sessions
+              📋 {t.chatLogs.viewModeSessions}
             </Button>
             <Button
               variant={viewMode === 'chat' ? 'default' : 'outline'}
               onClick={() => setViewMode('chat')}
             >
-              💬 Conversation
+              💬 {t.chatLogs.viewModeConversation}
             </Button>
           </>
         )}
@@ -253,7 +254,7 @@ export default function ToolLogsClient() {
             }}
             className="ml-auto"
           >
-            ← Back to All Sessions
+            ← {t.chatLogs.backToAllSessions}
           </Button>
         )}
       </div>
@@ -264,24 +265,24 @@ export default function ToolLogsClient() {
           {/* Filters for Sessions */}
           <Card>
             <CardHeader>
-              <CardTitle>🔍 Filter Sessions</CardTitle>
+              <CardTitle>🔍 {t.chatLogs.filterSessions}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Input
-                  placeholder="Search by User ID or Name"
+                  placeholder={t.chatLogs.searchByUserIdName}
                   value={filters.userId}
                   onChange={(e) => setFilters({ ...filters, userId: e.target.value })}
                 />
                 <Input
                   type="date"
-                  placeholder="From Date"
+                  placeholder={t.chatLogs.fromDate}
                   value={filters.dateFrom}
                   onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
                 />
                 <Input
                   type="date"
-                  placeholder="To Date"
+                  placeholder={t.chatLogs.toDate}
                   value={filters.dateTo}
                   onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
                 />
@@ -292,9 +293,9 @@ export default function ToolLogsClient() {
           {/* Sessions List */}
           <Card>
             <CardHeader>
-              <CardTitle>💬 Chat Sessions</CardTitle>
+              <CardTitle>💬 {t.chatLogs.chatSessions}</CardTitle>
               <CardDescription>
-                Click on a session to view the full conversation with AI responses and tool calls
+                {t.chatLogs.clickSessionToViewConversation}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -340,15 +341,15 @@ export default function ToolLogsClient() {
                           <div className="flex items-center gap-3">
                             <span className="font-medium">{userName}</span>
                             <Badge variant="outline">
-                              {session.messageCount} messages
+                              {session.messageCount} {t.chatLogs.messages}
                             </Badge>
                           </div>
                           <div className="text-sm text-muted-foreground mt-1">
-                            Session: {session.id.slice(0, 16)}... • Updated: {new Date(session.updatedAt).toLocaleString()}
+                            {t.chatLogs.session}: {session.id.slice(0, 16)}... • {t.chatLogs.updated}: {new Date(session.updatedAt).toLocaleString()}
                           </div>
                         </div>
                         <Button variant="outline" size="sm">
-                          View Conversation →
+                          {t.chatLogs.viewConversation} →
                         </Button>
                       </div>
                     );
@@ -361,36 +362,36 @@ export default function ToolLogsClient() {
         /* Chat View with AI Elements */
         <Card className="flex flex-col h-[calc(100vh-12rem)]">
           <CardHeader>
-            <CardTitle>💬 Conversation</CardTitle>
+            <CardTitle>💬 {t.chatLogs.conversation}</CardTitle>
             <CardDescription>
-              Session: {filters.sessionId ? filters.sessionId.substring(0, 16) + '...' : 'Unknown'}
+              {t.chatLogs.session}: {filters.sessionId ? filters.sessionId.substring(0, 16) + '...' : 'Unknown'}
             </CardDescription>
             
             {/* Conversation Filters */}
             <div className="grid gap-2 grid-cols-2 mt-4 pt-4 border-t">
               <div className="space-y-1.5">
-                <label className="text-xs text-muted-foreground">Role</label>
+                <label className="text-xs text-muted-foreground">{t.chatLogs.roleLabel}</label>
                 <select
                   aria-label="Filter by role"
                   value={filters.role}
                   onChange={(e) => setFilters({ ...filters, role: e.target.value })}
                   className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
                 >
-                  <option value="">All Roles</option>
-                  <option value="user">User</option>
-                  <option value="assistant">Assistant</option>
-                  <option value="system">System</option>
+                  <option value="">{t.chatLogs.allRoles}</option>
+                  <option value="user">{t.chatLogs.roleUser}</option>
+                  <option value="assistant">{t.chatLogs.roleAssistant}</option>
+                  <option value="system">{t.chatLogs.roleSystem}</option>
                 </select>
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs text-muted-foreground">MCP Server</label>
+                <label className="text-xs text-muted-foreground">{t.chatLogs.mcpServerLabel}</label>
                 <select
                   aria-label="Filter by MCP server"
                   value={filters.mcpServer}
                   onChange={(e) => setFilters({ ...filters, mcpServer: e.target.value })}
                   className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
                 >
-                  <option value="">All Servers</option>
+                  <option value="">{t.chatLogs.allServers}</option>
                   <option value="planka">Planka</option>
                   <option value="rastar">Rastar</option>
                   <option value="time">Time</option>
@@ -403,7 +404,7 @@ export default function ToolLogsClient() {
               <ConversationContent>
                 {sessionMessages.length === 0 ? (
                   <div className="flex items-center justify-center h-full text-muted-foreground">
-                    No messages in this session
+                    {t.chatLogs.noMessagesInSession}
                   </div>
                 ) : (
                   sessionMessages
@@ -442,7 +443,7 @@ export default function ToolLogsClient() {
                             {repliedMessage && (
                               <div className="mb-2 px-3 py-2 rounded-lg border-l-4 border-blue-500 bg-blue-500/10 text-xs max-w-full">
                                 <div className="font-semibold text-blue-400 mb-1">
-                                  ↩️ Replying to {repliedMessage.role === 'user' ? 'User' : 'Assistant'}:
+                                  ↩️ {t.chatLogs.replyingTo} {repliedMessage.role === 'user' ? t.chatLogs.roleUser : t.chatLogs.roleAssistant}:
                                 </div>
                                 <div className="text-muted-foreground line-clamp-2 wrap-break-word">
                                   {repliedMessage.content ? parseMessageContent(repliedMessage.content).text : '[No content]'}
@@ -463,11 +464,11 @@ export default function ToolLogsClient() {
                               {!isUser && (
                                 <div className="text-xs font-medium mb-2 opacity-70">
                                   {msg.role === 'assistant' 
-                                    ? '🤖 Assistant' 
+                                    ? `🤖 ${t.chatLogs.roleAssistant}` 
                                     : msg.role === 'tool' 
-                                    ? `⚙️ Tool${msg.toolName ? `: ${msg.toolName}` : ''}` 
+                                    ? `⚙️ ${t.chatLogs.roleTool}${msg.toolName ? `: ${msg.toolName}` : ''}` 
                                     : msg.role === 'system'
-                                    ? '⚡ System'
+                                    ? `⚡ ${t.chatLogs.roleSystem}`
                                     : '💬 ' + msg.role}
                                 </div>
                               )}
@@ -479,11 +480,11 @@ export default function ToolLogsClient() {
                                 />
                               ) : msg.toolCalls.length > 0 ? (
                                 <div className="text-muted-foreground italic text-sm py-1">
-                                  [Tool execution - see details below]
+                                  [{t.chatLogs.toolExecutionSeeDetails}]
                                 </div>
                               ) : (
                                 <div className="text-muted-foreground/50 italic text-sm py-1">
-                                  [Empty message]
+                                  [{t.chatLogs.emptyMessage}]
                                 </div>
                               )}
                               
@@ -526,29 +527,29 @@ export default function ToolLogsClient() {
                                       <div className="space-y-3 text-sm">
                                         <JsonViewer 
                                           data={toolCall.inputJson}
-                                          title="📥 Input"
+                                          title={t.chatLogs.inputLabel}
                                           maxHeight="16rem"
                                         />
                                         {toolCall.outputJson && (
                                           <JsonViewer 
                                             data={toolCall.outputJson}
-                                            title="📤 Output"
+                                            title={t.chatLogs.outputLabel}
                                             maxHeight="16rem"
                                           />
                                         )}
                                         {toolCall.error && (
                                           <div className="text-destructive">
-                                            <div className="font-semibold mb-2 text-sm">❌ Error:</div>
+                                            <div className="font-semibold mb-2 text-sm">❌ {t.chatLogs.errorLabel}:</div>
                                             <pre className="bg-destructive/10 p-3 rounded text-xs overflow-auto max-h-32">
                                               {toolCall.error}
                                             </pre>
                                           </div>
                                         )}
                                         <div className="flex gap-4 text-xs text-muted-foreground border-t border-muted pt-2">
-                                          <span>⏱️ Duration: {toolCall.durationMs}ms</span>
+                                          <span>⏱️ {t.chatLogs.durationLabel}: {toolCall.durationMs}ms</span>
                                           <span>🕐 {toolCall.timestamp.toLocaleString()}</span>
                                           <span className={toolCall.success ? 'text-green-600' : 'text-destructive'}>
-                                            {toolCall.success ? '✓ Success' : '✗ Failed'}
+                                            {toolCall.success ? `✓ ${t.chatLogs.successLabel}` : `✗ ${t.chatLogs.failedLabel}`}
                                           </span>
                                         </div>
                                       </div>
@@ -572,22 +573,22 @@ export default function ToolLogsClient() {
       <Dialog open={!!selectedButton} onOpenChange={() => setSelectedButton(null)}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>🔘 Button Details</DialogTitle>
+            <DialogTitle>🔘 {t.chatLogs.buttonDetails}</DialogTitle>
             <DialogDescription>
-              Full metadata for the selected button
+              {t.chatLogs.fullButtonMetadata}
             </DialogDescription>
           </DialogHeader>
           
           {selectedButton && (
             <div className="space-y-4">
               <div className="p-4 bg-muted/50 rounded-lg">
-                <div className="font-semibold text-sm text-muted-foreground mb-2">Button Text</div>
+                <div className="font-semibold text-sm text-muted-foreground mb-2">{t.chatLogs.buttonTextLabel}</div>
                 <div className="text-lg font-medium">{selectedButton.text}</div>
               </div>
               
               {selectedButton.callback_data && (
                 <div>
-                  <div className="font-semibold text-sm text-muted-foreground mb-2">Callback Data</div>
+                  <div className="font-semibold text-sm text-muted-foreground mb-2">{t.chatLogs.callbackDataLabel}</div>
                   <pre className="bg-muted p-3 rounded text-xs overflow-auto border">
                     {selectedButton.callback_data}
                   </pre>
@@ -596,7 +597,7 @@ export default function ToolLogsClient() {
               
               {selectedButton.url && (
                 <div>
-                  <div className="font-semibold text-sm text-muted-foreground mb-2">URL</div>
+                  <div className="font-semibold text-sm text-muted-foreground mb-2">{t.chatLogs.urlLabel}</div>
                   <a 
                     href={selectedButton.url} 
                     target="_blank" 
@@ -610,7 +611,7 @@ export default function ToolLogsClient() {
               
               <JsonViewer 
                 data={selectedButton}
-                title="🔍 Full Metadata (JSON)"
+                title={t.chatLogs.fullMetadataJson}
                 maxHeight="24rem"
                 defaultExpanded
               />
@@ -623,7 +624,7 @@ export default function ToolLogsClient() {
       <Dialog open={!!selectedLog} onOpenChange={() => setSelectedLog(null)}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>🔧 Tool Call Details</DialogTitle>
+            <DialogTitle>🔧 {t.chatLogs.toolCallDetails}</DialogTitle>
             <DialogDescription>
               {selectedLog?.server}.{selectedLog?.tool}
             </DialogDescription>
@@ -633,28 +634,28 @@ export default function ToolLogsClient() {
               {/* Metadata Grid */}
               <div className="grid grid-cols-2 gap-4 text-sm p-4 bg-muted/50 rounded-lg">
                 <div>
-                  <span className="text-muted-foreground">Time:</span>
+                  <span className="text-muted-foreground">{t.chatLogs.timeLabel}:</span>
                   <div className="font-medium">{selectedLog.timestamp.toLocaleString()}</div>
                 </div>
                 <div>
-                  <span className="text-muted-foreground">Duration:</span>
+                  <span className="text-muted-foreground">{t.chatLogs.durationLabel}:</span>
                   <div className="font-medium">{selectedLog.durationMs}ms</div>
                 </div>
                 <div>
-                  <span className="text-muted-foreground">User ID:</span>
+                  <span className="text-muted-foreground">{t.chatLogs.userIdLabel}:</span>
                   <div className="font-mono text-xs">{selectedLog.userId || 'N/A'}</div>
                 </div>
                 <div>
-                  <span className="text-muted-foreground">Session ID:</span>
+                  <span className="text-muted-foreground">{t.chatLogs.sessionLabel}:</span>
                   <div className="font-mono text-xs">{selectedLog.sessionId || 'N/A'}</div>
                 </div>
                 <div className="col-span-2">
-                  <span className="text-muted-foreground">Status:</span>
+                  <span className="text-muted-foreground">{t.chatLogs.statusLabel}:</span>
                   <Badge 
                     variant={selectedLog.success ? 'default' : 'destructive'}
                     className="ml-2"
                   >
-                    {selectedLog.success ? '✓ Success' : '✗ Failed'}
+                    {selectedLog.success ? `✓ ${t.chatLogs.successLabel}` : `✗ ${t.chatLogs.failedLabel}`}
                   </Badge>
                 </div>
               </div>
@@ -662,7 +663,7 @@ export default function ToolLogsClient() {
               {/* Input JSON */}
               <JsonViewer 
                 data={selectedLog.inputJson}
-                title="📥 Input Arguments"
+                title={t.chatLogs.inputArguments}
                 maxHeight="20rem"
                 defaultExpanded
               />
@@ -671,7 +672,7 @@ export default function ToolLogsClient() {
               {selectedLog.outputJson && (
                 <JsonViewer 
                   data={selectedLog.outputJson}
-                  title="📤 Output Result"
+                  title={t.chatLogs.outputResult}
                   maxHeight="20rem"
                   defaultExpanded
                 />
@@ -680,7 +681,7 @@ export default function ToolLogsClient() {
               {/* Error Display */}
               {selectedLog.error && (
                 <div className="space-y-2">
-                  <div className="font-semibold text-sm text-destructive">❌ Error Details</div>
+                  <div className="font-semibold text-sm text-destructive">❌ {t.chatLogs.errorDetails}</div>
                   <pre className="bg-destructive/10 border border-destructive/30 p-4 rounded-lg text-xs overflow-auto max-h-40">
                     {selectedLog.error}
                   </pre>

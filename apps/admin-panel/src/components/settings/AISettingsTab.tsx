@@ -1,6 +1,7 @@
 'use client';
 
 import { ModelSelector } from '@/components/ModelSelector';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface AISettingsTabProps {
   config: {
@@ -16,25 +17,26 @@ interface AISettingsTabProps {
 }
 
 export function AISettingsTab({ config, hasApiKey, usingEnvApiKey, envApiKey, dir }: AISettingsTabProps) {
+  const { t } = useLanguage();
   return (
     <div className="space-y-6">
       {/* OpenRouter API Key */}
       <div className="space-y-2">
         <label htmlFor="openrouterApiKey" className="text-sm font-medium text-white block" dir={dir}>
-          OpenRouter API Key
+          {t.settings.openrouterKey}
           {hasApiKey && (
             <span className={`${dir === 'rtl' ? 'mr-2' : 'ml-2'} text-xs text-green-400`}>
-              ✓ Configured in DB
+              {t.settings.ai.apiKeyConfiguredDb}
             </span>
           )}
           {usingEnvApiKey && envApiKey && (
             <span className={`${dir === 'rtl' ? 'mr-2' : 'ml-2'} text-xs text-blue-400`}>
-              ✓ Using .env (sk-or-v1-...{envApiKey.slice(-4)})
+              {t.settings.ai.apiKeyUsingEnv.replace('{suffix}', envApiKey.slice(-4))}
             </span>
           )}
           {!hasApiKey && !usingEnvApiKey && (
             <span className={`${dir === 'rtl' ? 'mr-2' : 'ml-2'} text-xs text-amber-400`}>
-              ⚠ Not configured
+              {t.settings.ai.apiKeyNotConfigured}
             </span>
           )}
         </label>
@@ -43,12 +45,12 @@ export function AISettingsTab({ config, hasApiKey, usingEnvApiKey, envApiKey, di
           type="password"
           name="openRouterKey"
           defaultValue={config.OPENROUTER_API_KEY}
-          placeholder="sk-or-v1-... (leave empty to use .env)"
+          placeholder={t.settings.ai.apiKeyPlaceholder}
           className="w-full h-10 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
           dir="ltr"
         />
         <p className="text-xs text-slate-400" dir={dir}>
-          Get your API key at{' '}
+          {t.settings.openrouterKeyHelp}{' '}
           <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">
             openrouter.ai/keys
           </a>
@@ -58,10 +60,10 @@ export function AISettingsTab({ config, hasApiKey, usingEnvApiKey, envApiKey, di
       {/* AI Model Selector */}
       <div className="space-y-2">
         <label htmlFor="defaultModel" className="text-sm font-medium text-white block" dir={dir}>
-          AI Model
+          {t.settings.aiModel}
           {!config.DEFAULT_AI_MODEL && (
             <span className={`${dir === 'rtl' ? 'mr-2' : 'ml-2'} text-xs text-blue-400`}>
-              (using .env: {config.ENV_DEFAULT_MODEL})
+              ({t.settings.ai.usingEnv}: {config.ENV_DEFAULT_MODEL})
             </span>
           )}
         </label>
@@ -71,10 +73,10 @@ export function AISettingsTab({ config, hasApiKey, usingEnvApiKey, envApiKey, di
         />
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2 space-y-1">
           <p className="text-xs text-amber-200">
-            ⚠️ <strong>Tool Support Required:</strong> Only models supporting tool/function calling are shown.
+            ⚠️ <strong>{t.settings.aiModelWarnings.toolSupportTitle}</strong> {t.settings.aiModelWarnings.toolSupportBody}
           </p>
           <p className="text-xs text-amber-300">
-            💡 Avoid <strong>openrouter/auto</strong> mode as it may route to models without tool support.
+            💡 {t.settings.aiModelWarnings.avoidAuto}
           </p>
         </div>
       </div>
@@ -82,7 +84,7 @@ export function AISettingsTab({ config, hasApiKey, usingEnvApiKey, envApiKey, di
       {/* Max Tool Calls */}
       <div className="space-y-2">
         <label htmlFor="maxToolCalls" className="text-sm font-medium text-white block" dir={dir}>
-          Max Tool Calls Per Round
+          {t.settings.maxToolCalls}
         </label>
         <input
           id="maxToolCalls"
@@ -95,7 +97,7 @@ export function AISettingsTab({ config, hasApiKey, usingEnvApiKey, envApiKey, di
           dir="ltr"
         />
         <p className="text-xs text-slate-400" dir={dir}>
-          Maximum rounds of tool calls the AI can make before responding (default: 5).
+          {t.settings.maxToolCallsHelp}
         </p>
       </div>
     </div>
