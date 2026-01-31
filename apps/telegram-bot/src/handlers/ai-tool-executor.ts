@@ -54,10 +54,19 @@ export async function executeAiTools(
   
   // Get full response with tool calls
   // Enable middle-out transform to automatically compress large contexts
-  let response = await client.chat(trimmedHistory, { 
-    systemPrompt, 
-    useMiddleOutTransform: enableMiddleOut 
-  }, tools);
+  let response = await client.chat(
+    trimmedHistory, 
+    { 
+      systemPrompt, 
+      useMiddleOutTransform: enableMiddleOut 
+    }, 
+    tools,
+    {
+      telegramUserId: ctx.from?.id?.toString() || 'unknown',
+      sessionId,
+      messageId: String(sentMessage.message_id),
+    }
+  );
   
   // Handle tool calls iteratively
   while (response.toolCalls && response.toolCalls.length > 0 && maxToolCalls > 0) {
@@ -247,10 +256,19 @@ export async function executeAiTools(
     }
     
     // Get next response from AI
-    response = await client.chat(trimmedHistory, { 
-      systemPrompt,
-      useMiddleOutTransform: enableMiddleOut 
-    }, tools);
+    response = await client.chat(
+      trimmedHistory, 
+      { 
+        systemPrompt,
+        useMiddleOutTransform: enableMiddleOut 
+      }, 
+      tools,
+      {
+        telegramUserId: ctx.from?.id?.toString() || 'unknown',
+        sessionId,
+        messageId: String(sentMessage.message_id),
+      }
+    );
   }
   
   return {

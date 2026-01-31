@@ -40,6 +40,12 @@ interface UserDetailClientProps {
   hasRastarConnection: boolean;
 }
 
+interface UserUsageSummary {
+  totalCost: number;
+  totalCalls: number;
+  totalTokens: number;
+}
+
 export function UserDetailClient({
   user,
   currentPack,
@@ -52,9 +58,11 @@ export function UserDetailClient({
   const [loading, setLoading] = useState(false);
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [loadingSessions, setLoadingSessions] = useState(true);
+  const [usageSummary, setUsageSummary] = useState<UserUsageSummary | null>(null);
 
   useEffect(() => {
     loadChatSessions();
+    loadUsageSummary();
   }, [user.id]);
 
   const loadChatSessions = async () => {
@@ -68,6 +76,23 @@ export function UserDetailClient({
       console.error('Failed to load chat sessions:', error);
     } finally {
       setLoadingSessions(false);
+    }
+  };
+
+  const loadUsageSummary = async () => {
+    try {
+      const res = await fetch(`/api/users/${user.id}/usage`);
+      if (!res.ok) throw new Error('Failed to fetch usage');
+      const data = await res.json();
+      if (data?.stats) {
+        setUsageSummary({
+          totalCost: data.stats.totalCost || 0,
+          totalCalls: data.stats.totalCalls || 0,
+          totalTokens: data.stats.totalTokens || 0,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load usage summary:', error);
     }
   };
 
@@ -208,6 +233,39 @@ export function UserDetailClient({
             </div>
           </div>
         </div>
+
+        {/* Usage Summary Card */}
+        {usageSummary && (
+          <div className="bg-white/10 backdrop-blur-md rounded-xl border border-white/20 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <span className="text-2xl">💸</span>
+                {t.usage.userUsageTitle}
+              </h2>
+              <Link
+                href={`/usage-accounting?telegramUserId=${user.id}`}
+                className="text-sm text-blue-400 hover:text-blue-300"
+              >
+                {t.usage.viewUsageDetails}
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <p className="text-xs text-slate-400">{t.usage.totalCost}</p>
+                <p className="text-lg font-bold text-white">{usageSummary.totalCost.toFixed(4)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400">{t.usage.totalCalls}</p>
+                <p className="text-lg font-bold text-white">{usageSummary.totalCalls}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400">{t.usage.totalTokens}</p>
+                <p className="text-lg font-bold text-white">{usageSummary.totalTokens}</p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Pack Assignment Card */}

@@ -717,6 +717,23 @@ export async function deleteOldMcpToolLogs(olderThanDays: number = 30): Promise<
 export async function getSessionMessagesWithToolCalls(sessionId: string): Promise<{
   message: MessageRecord;
   toolCalls: McpToolLogRecord[];
+  llmCalls: {
+    id: string;
+    model: string;
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+    cachedTokens: number;
+    cacheWriteTokens: number;
+    reasoningTokens: number;
+    cost: number;
+    upstreamCost: number | null;
+    finishReason: string | null;
+    hasToolCalls: boolean;
+    toolCallCount: number;
+    requestDurationMs: number | null;
+    createdAt: number;
+  }[];
 }[]> {
   const prisma = getPrisma();
   
@@ -728,6 +745,11 @@ export async function getSessionMessagesWithToolCalls(sessionId: string): Promis
   const result = await Promise.all(
     messages.map(async (msg) => {
       const toolCalls = await prisma.mcpToolLog.findMany({
+        where: { messageId: msg.id },
+        orderBy: { createdAt: 'asc' },
+      });
+
+      const llmCalls = await prisma.llmCall.findMany({
         where: { messageId: msg.id },
         orderBy: { createdAt: 'asc' },
       });
@@ -759,6 +781,23 @@ export async function getSessionMessagesWithToolCalls(sessionId: string): Promis
           errorMessage: log.errorMessage,
           executionTimeMs: log.executionTimeMs,
           createdAt: Number(log.createdAt),
+        })),
+        llmCalls: llmCalls.map((call) => ({
+          id: call.id,
+          model: call.model,
+          promptTokens: call.promptTokens,
+          completionTokens: call.completionTokens,
+          totalTokens: call.totalTokens,
+          cachedTokens: call.cachedTokens,
+          cacheWriteTokens: call.cacheWriteTokens,
+          reasoningTokens: call.reasoningTokens,
+          cost: call.cost,
+          upstreamCost: call.upstreamCost,
+          finishReason: call.finishReason,
+          hasToolCalls: call.hasToolCalls,
+          toolCallCount: call.toolCallCount,
+          requestDurationMs: call.requestDurationMs,
+          createdAt: Number(call.createdAt),
         })),
       };
     })

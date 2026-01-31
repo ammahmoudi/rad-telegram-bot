@@ -34,6 +34,23 @@ interface SessionMessage {
   role: 'user' | 'assistant' | 'tool' | 'system';
   content: string;
   toolCalls: McpToolLog[];
+  llmCalls: {
+    id: string;
+    model: string;
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+    cachedTokens: number;
+    cacheWriteTokens: number;
+    reasoningTokens: number;
+    cost: number;
+    upstreamCost: number | null;
+    finishReason: string | null;
+    hasToolCalls: boolean;
+    toolCallCount: number;
+    requestDurationMs: number | null;
+    createdAt: number;
+  }[];
   toolCallId?: string | null;
   toolName?: string | null;
   toolArgs?: string | null;
@@ -52,6 +69,12 @@ interface SessionUser {
   messageCount: number;
 }
 
+interface SessionUsageSummary {
+  totalCost: number;
+  totalCalls: number;
+  totalTokens: number;
+}
+
 interface ChatSessionViewProps {
   sessionId: string;
 }
@@ -61,6 +84,7 @@ export function ChatSessionView({ sessionId }: ChatSessionViewProps) {
   const { t } = useLanguage();
   const [sessionMessages, setSessionMessages] = useState<SessionMessage[]>([]);
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
+  const [sessionUsage, setSessionUsage] = useState<SessionUsageSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedButton, setSelectedButton] = useState<any>(null);
   const [selectedLog, setSelectedLog] = useState<McpToolLog | null>(null);
@@ -127,6 +151,7 @@ export function ChatSessionView({ sessionId }: ChatSessionViewProps) {
             success: tc.success,
             durationMs: tc.executionTimeMs,
           })),
+          llmCalls: item.llmCalls || [],
         };
         return transformed;
       });
@@ -163,9 +188,27 @@ export function ChatSessionView({ sessionId }: ChatSessionViewProps) {
     }
   };
 
+  const loadSessionUsage = async () => {
+    try {
+      const res = await fetch(`/api/sessions/${sessionId}/usage`);
+      if (!res.ok) throw new Error('Failed to fetch session usage');
+      const data = await res.json();
+      if (data?.stats) {
+        setSessionUsage({
+          totalCost: data.stats.totalCost || 0,
+          totalCalls: data.stats.totalCalls || 0,
+          totalTokens: data.stats.totalTokens || 0,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load session usage:', error);
+    }
+  };
+
   useEffect(() => {
     loadSessionMessages();
     loadSessionUser();
+    loadSessionUsage();
   }, [sessionId]);
 
   return (
@@ -221,6 +264,39 @@ export function ChatSessionView({ sessionId }: ChatSessionViewProps) {
               <div>
                 <div className="text-xs text-muted-foreground">{t.chatLogs.sessionIdLabel}</div>
                 <div className="text-xs font-mono truncate">{sessionId.slice(0, 12)}...</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {sessionUsage && (
+        <Card className="bg-white/5 border border-white/10">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                💸 {t.usage.sessionUsageTitle}
+              </CardTitle>
+              <Link href={`/usage-accounting?sessionId=${sessionId}`}>
+                <Button variant="outline" size="sm">
+                  {t.usage.viewUsageDetails}
+                </Button>
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <div className="text-xs text-muted-foreground">{t.usage.totalCost}</div>
+                <div className="text-lg font-bold">{sessionUsage.totalCost.toFixed(4)}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">{t.usage.totalCalls}</div>
+                <div className="text-lg font-bold">{sessionUsage.totalCalls}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">{t.usage.totalTokens}</div>
+                <div className="text-lg font-bold">{sessionUsage.totalTokens}</div>
               </div>
             </div>
           </CardContent>
@@ -379,8 +455,14 @@ export function ChatSessionView({ sessionId }: ChatSessionViewProps) {
                           
                           {/* Timestamp */}
                           {!isEmptyAssistantWithTools && (
-                            <div className={`text-xs text-muted-foreground mt-1 px-2 ${isUser ? 'text-right' : 'text-left'}`}>
-                              {msg.timestamp.toLocaleString()}
+                            <div className={`text-xs text-muted-foreground mt-1 px-2 flex items-center gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}>
+                              <span>{msg.timestamp.toLocaleString()}</span>
+                              {/* Show cost for assistant messages */}
+                              {!isUser && msg.llmCalls && msg.llmCalls.length > 0 && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 rounded font-semibold">
+                                  💸 ${msg.llmCalls.reduce((sum, call) => sum + call.cost, 0).toFixed(6)}
+                                </span>
+                              )}
                             </div>
                           )}
 
@@ -426,6 +508,43 @@ export function ChatSessionView({ sessionId }: ChatSessionViewProps) {
                                     </div>
                                   </ToolContent>
                                 </Tool>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* LLM Cost Information */}
+                          {msg.llmCalls && msg.llmCalls.length > 0 && (
+                            <div className="mt-3 space-y-2 w-full">
+                              {msg.llmCalls.map((llmCall) => (
+                                <div key={llmCall.id} className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="text-xs font-semibold text-blue-700 dark:text-blue-300">
+                                      💸 {llmCall.model}
+                                    </div>
+                                    <div className="text-sm font-bold text-blue-900 dark:text-blue-100">
+                                      ${llmCall.cost.toFixed(6)}
+                                    </div>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                                    <div>📝 Prompt: {llmCall.promptTokens.toLocaleString()} tokens</div>
+                                    <div>💬 Completion: {llmCall.completionTokens.toLocaleString()} tokens</div>
+                                    {llmCall.cachedTokens > 0 && (
+                                      <div className="text-green-600 dark:text-green-400">⚡ Cached: {llmCall.cachedTokens.toLocaleString()} tokens</div>
+                                    )}
+                                    {llmCall.cacheWriteTokens > 0 && (
+                                      <div>💾 Cache Write: {llmCall.cacheWriteTokens.toLocaleString()} tokens</div>
+                                    )}
+                                    {llmCall.reasoningTokens > 0 && (
+                                      <div>🧠 Reasoning: {llmCall.reasoningTokens.toLocaleString()} tokens</div>
+                                    )}
+                                    {llmCall.requestDurationMs && (
+                                      <div>⏱️ Duration: {llmCall.requestDurationMs}ms</div>
+                                    )}
+                                    <div className="col-span-2 border-t border-blue-200 dark:border-blue-800 pt-1 mt-1">
+                                      ∑ Total: {llmCall.totalTokens.toLocaleString()} tokens
+                                    </div>
+                                  </div>
+                                </div>
                               ))}
                             </div>
                           )}

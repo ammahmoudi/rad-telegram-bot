@@ -19,7 +19,8 @@ export async function handleStreamingResponse(
   trimmedHistory: ChatMessage[],
   systemPrompt: string,
   tools: ChatCompletionTool[],
-  sentMessage: Message.TextMessage
+  sentMessage: Message.TextMessage,
+  sessionId: string
 ): Promise<{
   finalResponse: string;
   totalToolCallsMade: number;
@@ -194,7 +195,16 @@ export async function handleStreamingResponse(
   };
 
   // Stream AI response
-  const stream = client.streamChat(trimmedHistory, { systemPrompt }, tools);
+  const stream = client.streamChat(
+    trimmedHistory,
+    { systemPrompt },
+    tools,
+    {
+      telegramUserId: ctx.from?.id?.toString() || 'unknown',
+      sessionId: sessionId,
+      messageId: String(sentMessage.message_id),
+    }
+  );
   
   for await (const chunk of stream) {
     if (chunk.type === 'reasoning') {

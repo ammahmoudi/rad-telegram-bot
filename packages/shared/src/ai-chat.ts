@@ -19,9 +19,28 @@ export interface ChatOptions {
   useMiddleOutTransform?: boolean; // Enable OpenRouter's middle-out compression for large contexts
 }
 
+export interface LlmUsageData {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  cachedTokens: number;
+  cacheWriteTokens: number;
+  reasoningTokens: number;
+  audioTokens: number;
+  cost: number;
+  upstreamCost?: number;
+}
+
+export interface UsageTrackingContext {
+  telegramUserId: string;
+  sessionId?: string;
+  messageId?: string;
+}
+
 export class OpenRouterClient {
   private client: OpenAI;
   public model: string; // Public so bot can check model type
+  private usageCallback?: (usage: LlmUsageData, context: UsageTrackingContext, model: string, finishReason: string, hasToolCalls: boolean, toolCallCount: number, durationMs: number) => Promise<void>;
 
   constructor(apiKey: string, model: string = 'anthropic/claude-3.5-sonnet') {
     this.client = new OpenAI({
@@ -32,12 +51,20 @@ export class OpenRouterClient {
   }
 
   /**
+   * Set callback for usage tracking
+   */
+  setUsageCallback(callback: (usage: LlmUsageData, context: UsageTrackingContext, model: string, finishReason: string, hasToolCalls: boolean, toolCallCount: number, durationMs: number) => Promise<void>): void {
+    this.usageCallback = callback;
+  }
+
+  /**
    * Generate a chat completion with conversation history
    */
   async chat(
     messages: ChatMessage[],
     options: ChatOptions = {},
     tools?: ChatCompletionTool[],
+    trackingContext?: UsageTrackingContext,
   ): Promise<{
     content: string;
     toolCalls?: { id: string; name: string; arguments: string }[];
@@ -46,6 +73,7 @@ export class OpenRouterClient {
   }> {
     const model = options.model || this.model;
     const systemPrompt = options.systemPrompt || 'You are a helpful AI assistant.';
+    const startTime = Date.now();
 
     // Build messages array with system prompt
     const openaiMessages: ChatCompletionMessageParam[] = [
@@ -164,6 +192,32 @@ export class OpenRouterClient {
 
       const choice = completion.choices[0];
       const message = choice.message;
+      const finishReason = choice.finish_reason || 'stop';
+      const requestDuration = Date.now() - startTime;
+      
+      // Extract usage data from OpenRouter response
+      const usage = (completion as any).usage;
+      if (usage && this.usageCallback && trackingContext) {
+        const usageData: LlmUsageData = {
+          promptTokens: usage.prompt_tokens || 0,
+          completionTokens: usage.completion_tokens || 0,
+          totalTokens: usage.total_tokens || 0,
+          cachedTokens: usage.prompt_tokens_details?.cached_tokens || 0,
+          cacheWriteTokens: usage.prompt_tokens_details?.cache_write_tokens || 0,
+          reasoningTokens: usage.completion_tokens_details?.reasoning_tokens || 0,
+          audioTokens: usage.prompt_tokens_details?.audio_tokens || 0,
+          cost: usage.cost || 0,
+          upstreamCost: usage.cost_details?.upstream_inference_cost,
+        };
+        
+        const hasToolCalls = !!(message.tool_calls && message.tool_calls.length > 0);
+        const toolCallCount = message.tool_calls?.length || 0;
+        
+        // Fire and forget - don't block response
+        this.usageCallback(usageData, trackingContext, model, finishReason, hasToolCalls, toolCallCount, requestDuration).catch(err => {
+          console.error('[ai-chat] Failed to save usage data:', err);
+        });
+      }
       
       // Extract reasoning_details for Gemini models (OpenRouter extension)
       const messageWithReasoning = message as any;
@@ -191,14 +245,14 @@ export class OpenRouterClient {
               arguments: func?.arguments || '{}',
             };
           }),
-          finishReason: choice.finish_reason || 'stop',
+          finishReason,
           reasoningDetails, // Include reasoning for preservation in next turn
         };
       }
 
       return {
         content: message.content || '',
-        finishReason: choice.finish_reason || 'stop',
+        finishReason,
         reasoningDetails, // Include reasoning for preservation in next turn
       };
     } catch (error) {
@@ -214,6 +268,7 @@ export class OpenRouterClient {
     messages: ChatMessage[],
     options: ChatOptions = {},
     tools?: ChatCompletionTool[],
+    trackingContext?: UsageTrackingContext,
   ): AsyncGenerator<{
     type: 'reasoning' | 'content' | 'tool_call' | 'done';
     content?: string;
@@ -223,6 +278,7 @@ export class OpenRouterClient {
   }, void, unknown> {
     const model = options.model || this.model;
     const systemPrompt = options.systemPrompt || 'You are a helpful AI assistant.';
+    const startTime = Date.now();
 
     // Build messages array with system prompt
     const openaiMessages: ChatCompletionMessageParam[] = [
@@ -309,6 +365,7 @@ export class OpenRouterClient {
       let toolCalls: Map<number, { id: string; name: string; arguments: string }> = new Map();
       let reasoningDetailsAccumulated: any[] = [];
       let finishReason = 'stop';
+      let usageSaved = false;
 
       for await (const chunk of stream) {
         const delta = chunk.choices[0]?.delta;
@@ -395,6 +452,31 @@ export class OpenRouterClient {
               toolCall.arguments += toolCallDelta.function.arguments;
             }
           }
+        }
+
+        // Capture usage data (OpenRouter includes usage in final chunk)
+        const usage = (chunk as any).usage;
+        if (usage && this.usageCallback && trackingContext && !usageSaved) {
+          const usageData: LlmUsageData = {
+            promptTokens: usage.prompt_tokens || 0,
+            completionTokens: usage.completion_tokens || 0,
+            totalTokens: usage.total_tokens || 0,
+            cachedTokens: usage.prompt_tokens_details?.cached_tokens || 0,
+            cacheWriteTokens: usage.prompt_tokens_details?.cache_write_tokens || 0,
+            reasoningTokens: usage.completion_tokens_details?.reasoning_tokens || 0,
+            audioTokens: usage.prompt_tokens_details?.audio_tokens || 0,
+            cost: usage.cost || 0,
+            upstreamCost: usage.cost_details?.upstream_inference_cost,
+          };
+
+          const hasToolCalls = toolCalls.size > 0;
+          const toolCallCount = toolCalls.size;
+          const requestDuration = Date.now() - startTime;
+
+          usageSaved = true;
+          this.usageCallback(usageData, trackingContext, model, finishReason, hasToolCalls, toolCallCount, requestDuration).catch(err => {
+            console.error('[ai-chat] Failed to save streaming usage data:', err);
+          });
         }
 
         // Check for finish reason

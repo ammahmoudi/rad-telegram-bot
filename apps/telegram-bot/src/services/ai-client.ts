@@ -1,4 +1,4 @@
-import { OpenRouterClient, getSystemConfig } from '@rad/shared';
+import { OpenRouterClient, getSystemConfig, saveLlmUsage } from '@rad/shared';
 
 // Cache for AI client
 let aiClient: OpenRouterClient | null = null;
@@ -32,6 +32,10 @@ export async function getAiClient(): Promise<OpenRouterClient | null> {
   if (!aiClient) {
     console.log('[telegram-bot] Initializing AI client with model:', model);
     aiClient = new OpenRouterClient(apiKey, model);
+    
+    // Set up usage tracking callback
+    aiClient.setUsageCallback(saveLlmUsage);
+    
     cachedApiKey = apiKey;
     cachedModel = model;
   }

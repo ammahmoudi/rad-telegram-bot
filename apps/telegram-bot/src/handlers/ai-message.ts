@@ -198,7 +198,8 @@ export async function handleAiMessage(ctx: BotContext): Promise<void> {
         trimmedHistory,
         systemPrompt,
         tools,
-        sentMessage
+        sentMessage,
+        session.id
       );
     } catch (streamError) {
       await handleStreamingError(ctx, streamError, client, sentMessage);
@@ -236,10 +237,19 @@ export async function handleAiMessage(ctx: BotContext): Promise<void> {
       const enableMiddleOut = (await getSystemConfig('ENABLE_MIDDLE_OUT_TRANSFORM')) !== 'false';
       
       // Get final response after tool execution
-      const finalResponseAfterTools = await client.chat(trimmedHistory, { 
-        systemPrompt,
-        useMiddleOutTransform: enableMiddleOut 
-      });
+      const finalResponseAfterTools = await client.chat(
+        trimmedHistory, 
+        { 
+          systemPrompt,
+          useMiddleOutTransform: enableMiddleOut 
+        },
+        undefined,
+        {
+          telegramUserId: ctx.from?.id?.toString() || 'unknown',
+          sessionId: session.id,
+          messageId: String(sentMessage.message_id),
+        }
+      );
       const showReasoning = (await getSystemConfig('SHOW_REASONING_TO_USERS')) !== 'false';
       const finalContent = buildFinalResponse(
         finalResponseAfterTools.content,
