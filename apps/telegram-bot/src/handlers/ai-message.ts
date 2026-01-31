@@ -27,6 +27,46 @@ import { handleAiError, handleStreamingError } from './ai-error-handler.js';
 import { sendFinalResponse } from './ai-response-formatter.js';
 
 /**
+ * Check if message text is a keyboard button command that should not be sent to AI
+ * These are status/settings buttons that have their own command handlers
+ * MUST match exact button texts from locales/en.ftl and locales/fa.ftl
+ */
+function isKeyboardButtonCommand(text: string): boolean {
+  // Exact button texts that should NOT go to AI (have dedicated command handlers)
+  const commandButtons = [
+    // English status buttons
+    '📊 Planka Status',
+    '🍽️ Rastar Status',
+    
+    // Persian status buttons (full Persian)
+    '📊 وضعیت پلانکا',
+    '🍽️ وضعیت رستار',
+    
+    // Persian status buttons (mixed - Persian + Latin, sometimes happens)
+    '📊 وضعیت Planka',
+    '🍽️ وضعیت Rastar',
+    
+    // English connect buttons
+    '📋 Connect Planka',
+    '🍽️ Connect Rastar',
+    
+    // Persian connect buttons
+    '📋 اتصال به پلنکا',
+    '🍽️ اتصال به رستار',
+    
+    // English settings
+    '⚙️ Settings',
+    
+    // Persian settings
+    '⚙️ تنظیمات',
+  ];
+  
+  // Check exact match (trim only)
+  const trimmed = text.trim();
+  return commandButtons.includes(trimmed);
+}
+
+/**
  * Handle AI chat messages from users
  * Main entry point for AI interactions
  */
@@ -48,6 +88,12 @@ export async function handleAiMessage(ctx: BotContext): Promise<void> {
   // Ignore commands (handled by command handlers)
   if (text.startsWith('/')) {
     console.log('[ai-message] Ignoring command');
+    return;
+  }
+  
+  // Ignore keyboard button commands (status, link, settings buttons)
+  if (isKeyboardButtonCommand(text)) {
+    console.log('[ai-message] Ignoring keyboard button command:', text);
     return;
   }
 
