@@ -53,6 +53,13 @@ export async function sendFinalResponse(
   console.log('[ai-response] Sending final response, length:', finalContent.length);
   console.log('[ai-response] Content preview:', finalContent.substring(0, 500));
   
+  // Validate that we have content to send
+  if (!finalContent || !finalContent.trim()) {
+    console.log('[ai-response] ERROR: Empty content, providing fallback message');
+    // If content is empty, provide a default error message
+    finalContent = '❌ <i>Unable to generate a response. Please try again.</i>';
+  }
+  
   // Parse AI-suggested buttons from response
   const { messageText, buttons } = parseAiButtons(finalContent);
   const keyboard = buttons.length > 0
@@ -64,7 +71,13 @@ export async function sendFinalResponse(
   console.log('[ai-response] Parsed buttons:', buttons.length);
   
   // Use the cleaned message text (without button tags)
-  const cleanContent = messageText;
+  let cleanContent = messageText;
+  
+  // Additional validation after parsing buttons
+  if (!cleanContent || !cleanContent.trim()) {
+    console.log('[ai-response] WARNING: Cleaned content is empty, using fallback');
+    cleanContent = '❌ <i>Unable to process your request at this time. Please try again.</i>';
+  }
   
   // Get keyboards - always show reply keyboard at bottom, AI buttons are additional
   const language = await getUserLanguage(telegramUserId);

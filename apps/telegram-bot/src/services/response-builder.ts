@@ -10,7 +10,12 @@ export function buildFinalResponse(
   allToolCallsMade: Array<{ name: string; args?: any }>,
   forcedSummarizationUsed: boolean
 ): string {
-  let response = markdownToTelegramHtml(finalResponse);
+  // Ensure we have valid content
+  let response = '';
+  
+  if (finalResponse && finalResponse.trim()) {
+    response = markdownToTelegramHtml(finalResponse);
+  }
   
   // Add expandable process summary
   const expandableSummary = buildExpandableSummary(
@@ -19,8 +24,19 @@ export function buildFinalResponse(
     forcedSummarizationUsed
   );
   
-  if (expandableSummary) {
+  // If we have no main response but have a summary (tools were used), use just the summary
+  if (!response && expandableSummary) {
+    return expandableSummary;
+  }
+  
+  // If we have main response and summary, combine them
+  if (response && expandableSummary) {
     response += '\n\n' + expandableSummary;
+  }
+  
+  // If we have neither, return a placeholder (shouldn't happen but defensive)
+  if (!response && !expandableSummary) {
+    return '💭 <i>Processing completed without a response message.</i>';
   }
   
   return response;
