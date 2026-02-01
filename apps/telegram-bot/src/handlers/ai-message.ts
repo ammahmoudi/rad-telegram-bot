@@ -25,45 +25,66 @@ import { buildFinalResponse } from '../services/response-builder.js';
 import { executeAiTools } from './ai-tool-executor.js';
 import { handleAiError, handleStreamingError } from './ai-error-handler.js';
 import { sendFinalResponse } from './ai-response-formatter.js';
+import { BUTTON_REGISTRY, getAllButtonTranslationKeys, getAllSystemEmojis } from '../config/button-registry.js';
+import { t } from '../utils/i18n-helper.js';
+
+/**
+ * Get all keyboard button texts that should not be sent to AI
+ * Generated from BUTTON_REGISTRY - single source of truth
+ * This ensures buttons are detected regardless of translation changes
+ */
+function getKeyboardButtonCommands(): Set<string> {
+  const buttons = new Set<string>();
+  const languages = ['en', 'fa'];
+  
+  // Generate button texts for all languages from the registry
+  for (const lang of languages) {
+    for (const buttonDef of BUTTON_REGISTRY) {
+      const text = t(lang, buttonDef.translationKey);
+      if (text && typeof text === 'string') {
+        buttons.add(text.trim());
+      }
+    }
+  }
+  
+  return buttons;
+}
+
+// Cache the button commands - lazy loaded on first use
+let cachedKeyboardButtonCommands: Set<string> | null = null;
 
 /**
  * Check if message text is a keyboard button command that should not be sent to AI
- * These are status/settings buttons that have their own command handlers
- * MUST match exact button texts from locales/en.ftl and locales/fa.ftl
+ * Uses BUTTON_REGISTRY as single source of truth
+ * 
+ * Detection method:
+ * 1. Check against all translated button texts from BUTTON_REGISTRY
+ * 2. Fallback: Emoji + length heuristic (if translation cache is empty)
  */
 function isKeyboardButtonCommand(text: string): boolean {
-  // Exact button texts that should NOT go to AI (have dedicated command handlers)
-  const commandButtons = [
-    // English status buttons
-    '📊 Planka Status',
-    '🍽️ Rastar Status',
-    
-    // Persian status buttons (full Persian)
-    '📊 وضعیت پلانکا',
-    '🍽️ وضعیت رستار',
-    
-    // Persian status buttons (mixed - Persian + Latin, sometimes happens)
-    '📊 وضعیت Planka',
-    '🍽️ وضعیت Rastar',
-    
-    // English connect buttons
-    '📋 Connect Planka',
-    '🍽️ Connect Rastar',
-    
-    // Persian connect buttons
-    '📋 اتصال به پلنکا',
-    '🍽️ اتصال به رستار',
-    
-    // English settings
-    '⚙️ Settings',
-    
-    // Persian settings
-    '⚙️ تنظیمات',
-  ];
-  
-  // Check exact match (trim only)
   const trimmed = text.trim();
-  return commandButtons.includes(trimmed);
+  
+  // Load cached buttons on first use
+  if (!cachedKeyboardButtonCommands) {
+    cachedKeyboardButtonCommands = getKeyboardButtonCommands();
+  }
+  
+  // Check against translated button texts - primary method
+  if (cachedKeyboardButtonCommands.size > 0 && cachedKeyboardButtonCommands.has(trimmed)) {
+    return true;
+  }
+  
+  // Fallback: Check for emoji + text patterns
+  // If cache is empty (e.g., during startup), use emoji detection
+  const systemEmojis = getAllSystemEmojis();
+  const startsWithSystemEmoji = systemEmojis.some(emoji => trimmed.startsWith(emoji));
+  
+  // Button text is typically under 30 characters and single line
+  if (startsWithSystemEmoji && trimmed.length < 30 && !trimmed.includes('\n')) {
+    return true;
+  }
+  
+  return false;
 }
 
 /**

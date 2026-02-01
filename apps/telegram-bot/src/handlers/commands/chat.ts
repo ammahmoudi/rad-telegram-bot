@@ -29,12 +29,7 @@ export async function handleNewChatCommand(ctx: BotContext) {
   const isSimpleMode = chatMode.toLowerCase() === 'simple';
   
   if (!isSimpleMode) {
-    await ctx.reply(
-      '⚠️ This command is only available in simple chat mode.\n\n' +
-      'In thread mode, each topic/thread is already a separate conversation.\n' +
-      'Create a new thread to start a fresh conversation.',
-      { parse_mode: 'HTML' }
-    );
+    await ctx.reply(ctx.t('chat-simple-mode-only'), { parse_mode: 'HTML' });
     return;
   }
   
@@ -117,12 +112,7 @@ export async function handleClearChatCommand(ctx: BotContext) {
   const isSimpleMode = chatMode.toLowerCase() === 'simple';
   
   if (!isSimpleMode) {
-    await ctx.reply(
-      '⚠️ This command is only available in simple chat mode.\n\n' +
-      'In thread mode, each topic/thread has its own conversation history.\n' +
-      'Create a new thread to start a fresh conversation.',
-      { parse_mode: 'HTML' }
-    );
+    await ctx.reply(ctx.t('chat-thread-mode-info'), { parse_mode: 'HTML' });
     return;
   }
   

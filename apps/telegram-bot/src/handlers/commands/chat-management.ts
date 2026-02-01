@@ -39,6 +39,9 @@ export async function handleClearChatCommand(ctx: BotContext) {
   
   if (chatMode === 'simple') {
     // Simple mode: Just clear AI history, don't delete messages
+    const language = ctx.session?.language || 'fa';
+    const { t } = await import('../../utils/i18n-helper.js');
+    
     try {
       const prisma = getPrisma();
       // Delete all chat sessions and messages for this user
@@ -55,9 +58,6 @@ export async function handleClearChatCommand(ctx: BotContext) {
         }
       }
       
-      const language = ctx.session?.language || 'fa';
-      const { t } = await import('../../utils/i18n-helper.js');
-      
       await ctx.reply(
         t(language, 'chat-history-cleared'),
         { parse_mode: 'HTML' }
@@ -66,7 +66,7 @@ export async function handleClearChatCommand(ctx: BotContext) {
       console.log('[chat-management] Cleared AI history for user:', telegramUserId);
     } catch (error) {
       console.error('[chat-management] Failed to clear history:', error);
-      await ctx.reply('❌ Failed to clear chat history. Please try again.');
+      await ctx.reply('❌ ' + t(language, 'chat-failed-clear'));
     }
     return;
   }
@@ -75,13 +75,10 @@ export async function handleClearChatCommand(ctx: BotContext) {
   const topicId = ctx.message?.message_thread_id || ctx.callbackQuery?.message?.message_thread_id;
   
   if (!topicId) {
-    await ctx.reply(
-      '💡 <b>This command only works inside a topic/thread.</b>\n\n' +
-      'To delete a thread:\n' +
-      '1. Open the thread you want to delete\n' +
-      '2. Use /clear_chat inside that thread',
-      { parse_mode: 'HTML' }
-    );
+    const language = ctx.session?.language || 'fa';
+    const { t } = await import('../../utils/i18n-helper.js');
+    
+    await ctx.reply(ctx.t('chat-thread-invalid') + '\n\n' + ctx.t('chat-thread-delete-help'), { parse_mode: 'HTML' });
     return;
   }
 
@@ -122,8 +119,8 @@ export async function handleClearChatCommand(ctx: BotContext) {
     });
     
     const errorMsg = error?.description?.includes('TOPIC_ID_INVALID')
-      ? '⚠️ This thread cannot be deleted. Please make sure you\'re inside a valid topic thread.'
-      : '❌ Failed to delete this thread. Make sure you have permission to manage topics.';
+      ? '⚠️ ' + ctx.t('chat-thread-invalid')
+      : '❌ ' + ctx.t('chat-thread-delete-failed');
     
     await ctx.reply(errorMsg, { 
       parse_mode: 'HTML', 

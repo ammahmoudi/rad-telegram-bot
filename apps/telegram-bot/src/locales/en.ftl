@@ -362,9 +362,112 @@ ai-buttons-cancelled = ✅ Action cancelled
 ai-buttons-unknown-action = ❌ Unknown action: {$action}
 ai-buttons-error = ❌ An error occurred
 
+# AI button actions
+ai-buttons-command-suggestion = 💡 Please use the {$command} command directly.
+ai-buttons-no-message = ❌ No message to send
+
 # Success
 success-action-completed = ✅ Action completed successfully!
 success-saved = ✅ Saved!
 success-updated = ✅ Updated!
 success-deleted = ✅ Deleted!
 success-created = ✅ Created!
+
+# Menu & Navigation
+menu-back-button = « Back
+menu-language-button = 🌐 Language
+menu-settings-button = ⚙️ Settings
+menu-main-title = 🤖 Main Menu
+
+# Language selection
+language-select-title = 🌐 Select Language:
+language-english-button = 🇬🇧 English
+language-persian-button = 🇮🇷 فارسی
+language-auto-detect = 🔄 Use Telegram Language
+language-changed-to-en = ✅ Language changed to English
+
+💡 This overrides your Telegram language setting for this bot only.
+language-changed-to-fa = ✅ زبان به فارسی تغییر کرد
+
+💡 این تنظیم زبان تلگرام شما را فقط برای این ربات تغییر می‌دهد.
+
+# Chat sessions
+chat-sessions-title = 📚 Chat Sessions
+chat-no-sessions = 📚 No chat sessions yet. Send me a message to start!
+chat-send-message = 💬 Send me a message to start a fresh conversation!
+chat-failed-clear = ❌ Failed to clear chat history. Please try again.
+chat-thread-invalid = ⚠️ This thread cannot be deleted. Please make sure you're inside a valid topic thread.
+chat-thread-delete-failed = ❌ Failed to delete this thread. Make sure you have permission to manage topics.
+chat-thread-delete-help = <b>How to delete this topic:</b>
+
+1. Open the topic
+2. Tap the three dots ⋯ at the top
+3. Select "Delete Topic"
+
+<i>Note: Only group admins can delete topics.</i>
+
+# Error handling
+error-user-not-found = ❌ Could not identify your Telegram user.
+error-user-not-found-retry = Please try again or use /start
+
+# Help and commands
+help-title = <b>🤖 Bot Help</b>
+
+I'm an AI assistant that can help you manage tasks in Planka and select meals in Rastar, all from Telegram!
+
+<b>📋 Planka Commands:</b>
+• /link_planka - Link your Planka account
+• /planka_status - Check connection status
+• /planka_unlink - Unlink your account
+
+<b>🍽️ Rastar Commands:</b>
+• /link_rastar - Link your Rastar account
+• /rastar_status - Check connection status
+• /rastar_unlink - Unlink your account
+
+<b>💬 Chat Commands:</b>
+• /start - Show main menu
+• /menu - Open menu
+• /settings - Open settings
+• /help - Show this message
+• /clear_chat - Clear conversation history
+
+<b>💡 Quick Tips:</b>
+• Use the buttons below for instant access
+• Change your language in settings
+• Connect your accounts to unlock features
+
+settings-header = ⚙️ <b>Bot Settings</b>
+
+Customize your experience:
+
+quick-access-label = ⌨️ <b>Quick Access</b>
+
+Use these buttons for instant access to features:
+
+ai-button-usage = 💡 <b>How to use AI Buttons:</b>
+
+When I give you suggestions, click the buttons to:
+• Get more details
+• Perform actions
+• Navigate tasks
+
+<i>These buttons are personalized for you!</i>
+
+# Chat commands
+chat-new-started = New Chat Started
+chat-history-cleared = Chat history cleared!
+chat-recent-sessions = Recent Chat Sessions
+chat-messages = messages
+chat-showing = Showing {$shown} of {$total} sessions
+chat-simple-mode-only = ⚠️ This command is only available in simple chat mode.
+
+In thread mode, each topic/thread is already a separate conversation.
+Create a new thread to start a fresh conversation.
+chat-thread-mode-info = ⚠️ This command is only available in simple chat mode.
+
+In thread mode, each topic/thread has its own conversation history.
+Create a new thread to start a fresh conversation.
+errors-user-not-identified = ❌ I couldn't identify you. Please try /start or /menu.
+errors-ai-not-configured = ❌ AI is not configured yet. Please try again later.
+errors-ai-not-configured-short = ❌ AI not configured

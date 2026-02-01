@@ -109,7 +109,7 @@ async function handleSendMessage(
 
   // If the message is a command, suggest using it directly
   if (message.startsWith('/')) {
-    await ctx.reply(`💡 لطفاً از دستور ${message} استفاده کنید.`);
+    await ctx.reply(ctx.t('ai-buttons-command-suggestion', { command: message }));
     return;
   }
 
