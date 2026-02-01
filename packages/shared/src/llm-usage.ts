@@ -16,7 +16,7 @@ export async function saveLlmUsage(
   try {
     const prisma = getPrisma();
     
-    await prisma.llmCall.create({
+    await (prisma as any).llmCall.create({
       data: {
         telegramUserId: context.telegramUserId,
         sessionId: context.sessionId || null,
@@ -59,7 +59,7 @@ export async function saveLlmUsage(
 export async function getUserUsageStats(telegramUserId: string) {
   const prisma = getPrisma();
   
-  const stats = await prisma.llmCall.aggregate({
+  const stats = await (prisma as any).llmCall.aggregate({
     where: { telegramUserId },
     _sum: {
       totalTokens: true,
@@ -87,7 +87,7 @@ export async function getUserUsageStats(telegramUserId: string) {
 export async function getSessionUsageStats(sessionId: string) {
   const prisma = getPrisma();
   
-  const stats = await prisma.llmCall.aggregate({
+  const stats = await (prisma as any).llmCall.aggregate({
     where: { sessionId },
     _sum: {
       totalTokens: true,
@@ -125,14 +125,14 @@ export async function getRecentLlmCalls(options: {
   if (telegramUserId) where.telegramUserId = telegramUserId;
   if (sessionId) where.sessionId = sessionId;
   
-  const calls = await prisma.llmCall.findMany({
+  const calls = await (prisma as any).llmCall.findMany({
     where,
     orderBy: { createdAt: 'desc' },
     take: limit,
     skip: offset,
   });
   
-  return calls.map(call => ({
+  return calls.map((call: any) => ({
     ...call,
     createdAt: Number(call.createdAt),
   }));

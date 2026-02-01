@@ -749,7 +749,7 @@ export async function getSessionMessagesWithToolCalls(sessionId: string): Promis
         orderBy: { createdAt: 'asc' },
       });
 
-      const llmCalls = await prisma.llmCall.findMany({
+      const llmCalls = await (prisma as any).llmCall.findMany({
         where: { messageId: msg.id },
         orderBy: { createdAt: 'asc' },
       });
@@ -782,7 +782,7 @@ export async function getSessionMessagesWithToolCalls(sessionId: string): Promis
           executionTimeMs: log.executionTimeMs,
           createdAt: Number(log.createdAt),
         })),
-        llmCalls: llmCalls.map((call) => ({
+        llmCalls: llmCalls.map((call: any) => ({
           id: call.id,
           model: call.model,
           promptTokens: call.promptTokens,
