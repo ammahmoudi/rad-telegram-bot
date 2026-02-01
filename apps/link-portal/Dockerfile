@@ -14,6 +14,10 @@ COPY apps/link-portal/tsconfig.json ./apps/link-portal/
 COPY packages/shared/package*.json ./packages/shared/
 COPY packages/shared/tsconfig.json ./packages/shared/
 
+# Copy Prisma schema first (needed for postinstall)
+COPY packages/shared/prisma ./packages/shared/prisma
+COPY packages/shared/prisma.config.ts ./packages/shared/prisma.config.ts
+
 # Install dependencies (including devDependencies for build)
 RUN npm ci --workspaces
 
@@ -25,8 +29,8 @@ COPY apps/link-portal ./apps/link-portal
 ARG DATABASE_URL
 ENV DATABASE_URL=${DATABASE_URL}
 
-# Generate Prisma client
-RUN npm run prisma:generate
+# Explicitly generate Prisma client after npm ci
+RUN npm run prisma:generate -w packages/shared
 
 # Build TypeScript projects (only link-portal and shared)
 RUN npm run build -w packages/shared
