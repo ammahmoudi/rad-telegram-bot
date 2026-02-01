@@ -47,10 +47,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Get total count for pagination
-    const totalCount = await prisma.llmCall.count({ where });
+    const totalCount = await (prisma as any).llmCall.count({ where });
 
     // Get calls with pagination
-    const calls = await prisma.llmCall.findMany({
+    const calls = await (prisma as any).llmCall.findMany({
       where,
       orderBy: { createdAt: 'desc' },
       take: limit,
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
 
     // For each call, fetch the associated message and related user messages
     const enrichedCalls = await Promise.all(
-      calls.map(async (call) => {
+      calls.map(async (call: any) => {
         let userMessage = null;
         let assistantMessage = null;
 
@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
     );
 
     // Get aggregated stats
-    const stats = await prisma.llmCall.aggregate({
+    const stats = await (prisma as any).llmCall.aggregate({
       where,
       _sum: {
         totalTokens: true,

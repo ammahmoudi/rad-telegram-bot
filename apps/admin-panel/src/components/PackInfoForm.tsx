@@ -48,7 +48,7 @@ export function PackInfoForm({ packId, defaultName, defaultDescription }: PackIn
         </label>
         <input
           type="text"
-          placeholder={t.packs.packNamePlaceholder || "Pack name"}
+          placeholder="Pack name"
           title="Pack name"
           value={name}
           onChange={(e) => setName(e.target.value)}

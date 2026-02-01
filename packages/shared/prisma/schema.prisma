@@ -180,3 +180,34 @@ model McpToolLog {
   @@index([telegramUserId, createdAt])
   @@index([sessionId, createdAt])
 }
+
+// LLM API Usage Tracking - for cost monitoring and analytics
+model LlmCall {
+  id                    String  @id @default(cuid())
+  telegramUserId        String  // User who triggered the LLM call
+  sessionId             String? // Chat session this call belongs to
+  messageId             String? // Message that triggered this call
+  model                 String  // Model used (e.g., "anthropic/claude-3.5-sonnet")
+  promptTokens          Int     // Number of prompt tokens
+  completionTokens      Int     // Number of completion tokens
+  totalTokens           Int     // Total tokens used
+  cachedTokens          Int     @default(0) // Tokens read from cache
+  cacheWriteTokens      Int     @default(0) // Tokens written to cache
+  reasoningTokens       Int     @default(0) // Reasoning tokens (if applicable)
+  audioTokens           Int     @default(0) // Audio tokens (if applicable)
+  cost                  Float   // Total cost in credits
+  upstreamCost          Float?  // Upstream inference cost (for BYOK)
+  finishReason          String? // Why the generation stopped
+  hasToolCalls          Boolean @default(false) // Whether this call included tool usage
+  toolCallCount         Int     @default(0) // Number of tool calls made
+  requestDurationMs     Int?    // Total request duration in milliseconds
+  createdAt             BigInt
+  
+  @@index([telegramUserId])
+  @@index([sessionId])
+  @@index([model])
+  @@index([createdAt])
+  @@index([telegramUserId, createdAt])
+  @@index([sessionId, createdAt])
+  @@index([model, createdAt])
+}
