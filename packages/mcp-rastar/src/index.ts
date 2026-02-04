@@ -97,9 +97,12 @@ function createZodSchemaFromTool(tool: any) {
   }
   
   // Return Zod object schema
-  return Object.keys(schemaFields).length > 0 
-    ? z.object(schemaFields).passthrough()
-    : z.object({}).passthrough();
+  // When no properties, return undefined (allowed by MCP SDK type)
+  if (Object.keys(schemaFields).length === 0) {
+    return undefined;
+  }
+  
+  return z.object(schemaFields) as any;
 }
 
 /**

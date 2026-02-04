@@ -6,11 +6,13 @@ export * from './types.js';
 export { BaseJob } from './base-job.js';
 export * from './unselected-food-reminder.job.js';
 export * from './custom-message.job.js';
+export * from './weekly-food-check.job.js';
 
 // Registration helper
 import { jobRegistry } from '../job-registry.js';
 import { unselectedFoodReminderJob } from './unselected-food-reminder.job.js';
 import { customMessageJob } from './custom-message.job.js';
+import { weeklyFoodCheckJob } from './weekly-food-check.job.js';
 
 /**
  * Register all job definitions with the job registry
@@ -22,6 +24,7 @@ export function registerAllJobs(): void {
   // Register each job
   jobRegistry.register(unselectedFoodReminderJob.toDefinition());
   jobRegistry.register(customMessageJob.toDefinition());
+  jobRegistry.register(weeklyFoodCheckJob.toDefinition());
   
   // Add more job registrations here
   

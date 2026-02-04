@@ -9,6 +9,7 @@
     "start": "next start -p 3000 -H 0.0.0.0"
   },
   "dependencies": {
+    "@rad/job-scheduler": "*",
     "@rad/shared": "*",
     "@radix-ui/react-collapsible": "^1.1.12",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -23,6 +24,7 @@
     "@radix-ui/react-use-controllable-state": "^1.2.2",
     "@sbzen/re-cron": "^2.0.7",
     "@types/bcryptjs": "^2.4.6",
+    "croner": "^8.1.1",
     "@xyflow/react": "^12.10.0",
     "ai": "^6.0.11",
     "bcryptjs": "^3.0.3",
