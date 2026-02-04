@@ -14,6 +14,8 @@ COPY apps/admin-panel/tsconfig.json ./apps/admin-panel/
 COPY apps/admin-panel/next.config.mjs ./apps/admin-panel/
 COPY packages/shared/package*.json ./packages/shared/
 COPY packages/shared/tsconfig.json ./packages/shared/
+COPY packages/job-scheduler/package*.json ./packages/job-scheduler/
+COPY packages/job-scheduler/tsconfig.json ./packages/job-scheduler/
 
 # Copy Prisma schema first (needed for postinstall)
 COPY packages/shared/prisma ./packages/shared/prisma
@@ -24,6 +26,7 @@ RUN npm ci --workspaces
 
 # Copy source code
 COPY packages/shared ./packages/shared
+COPY packages/job-scheduler ./packages/job-scheduler
 COPY apps/admin-panel ./apps/admin-panel
 COPY scripts/admin-panel-entrypoint.sh ./scripts/admin-panel-entrypoint.sh
 COPY scripts/create-admin.ts ./scripts/create-admin.ts
