@@ -110,7 +110,12 @@ class Scheduler {
     });
 
     for (const job of jobs) {
-      await this.startJobCron(job as ScheduledJobRecord);
+      try {
+        await this.startJobCron(job as ScheduledJobRecord);
+      } catch (error) {
+        console.error(`[scheduler] Failed to start cron for job ${job.name}:`, error);
+        // Continue with next job instead of failing completely
+      }
     }
 
     console.log(`[scheduler] Started ${jobs.length} cron jobs`);
@@ -129,6 +134,39 @@ class Scheduler {
     if (!jobRegistry.has(jobKey)) {
       console.warn(`[scheduler] No handler registered for job: ${jobKey}`);
       return;
+    }
+
+    // Validate cron expression before creating Cron instance
+    try {
+      // Test parse the cron expression to catch errors early
+      const testCron = new Cron(job.schedule, { timezone: job.timezone });
+      testCron.stop();
+    } catch (error) {
+      console.error(`[scheduler] Invalid cron pattern for job ${job.name}: ${job.schedule}`, error);
+      // Reset to default schedule from job definition
+      const def = jobRegistry.getDefaults().find(d => d.name === jobKey);
+      if (def && def.defaultSchedule !== job.schedule) {
+        console.log(`[scheduler] Resetting job schedule to default: ${def.defaultSchedule}`);
+        await this.getPrismaInstance().scheduledJob.update({
+          where: { name: job.name },
+          data: { schedule: def.defaultSchedule },
+        });
+        // Retry with default schedule
+        const updatedJob = await this.getPrismaInstance().scheduledJob.findUnique({
+          where: { name: job.name },
+        });
+        if (updatedJob) {
+          await this.startJobCron(updatedJob as ScheduledJobRecord);
+        }
+        return;
+      } else {
+        console.error(`[scheduler] Failed to fix job schedule, disabling job: ${job.name}`);
+        await this.getPrismaInstance().scheduledJob.update({
+          where: { name: job.name },
+          data: { enabled: false },
+        });
+        return;
+      }
     }
 
     // Create cron job
