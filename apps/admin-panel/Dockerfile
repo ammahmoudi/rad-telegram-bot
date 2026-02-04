@@ -16,6 +16,8 @@ COPY packages/shared/package*.json ./packages/shared/
 COPY packages/shared/tsconfig.json ./packages/shared/
 COPY packages/job-scheduler/package*.json ./packages/job-scheduler/
 COPY packages/job-scheduler/tsconfig.json ./packages/job-scheduler/
+COPY packages/rastar-service/package*.json ./packages/rastar-service/
+COPY packages/rastar-service/tsconfig.json ./packages/rastar-service/
 
 # Copy Prisma schema first (needed for postinstall)
 COPY packages/shared/prisma ./packages/shared/prisma
@@ -26,6 +28,7 @@ RUN npm ci --workspaces
 
 # Copy source code
 COPY packages/shared ./packages/shared
+COPY packages/rastar-service ./packages/rastar-service
 COPY packages/job-scheduler ./packages/job-scheduler
 COPY apps/admin-panel ./apps/admin-panel
 COPY scripts/admin-panel-entrypoint.sh ./scripts/admin-panel-entrypoint.sh
@@ -41,6 +44,9 @@ RUN npm run prisma:generate -w packages/shared
 
 # Build shared package first (needed by admin-panel and job-scheduler)
 RUN npm run build -w packages/shared
+
+# Build rastar-service package (needed by job-scheduler)
+RUN npm run build -w packages/rastar-service
 
 # Build job-scheduler package (needed by admin-panel)
 RUN npm run build -w packages/job-scheduler
