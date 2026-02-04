@@ -34,7 +34,6 @@ export async function GET() {
       updatedAt: Number(pack.updatedAt),
       messages: pack.messages.map(msg => ({
         ...msg,
-        createdAt: Number(msg.createdAt),
         updatedAt: Number(msg.updatedAt),
       })),
     }));
