@@ -211,7 +211,7 @@ export async function POST(request: NextRequest) {
         const packIds = Array.isArray(targets.packIds) ? targets.packIds : [];
 
         const excludeSet = new Set(excludeUsers.map(String));
-        const includeFiltered = includeUsers.map(String).filter(u => !excludeSet.has(u));
+        const includeFiltered = includeUsers.map(String).filter((u: string) => !excludeSet.has(u));
 
         if (includeFiltered.length > 0 || excludeUsers.length > 0) {
           await prisma.scheduledJobTargetUser.createMany({
