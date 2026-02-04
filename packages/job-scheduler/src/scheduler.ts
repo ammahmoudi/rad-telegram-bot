@@ -145,11 +145,11 @@ class Scheduler {
       console.error(`[scheduler] Invalid cron pattern for job ${job.name}: ${job.schedule}`, error);
       // Reset to default schedule from job definition
       const def = jobRegistry.getDefaults().find(d => d.name === jobKey);
-      if (def && def.defaultSchedule !== job.schedule) {
-        console.log(`[scheduler] Resetting job schedule to default: ${def.defaultSchedule}`);
+      if (def && def.schedule !== job.schedule) {
+        console.log(`[scheduler] Resetting job schedule to default: ${def.schedule}`);
         await this.getPrismaInstance().scheduledJob.update({
           where: { name: job.name },
-          data: { schedule: def.defaultSchedule },
+          data: { schedule: def.schedule },
         });
         // Retry with default schedule
         const updatedJob = await this.getPrismaInstance().scheduledJob.findUnique({
