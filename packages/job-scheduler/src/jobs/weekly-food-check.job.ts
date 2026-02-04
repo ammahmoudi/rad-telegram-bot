@@ -192,7 +192,7 @@ export class WeeklyFoodCheckJob extends BaseJob {
       throw new Error(`OpenRouter API error: ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const data = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
     const aiMessage = data.choices?.[0]?.message?.content;
     
     if (!aiMessage) {
