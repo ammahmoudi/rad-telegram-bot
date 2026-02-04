@@ -49,6 +49,9 @@ import './commands/integrations.js';
 import { handleAiMessage } from './handlers/ai-message.js';
 import { handleButtonCallback } from './handlers/button-callback.js';
 
+// Import scheduler
+import { initializeScheduler, shutdownScheduler } from './scheduler/index.js';
+
 // ============================================================================
 // Health Check Server
 // ============================================================================
@@ -305,6 +308,14 @@ async function startBotWithRetry(maxRetries = 5, retryDelay = 5000) {
       const info = await bot.api.getMe();
       console.log(`[telegram-bot] ✅ Connected successfully as @${info.username}`);
       
+      // Initialize scheduler (non-blocking - won't fail startup if Redis unavailable)
+      try {
+        await initializeScheduler(bot);
+        console.log('[telegram-bot] ✅ Scheduler initialized');
+      } catch (schedulerError) {
+        console.warn('[telegram-bot] ⚠️ Scheduler initialization failed (will continue without scheduled jobs):', schedulerError);
+      }
+      
       // Start bot with runner (production-grade)
       console.log('[telegram-bot] 🚀 Starting bot with Grammy runner...');
       const handle = run(bot, {
@@ -332,6 +343,15 @@ async function startBotWithRetry(maxRetries = 5, retryDelay = 5000) {
       // Graceful shutdown handlers - properly stop the runner
       const stopRunner = async () => {
         console.log('[telegram-bot] 🛑 Received shutdown signal, stopping runner gracefully...');
+        
+        // Shutdown scheduler first
+        try {
+          await shutdownScheduler();
+          console.log('[telegram-bot] ✅ Scheduler shut down');
+        } catch (schedulerError) {
+          console.warn('[telegram-bot] ⚠️ Scheduler shutdown error:', schedulerError);
+        }
+        
         if (handle.isRunning()) {
           await handle.stop();
           console.log('[telegram-bot] ✅ Runner stopped successfully');

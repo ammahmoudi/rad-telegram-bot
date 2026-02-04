@@ -2,6 +2,7 @@
  * User Commands - General bot commands
  */
 
+import type { BotContext } from '../bot.js';
 import { userCommands } from './index.js';
 import { handleStartCommand, handleMenuCommand } from '../handlers/commands/start.js';
 
@@ -35,7 +36,7 @@ userCommands.command(
 userCommands.command(
   'settings',
   'Bot settings',
-  async (ctx) => {
+  async (ctx: BotContext) => {
     const { mainMenu } = await import('../menus/index.js');
     await ctx.reply('⚙️ <b>Settings</b>', { reply_markup: mainMenu });
   }
@@ -46,7 +47,7 @@ userCommands.command(
 userCommands.command(
   'help',
   'Show this help message',
-  async (ctx) => {
+  async (ctx: BotContext) => {
     await ctx.reply(
       `<b>📚 Available Commands</b>\n\n` +
       `<b>General:</b>\n` +

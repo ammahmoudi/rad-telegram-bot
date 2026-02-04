@@ -69,6 +69,7 @@ model CharacterPack {
   // Relations
   messages        PackMessage[]
   userAssignments UserPackAssignment[]
+  jobTargets      ScheduledJobTargetPack[]
   
   @@index([isDefault])
 }
@@ -210,4 +211,81 @@ model LlmCall {
   @@index([telegramUserId, createdAt])
   @@index([sessionId, createdAt])
   @@index([model, createdAt])
+}
+
+// ==================== SCHEDULED JOBS SYSTEM ====================
+
+// Scheduled Job Configuration - managed via admin panel
+model ScheduledJob {
+  id          String   @id @default(cuid())
+  name        String   @unique // Unique identifier like 'food-reminder', 'weekly-report'
+  jobKey      String   @default("") // Registry job key (e.g. 'unselected-food-reminder', 'custom-message')
+  jobType     String   @default("coded") // 'coded' | 'custom-message'
+  displayName String   // Human-readable name for admin panel
+  description String?  // Description of what this job does
+  schedule    String   // Cron expression (e.g., '0 22 * * *' for 10pm daily)
+  timezone    String   @default("Asia/Tehran") // Timezone for schedule
+  enabled     Boolean  @default(true)
+  config      String?  // JSON string of job-specific configuration
+  lastRunAt   BigInt?  // Timestamp of last execution
+  nextRunAt   BigInt?  // Calculated next run time
+  createdAt   BigInt
+  updatedAt   BigInt
+  
+  executions  JobExecution[]
+  targetUsers ScheduledJobTargetUser[]
+  targetPacks ScheduledJobTargetPack[]
+  
+  @@index([enabled])
+  @@index([nextRunAt])
+  @@index([jobType])
+}
+
+// Job Targeting: Include/Exclude specific users
+model ScheduledJobTargetUser {
+  id             String @id @default(cuid())
+  jobId          String
+  telegramUserId String
+  mode           String // 'include' | 'exclude'
+  createdAt      BigInt
+
+  job            ScheduledJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, telegramUserId])
+  @@index([jobId, mode])
+}
+
+// Job Targeting: Include/Exclude by character pack
+model ScheduledJobTargetPack {
+  id        String @id @default(cuid())
+  jobId     String
+  packId    String
+  mode      String @default("include") // 'include' | 'exclude'
+  createdAt BigInt
+
+  job       ScheduledJob  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  pack      CharacterPack @relation(fields: [packId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, packId])
+  @@index([jobId, mode])
+}
+
+// Job Execution History - for monitoring and debugging
+model JobExecution {
+  id            String   @id @default(cuid())
+  jobId         String
+  job           ScheduledJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  status        String   // 'pending', 'running', 'success', 'failed'
+  startedAt     BigInt
+  completedAt   BigInt?
+  durationMs    Int?     // Execution duration in milliseconds
+  result        String?  // JSON string of execution result summary
+  error         String?  // Error message if failed
+  usersAffected Int      @default(0) // Number of users affected by this execution
+  metadata      String?  // JSON string of additional metadata
+  
+  @@index([jobId])
+  @@index([status])
+  @@index([startedAt])
+  @@index([jobId, startedAt])
 }

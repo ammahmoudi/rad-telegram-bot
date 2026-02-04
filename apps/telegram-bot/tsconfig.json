@@ -6,6 +6,10 @@
     "outDir": "dist",
     "resolveJsonModule": true
   },
-  "references": [{ "path": "../../packages/shared" }],
+  "references": [
+    { "path": "../../packages/shared" },
+    { "path": "../../packages/job-scheduler" },
+    { "path": "../../packages/rastar-service" }
+  ],
   "include": ["src/**/*"]
 }

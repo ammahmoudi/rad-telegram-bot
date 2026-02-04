@@ -2,6 +2,7 @@
  * Integration Commands - Planka and Rastar
  */
 
+import type { BotContext } from '../bot.js';
 import { integrationCommands } from './index.js';
 import {
   handleLinkPlankaCommand,
@@ -18,7 +19,7 @@ import {
 integrationCommands.command(
   'link_planka',
   'Link your Planka account',
-  async (ctx) => {
+  async (ctx: BotContext) => {
     await ctx.conversation.enter('linkPlankaConversation');
   }
 )
@@ -42,7 +43,7 @@ integrationCommands.command(
 integrationCommands.command(
   'link_rastar',
   'Link your Rastar account',
-  async (ctx) => {
+  async (ctx: BotContext) => {
     await ctx.conversation.enter('linkRastarConversation');
   }
 )

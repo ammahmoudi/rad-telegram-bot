@@ -13,6 +13,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: t.nav.settings, path: '/', icon: '⚙️' },
     { name: t.nav.users, path: '/users', icon: '👥' },
     { name: t.nav.packs, path: '/packs', icon: '🎭' },
+    { name: t.nav.jobs || 'Scheduled Jobs', path: '/jobs', icon: '📋' },
     { name: t.nav.toolLogs || 'Chat Logs', path: '/chat-logs', icon: '🔧' },
     { name: t.nav.usageAccounting || 'Usage Accounting', path: '/usage-accounting', icon: '💸' },
   ];

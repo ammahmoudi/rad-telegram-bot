@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import dotenv from 'dotenv';
-import type { Request, Response } from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -73,7 +72,7 @@ function createServer() {
       tool.name,
       {
         description: tool.description,
-        inputSchema: createZodSchemaFromTool(tool),
+        inputSchema: createZodSchemaFromTool(tool) as any,
       },
       async (args: any) => {
         try {
@@ -211,7 +210,7 @@ async function main() {
   });
 
   // Streamable HTTP endpoint (POST) - Stateless mode
-  app.post('/mcp', async (req: Request, res: Response) => {
+  app.post('/mcp', async (req, res) => {
     try {
       // Create a new server and transport for each request (stateless)
       const server = createServer();

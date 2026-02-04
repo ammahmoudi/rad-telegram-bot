@@ -405,9 +405,9 @@ The old system used `SystemMessage` model with global messages. The new system:
 
 ## 📖 Related Documentation
 
-- [SETUP_INSTRUCTIONS.md](./SETUP_INSTRUCTIONS.md) - Initial setup guide
+- [SETUP_INSTRUCTIONS.md](docs/SETUP_INSTRUCTIONS.md) - Initial setup guide
 - [ADMIN_PANEL_GUIDE.md](./ADMIN_PANEL_GUIDE.md) - Admin panel user guide
-- [ADMIN_PANEL_IMPLEMENTATION.md](./ADMIN_PANEL_IMPLEMENTATION.md) - Technical implementation details
+- [ADMIN_PANEL_IMPLEMENTATION.md](docs/ADMIN_PANEL_IMPLEMENTATION.md) - Technical implementation details
 
 ## 🆘 Troubleshooting
 

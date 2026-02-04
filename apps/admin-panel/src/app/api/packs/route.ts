@@ -27,7 +27,19 @@ export async function GET() {
       ],
     });
 
-    return NextResponse.json({ packs });
+    // Convert BigInt fields to numbers for JSON serialization
+    const serializedPacks = packs.map(pack => ({
+      ...pack,
+      createdAt: Number(pack.createdAt),
+      updatedAt: Number(pack.updatedAt),
+      messages: pack.messages.map(msg => ({
+        ...msg,
+        createdAt: Number(msg.createdAt),
+        updatedAt: Number(msg.updatedAt),
+      })),
+    }));
+
+    return NextResponse.json({ packs: serializedPacks });
   } catch (error) {
     console.error('Error fetching packs:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

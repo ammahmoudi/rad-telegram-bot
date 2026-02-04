@@ -8,14 +8,21 @@ import { execSync } from 'child_process';
 import { readFileSync, existsSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import Database from 'better-sqlite3';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const rootDir = join(__dirname, '..');
 
-// Database path
+// Database path (SQLite only)
 const dbPath = join(rootDir, '../../data/rastar.db');
+
+const databaseUrl = process.env.DATABASE_URL || '';
+const isSqlite = databaseUrl.startsWith('file:') || databaseUrl.toLowerCase().includes('sqlite');
+
+if (!isSqlite) {
+  console.log('ℹ️  Non-SQLite DATABASE_URL detected. Skipping SQLite migration reset.');
+  process.exit(0);
+}
 
 console.log('🔄 Resetting database migrations...');
 console.log(`📂 Database: ${dbPath}`);
@@ -26,6 +33,14 @@ if (!existsSync(dbPath)) {
 }
 
 // Open database
+let Database;
+try {
+  ({ default: Database } = await import('better-sqlite3'));
+} catch (error) {
+  console.error('❌ Missing better-sqlite3. Install it only if using SQLite.');
+  process.exit(1);
+}
+
 const db = new Database(dbPath);
 
 try {

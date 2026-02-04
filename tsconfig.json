@@ -2,8 +2,12 @@
   "files": [],
   "references": [
     { "path": "./packages/shared" },
+    { "path": "./packages/job-scheduler" },
+    { "path": "./packages/rastar-service" },
     { "path": "./packages/mcp-planka" },
     { "path": "./apps/link-portal" },
     { "path": "./apps/telegram-bot" }
   ]
+  // ,
+  // "exclude": ["apps/admin-panel"]
 }

@@ -90,48 +90,61 @@ export function SettingsForm({
       <Toaster position="top-right" />
 
       {/* Info Banner */}
-      <div className="mt-4 bg-blue-500/10 border border-blue-500/30 rounded-lg px-4 py-3">
-        <p className="text-sm text-blue-200">{t.settings.info}</p>
+      <div className="mt-6 bg-linear-to-r from-blue-500/10 to-cyan-500/10 border border-blue-500/30 rounded-xl px-6 py-4 shadow-lg">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+            <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <p className="text-sm text-blue-100">{t.settings.info}</p>
+        </div>
       </div>
 
-      {/* Settings Container */}
-      <div className="bg-white/10 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 mt-6">
-        {/* Header */}
-        <div className="p-6 border-b border-white/20">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-linear-to-br from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
-              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      {/* Settings Container - Enlarged and Enhanced */}
+      <div className="bg-white/10 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/30 mt-8 overflow-hidden">
+        {/* Header with Gradient */}
+        <div className="p-8 border-b border-white/20 bg-linear-to-r from-slate-800/50 to-slate-900/50">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-linear-to-br from-green-500 via-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center shadow-lg">
+              <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-white">{t.settings.title}</h2>
-              <p className="text-slate-400 text-sm">{t.settings.subtitle}</p>
+              <h2 className="text-2xl font-bold text-white mb-1">{t.settings.title}</h2>
+              <p className="text-slate-300 text-base">{t.settings.subtitle}</p>
             </div>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-white/20 overflow-x-auto">
+        {/* Tabs - Improved Design */}
+        <div className="flex border-b border-white/20 overflow-x-auto bg-slate-900/30">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-6 py-3 font-medium transition-all whitespace-nowrap ${
+              className={`px-8 py-4 font-semibold transition-all whitespace-nowrap text-base relative ${
                 activeTab === tab.id
-                  ? 'text-white border-b-2 border-blue-500 bg-blue-500/10'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'text-white bg-linear-to-b from-blue-500/20 to-transparent'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
               }`}
             >
-              {tab.icon} {tab.label}
+              <span className="flex items-center gap-2.5">
+                <span className="text-2xl">{tab.icon}</span>
+                {tab.label}
+              </span>
+              {activeTab === tab.id && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-linear-to-r from-blue-500 to-cyan-500"></div>
+              )}
             </button>
           ))}
         </div>
 
-        {/* Tab Content */}
-        <div className="p-6">
-          <form onSubmit={handleSaveSettings} className="space-y-6">
+        {/* Tab Content - More Spacious */}
+        <div className="p-8">
+          <form onSubmit={handleSaveSettings} className="space-y-8">
             <div className={activeTab === 'planka' ? 'block' : 'hidden'}>
               <PlankaSettingsTab
                 config={{
@@ -186,14 +199,31 @@ export function SettingsForm({
               />
             </div>
 
-            {/* Save Button */}
-            <div className="flex justify-end pt-4 border-t border-white/10">
+            {/* Save Button - Enhanced */}
+            <div className="flex justify-end pt-6 border-t border-white/10">
               <button
                 type="submit"
                 disabled={saveLoading}
-                className="px-6 py-2.5 bg-linear-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                className="group px-8 py-3.5 bg-linear-to-r from-blue-600 via-blue-500 to-cyan-600 hover:from-blue-700 hover:via-blue-600 hover:to-cyan-700 text-white font-semibold rounded-xl transition-all shadow-lg hover:shadow-2xl hover:shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98]"
               >
-                {saveLoading ? '💾 Saving...' : t.settings.saveSettings}
+                <span className="flex items-center gap-2.5">
+                  {saveLoading ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5 transition-transform group-hover:rotate-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                      </svg>
+                      <span>{t.settings.saveSettings}</span>
+                    </>
+                  )}
+                </span>
               </button>
             </div>
           </form>

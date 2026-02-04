@@ -179,7 +179,7 @@ npm run build
 
 ### Deep Dive (Architecture/Implementation)
 1. Read: [TELEGRAM_API_8_0_TOPICS.md](./apps/telegram-bot/TELEGRAM_API_8_0_TOPICS.md)
-2. Review: [TELEGRAM_API_8_0_INTEGRATION.md](./TELEGRAM_API_8_0_INTEGRATION.md)
+2. Review: [TELEGRAM_API_8_0_INTEGRATION.md](docs/TELEGRAM_API_8_0_INTEGRATION.md)
 3. Study: Source code in handlers/
 
 ### Debugging (Issues)

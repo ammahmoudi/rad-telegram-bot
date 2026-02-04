@@ -9,11 +9,11 @@ services:
     env_file:
       - .env
     environment:
-      - POSTGRES_DB=rastar
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=${POSTGRES_DB:-rastar}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     networks:
@@ -25,6 +25,27 @@ services:
       retries: 5
     labels:
       - "com.rastar.service=postgres"
+
+  # === Redis (for BullMQ job queue) ===
+  
+  redis:
+    image: redis:7-alpine
+    container_name: rastar-redis
+    restart: unless-stopped
+    command: redis-server
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - rastar-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:
+      - "com.rastar.service=redis"
   
   # === MCP Servers (Streamable HTTP) ===
   # Using modern Streamable HTTP transport from official MCP SDK v1.x
@@ -39,7 +60,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3100
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/rastar
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-rastar}
       - PLANKA_SERVER_URL=${PLANKA_SERVER_URL}
     ports:
       - "3100:3100"
@@ -69,7 +90,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3101
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/rastar
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-rastar}
       - RASTAR_SUPABASE_URL=${RASTAR_SUPABASE_URL}
       - RASTAR_SUPABASE_ANON_KEY=${RASTAR_SUPABASE_ANON_KEY}
       - RASTAR_SUPABASE_AUTH_PATH=${RASTAR_SUPABASE_AUTH_PATH}
@@ -129,12 +150,12 @@ services:
       context: .
       dockerfile: ./apps/telegram-bot/Dockerfile
       args:
-        - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/rastar
+        - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-rastar}
     container_name: rastar-telegram-bot
     restart: unless-stopped
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/rastar
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-rastar}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - DEFAULT_AI_MODEL=${DEFAULT_AI_MODEL:-anthropic/claude-3.5-sonnet}
@@ -149,6 +170,10 @@ services:
       - MCP_PLANKA_URL=http://mcp-planka:3100/mcp
       - MCP_RASTAR_URL=http://mcp-rastar:3101/mcp
       - MCP_TIME_URL=http://mcp-time:3102/mcp
+      # Redis for job queue (BullMQ)
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       # Optional: Create default admin on first startup
       - DEFAULT_ADMIN_USERNAME=${DEFAULT_ADMIN_USERNAME}
       - DEFAULT_ADMIN_PASSWORD=${DEFAULT_ADMIN_PASSWORD}
@@ -158,6 +183,8 @@ services:
       - rastar-network
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       link-portal:
         condition: service_healthy
@@ -181,14 +208,14 @@ services:
       context: .
       dockerfile: ./apps/link-portal/Dockerfile
       args:
-        - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/rastar
+        - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-rastar}
     container_name: rastar-link-portal
     restart: unless-stopped
     environment:
       - NODE_ENV=production
       - PORT=3002
       - HOST=0.0.0.0
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/rastar
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-rastar}
       - RASTAR_SUPABASE_URL=${RASTAR_SUPABASE_URL}
       - RASTAR_SUPABASE_ANON_KEY=${RASTAR_SUPABASE_ANON_KEY}
       - RASTAR_SUPABASE_AUTH_PATH=${RASTAR_SUPABASE_AUTH_PATH}
@@ -218,13 +245,15 @@ services:
     build:
       context: .
       dockerfile: ./apps/admin-panel/Dockerfile
+      args:
+        - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-rastar}
     container_name: rastar-admin-panel
     restart: unless-stopped
     environment:
       - NODE_ENV=production
       - PORT=3000
       - HOSTNAME=0.0.0.0
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/rastar
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-rastar}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
@@ -265,3 +294,6 @@ volumes:
   postgres-data:
     driver: local
     name: rastar-postgres-data
+  redis-data:
+    driver: local
+    name: rastar-redis-data

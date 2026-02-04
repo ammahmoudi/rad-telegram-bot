@@ -138,8 +138,8 @@ export function getRecommendedModels(): string[] {
     'openrouter/auto', // Auto router
     'anthropic/claude-3.5-sonnet',
     'openai/gpt-4o',
-    'google/gemini-2.0-flash-exp:free',
     'google/gemini-flash-1.5',
+    'google/gemini-pro-1.5',
     'meta-llama/llama-3.1-70b-instruct',
   ];
 }

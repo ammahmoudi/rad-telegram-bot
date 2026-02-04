@@ -231,9 +231,9 @@ docker compose restart
 
 ## 📚 Documentation
 
-- **[QUICK_START.md](./QUICK_START.md)** - Quick start guide
+- **[QUICK_START.md](docs/QUICK_START.md)** - Quick start guide
 - **[DOCKER_PRODUCTION.md](./DOCKER_PRODUCTION.md)** - Complete Docker production guide
-- **[SETUP_INSTRUCTIONS.md](./SETUP_INSTRUCTIONS.md)** - Detailed setup
+- **[SETUP_INSTRUCTIONS.md](docs/SETUP_INSTRUCTIONS.md)** - Detailed setup
 - **[ENV_CONFIGURATION.md](./ENV_CONFIGURATION.md)** - Environment variables explained
 
 ---

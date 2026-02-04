@@ -1,16 +1,23 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import dotenv from 'dotenv';
+import fs from 'node:fs';
 
-// Only load .env files in development
-if (process.env.NODE_ENV !== 'production') {
-  const { default: dotenv } = await import('dotenv');
-  const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
-  
-  // Load .env.local first (for local development), then .env (for Docker)
-  // .env.local takes precedence if it exists
-  dotenv.config({ path: path.join(repoRoot, '.env.local') });
-  dotenv.config({ path: path.join(repoRoot, '.env') });
-}
+// Load environment variables from root .env.local
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
+const envLocalPath = path.join(repoRoot, '.env.local');
+
+console.log('[link-portal] repo root:', repoRoot);
+console.log('[link-portal] .env.local path:', envLocalPath);
+console.log('[link-portal] .env.local exists:', fs.existsSync(envLocalPath));
+
+const result1 = dotenv.config({ path: envLocalPath });
+console.log('[link-portal] dotenv.config(.env.local) result:', result1.parsed ? Object.keys(result1.parsed).filter(k => k.includes('DATABASE')) : 'no parsed');
+
+const result2 = dotenv.config({ path: path.join(repoRoot, '.env') });
+console.log('[link-portal] dotenv.config(.env) result:', result2.parsed ? Object.keys(result2.parsed).filter(k => k.includes('DATABASE')) : 'no parsed');
+
+console.log('[link-portal] DATABASE_URL after dotenv:', process.env.DATABASE_URL);
 
 import express from 'express';
 

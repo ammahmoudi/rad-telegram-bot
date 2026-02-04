@@ -345,6 +345,28 @@ errors-rate-limit-what-to-do = چیکار کنم:
 errors-rate-limit-wait = • یه لحظه صبر کنید و دوباره امتحان کنید
 errors-rate-limit-message-saved = • پیام شما ذخیره شد
 errors-rate-limit-note = معمولاً این محدودیت ظرف 30-60 ثانیه برطرف می‌شه
+errors-network-title = 🌐 خطای اتصال شبکه
+errors-network-description = مشکل در اتصال به سرویس هوش مصنوعی رخ داد.
+errors-network-try = چیکار کنم:
+errors-network-wait-retry = • یه لحظه صبر کنید و دوباره امتحان کنید
+errors-network-check-connection = • اتصال اینترنت خود را بررسی کنید
+errors-network-server-issue = • سرویس ممکن است موقتاً در دسترس نباشد
+errors-model-compatibility-title = ⚙️ مشکل سازگاری مدل
+errors-model-compatibility-description = مدل هوش مصنوعی فعلی از ابزارهای مورد نیاز برای این عملیات پشتیبانی نمی‌کند.
+errors-model-compatibility-compatible-models = مدل‌های سازگار:
+errors-model-compatibility-ask-admin = لطفاً از مدیر بخواهید به مدل سازگار تغییر دهد
+errors-credits-title = 💳 اعتبار ناکافی
+errors-credits-description = حساب API به حد استفاده رسیده یا اعتبار تمام شده است.
+errors-credits-ask-admin = لطفاً از مدیر بخواهید اعتبار اضافه کند یا حساب API را بررسی کند
+errors-auth-title = 🔐 خطای احراز هویت
+errors-auth-description = مشکلی در اعتبارنامه‌های احراز هویت API وجود دارد.
+errors-auth-ask-admin = لطفاً از مدیر بخواهید تنظیمات API را بررسی کند
+errors-timeout-title = ⏱️ مهلت درخواست تمام شد
+errors-timeout-description = درخواست برای پردازش زمان‌های زیادی لازم داشت.
+errors-timeout-try = چیکار کنم:
+errors-timeout-simplify = • یک درخواست ساده‌تر امتحان کنید
+errors-timeout-retry = • یه لحظه صبر کنید و دوباره امتحان کنید
+errors-timeout-break-up = • درخواست خود را به قسمت‌های کوچک‌تر تقسیم کنید
 
 # Button callback messages  
 button-callback-invalid-button-data = ❌ داده دکمه نامعتبر است
