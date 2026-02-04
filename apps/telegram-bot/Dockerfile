@@ -13,6 +13,10 @@ COPY apps/telegram-bot/package*.json ./apps/telegram-bot/
 COPY apps/telegram-bot/tsconfig.json ./apps/telegram-bot/
 COPY packages/shared/package*.json ./packages/shared/
 COPY packages/shared/tsconfig.json ./packages/shared/
+COPY packages/job-scheduler/package*.json ./packages/job-scheduler/
+COPY packages/job-scheduler/tsconfig.json ./packages/job-scheduler/
+COPY packages/rastar-service/package*.json ./packages/rastar-service/
+COPY packages/rastar-service/tsconfig.json ./packages/rastar-service/
 COPY packages/mcp-planka/package*.json ./packages/mcp-planka/
 COPY packages/mcp-planka/tsconfig.json ./packages/mcp-planka/
 COPY packages/mcp-rastar/package*.json ./packages/mcp-rastar/
@@ -27,6 +31,8 @@ RUN npm ci --workspaces
 
 # Copy source code
 COPY packages/shared ./packages/shared
+COPY packages/job-scheduler ./packages/job-scheduler
+COPY packages/rastar-service ./packages/rastar-service
 COPY packages/mcp-planka ./packages/mcp-planka
 COPY packages/mcp-rastar ./packages/mcp-rastar
 COPY apps/telegram-bot ./apps/telegram-bot
