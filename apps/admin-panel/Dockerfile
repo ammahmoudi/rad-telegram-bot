@@ -39,8 +39,11 @@ ENV DATABASE_URL=${DATABASE_URL}
 # Explicitly generate Prisma client after npm ci
 RUN npm run prisma:generate -w packages/shared
 
-# Build shared package first (needed by admin-panel)
+# Build shared package first (needed by admin-panel and job-scheduler)
 RUN npm run build -w packages/shared
+
+# Build job-scheduler package (needed by admin-panel)
+RUN npm run build -w packages/job-scheduler
 
 # Build Next.js with standalone output
 ENV NEXT_TELEMETRY_DISABLED=1
