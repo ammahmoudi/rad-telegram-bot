@@ -142,7 +142,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       const packIds = Array.isArray(targets.packIds) ? targets.packIds : [];
 
       const excludeSet = new Set(excludeUsers.map(String));
-      const includeFiltered = includeUsers.map(String).filter(u => !excludeSet.has(u));
+      const includeFiltered = includeUsers.map(String).filter((u: string) => !excludeSet.has(u));
 
       await prisma.scheduledJobTargetUser.deleteMany({
         where: { jobId: existing.id },
