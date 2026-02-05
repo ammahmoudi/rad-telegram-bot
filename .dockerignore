@@ -97,9 +97,6 @@ Desktop.ini
 .prettierignore
 .editorconfig
 
-# Prisma
-packages/shared/prisma/migrations
-
 # MCP specific files
 packages/mcp-*/test
 packages/mcp-*/tests

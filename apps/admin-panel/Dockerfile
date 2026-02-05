@@ -85,6 +85,7 @@ COPY --from=builder --chown=nodejs:nodejs /app/packages/shared/dist ./packages/s
 COPY --from=builder --chown=nodejs:nodejs /app/packages/job-scheduler/dist ./packages/job-scheduler/dist
 COPY --from=builder --chown=nodejs:nodejs /app/packages/rastar-service/dist ./packages/rastar-service/dist
 COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nodejs:nodejs /app/apps/admin-panel/node_modules ./apps/admin-panel/node_modules
 COPY --from=builder --chown=nodejs:nodejs /app/scripts ./scripts
 
 # Install Prisma CLI at the same version as @prisma/client
@@ -116,7 +117,7 @@ ENV NODE_ENV=production \
     HOSTNAME="0.0.0.0" \
     DATABASE_URL="file:/app/data/rastar.db" \
     NEXT_TELEMETRY_DISABLED=1 \
-    NODE_PATH=/app/node_modules
+    NODE_PATH=/app/node_modules:/app/apps/admin-panel/node_modules
 
 # Health check
 # HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
