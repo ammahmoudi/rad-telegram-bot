@@ -246,7 +246,7 @@ export function JobEditClient({ jobName }: { jobName: string }) {
             >
               {TIMEZONES.map((tz) => (
                 <option key={tz.value} value={tz.value}>
-                  {t.jobs?.timezones?.[tz.labelKey] || tz.label}
+                  {t.jobs?.timezones?.[tz.labelKey as keyof typeof t.jobs.timezones] || tz.label}
                 </option>
               ))}
             </select>
