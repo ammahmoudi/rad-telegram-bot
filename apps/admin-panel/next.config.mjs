@@ -23,6 +23,7 @@ const nextConfig = {
     }
     return config;
   },
+  staticPageGenerationTimeout: 60,
 };
 
 export default nextConfig;

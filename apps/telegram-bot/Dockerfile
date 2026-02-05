@@ -46,6 +46,8 @@ RUN npm run prisma:generate -w packages/shared
 
 # Build TypeScript projects (telegram-bot and dependencies)
 RUN npm run build -w packages/shared
+RUN npm run build -w packages/rastar-service
+RUN npm run build -w packages/job-scheduler
 RUN npm run build -w packages/mcp-planka
 RUN npm run build -w packages/mcp-rastar
 RUN npm run build -w apps/telegram-bot
@@ -68,6 +70,8 @@ COPY --chown=nodejs:nodejs package*.json ./
 # Copy workspace package files
 COPY --chown=nodejs:nodejs apps/telegram-bot/package*.json ./apps/telegram-bot/
 COPY --chown=nodejs:nodejs packages/shared/package*.json ./packages/shared/
+COPY --chown=nodejs:nodejs packages/job-scheduler/package*.json ./packages/job-scheduler/
+COPY --chown=nodejs:nodejs packages/rastar-service/package*.json ./packages/rastar-service/
 COPY --chown=nodejs:nodejs packages/mcp-planka/package*.json ./packages/mcp-planka/
 COPY --chown=nodejs:nodejs packages/mcp-rastar/package*.json ./packages/mcp-rastar/
 
@@ -77,6 +81,8 @@ RUN npm ci --workspaces
 # Copy built artifacts from builder
 COPY --from=builder --chown=nodejs:nodejs /app/apps/telegram-bot/dist ./apps/telegram-bot/dist
 COPY --from=builder --chown=nodejs:nodejs /app/packages/shared/dist ./packages/shared/dist
+COPY --from=builder --chown=nodejs:nodejs /app/packages/job-scheduler/dist ./packages/job-scheduler/dist
+COPY --from=builder --chown=nodejs:nodejs /app/packages/rastar-service/dist ./packages/rastar-service/dist
 COPY --from=builder --chown=nodejs:nodejs /app/packages/mcp-planka/dist ./packages/mcp-planka/dist
 COPY --from=builder --chown=nodejs:nodejs /app/packages/mcp-rastar/dist ./packages/mcp-rastar/dist
 

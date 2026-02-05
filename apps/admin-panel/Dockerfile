@@ -77,6 +77,9 @@ COPY --from=builder --chown=nodejs:nodejs /app/apps/admin-panel/.next/static ./a
 # Copy Prisma files and ALL node_modules (standalone mode doesn't include everything needed for migrations)
 COPY --from=builder --chown=nodejs:nodejs /app/packages/shared/prisma ./packages/shared/prisma
 COPY --from=builder --chown=nodejs:nodejs /app/packages/shared/prisma.config.ts ./packages/shared/prisma.config.ts
+COPY --from=builder --chown=nodejs:nodejs /app/packages/shared/dist ./packages/shared/dist
+COPY --from=builder --chown=nodejs:nodejs /app/packages/job-scheduler/dist ./packages/job-scheduler/dist
+COPY --from=builder --chown=nodejs:nodejs /app/packages/rastar-service/dist ./packages/rastar-service/dist
 COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
 
 # Install Prisma CLI at the same version as @prisma/client
