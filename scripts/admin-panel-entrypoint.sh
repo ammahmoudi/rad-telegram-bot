@@ -36,15 +36,15 @@ echo "🔍 DEBUG: DEFAULT_ADMIN_PASSWORD length: ${#DEFAULT_ADMIN_PASSWORD}"
 # Create default admin if credentials are provided
 if [ -n "$DEFAULT_ADMIN_USERNAME" ] && [ -n "$DEFAULT_ADMIN_PASSWORD" ]; then
   echo "👤 Creating default admin user..."
-  # Run with proper module resolution and working directory
-  cd /app && npm exec -- tsx /app/scripts/create-admin.ts "$DEFAULT_ADMIN_USERNAME" "$DEFAULT_ADMIN_PASSWORD" || echo "⚠️  Admin creation failed (non-critical)"
+  # Run with proper module resolution using npx from local node_modules
+  cd /app && npx tsx /app/scripts/create-admin.ts "$DEFAULT_ADMIN_USERNAME" "$DEFAULT_ADMIN_PASSWORD" || echo "⚠️  Admin creation failed (non-critical)"
 else
   echo "⚠️  Skipping admin creation - credentials not provided"
 fi
 
 # Create default character pack
 echo "🎭 Creating default character pack..."
-cd /app && npm exec -- tsx /app/scripts/create-default-pack.ts || echo "⚠️  Default pack creation failed (non-critical)"
+cd /app && npx tsx /app/scripts/create-default-pack.ts || echo "⚠️  Default pack creation failed (non-critical)"
 
 # Start Next.js server (standalone output preserves workspace structure)
 echo "✅ Starting Next.js server..."

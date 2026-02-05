@@ -22,7 +22,7 @@ COPY packages/mcp-planka/tsconfig.json ./packages/mcp-planka/
 COPY packages/mcp-rastar/package*.json ./packages/mcp-rastar/
 COPY packages/mcp-rastar/tsconfig.json ./packages/mcp-rastar/
 
-# Copy Prisma schema first (needed for postinstall)
+# Copy Prisma schema and migrations first (needed for postinstall)
 COPY packages/shared/prisma ./packages/shared/prisma
 COPY packages/shared/prisma.config.ts ./packages/shared/prisma.config.ts
 

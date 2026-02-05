@@ -48,6 +48,10 @@ __mocks__
 # Documentation
 *.md
 !README.md
+
+# Prisma - allow migrations
+!packages/shared/prisma/migrations/
+!packages/shared/prisma/migrations/**
 docs
 
 # CI/CD

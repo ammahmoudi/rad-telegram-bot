@@ -19,7 +19,7 @@ COPY packages/job-scheduler/tsconfig.json ./packages/job-scheduler/
 COPY packages/rastar-service/package*.json ./packages/rastar-service/
 COPY packages/rastar-service/tsconfig.json ./packages/rastar-service/
 
-# Copy Prisma schema first (needed for postinstall)
+# Copy Prisma schema and migrations first (needed for postinstall)
 COPY packages/shared/prisma ./packages/shared/prisma
 COPY packages/shared/prisma.config.ts ./packages/shared/prisma.config.ts
 

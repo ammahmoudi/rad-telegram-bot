@@ -36,3 +36,7 @@ coverage/
 # Other
 .DS_Store
 .cache
+
+# Prisma - allow migrations
+!packages/shared/prisma/migrations/
+!packages/shared/prisma/migrations/**
