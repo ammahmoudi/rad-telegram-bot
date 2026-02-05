@@ -20,7 +20,9 @@ COPY packages/rastar-service/package*.json ./packages/rastar-service/
 COPY packages/rastar-service/tsconfig.json ./packages/rastar-service/
 
 # Copy Prisma schema and migrations first (needed for postinstall)
-COPY packages/shared/prisma ./packages/shared/prisma
+COPY packages/shared/prisma/schema.prisma ./packages/shared/prisma/schema.prisma
+COPY packages/shared/prisma/migrations ./packages/shared/prisma/migrations
+COPY packages/shared/prisma/migration.sql ./packages/shared/prisma/migration.sql
 COPY packages/shared/prisma.config.ts ./packages/shared/prisma.config.ts
 
 # Install dependencies (including devDependencies for build)
@@ -75,7 +77,9 @@ COPY --from=builder --chown=nodejs:nodejs /app/apps/admin-panel/.next/static ./a
 # COPY --from=builder --chown=nodejs:nodejs /app/apps/admin-panel/public ./apps/admin-panel/public
 
 # Copy Prisma files and ALL node_modules (standalone mode doesn't include everything needed for migrations)
-COPY --from=builder --chown=nodejs:nodejs /app/packages/shared/prisma ./packages/shared/prisma
+COPY --from=builder --chown=nodejs:nodejs /app/packages/shared/prisma/schema.prisma ./packages/shared/prisma/schema.prisma
+COPY --from=builder --chown=nodejs:nodejs /app/packages/shared/prisma/migrations ./packages/shared/prisma/migrations
+COPY --from=builder --chown=nodejs:nodejs /app/packages/shared/prisma/migration.sql ./packages/shared/prisma/migration.sql
 COPY --from=builder --chown=nodejs:nodejs /app/packages/shared/prisma.config.ts ./packages/shared/prisma.config.ts
 COPY --from=builder --chown=nodejs:nodejs /app/packages/shared/dist ./packages/shared/dist
 COPY --from=builder --chown=nodejs:nodejs /app/packages/job-scheduler/dist ./packages/job-scheduler/dist
@@ -111,7 +115,8 @@ ENV NODE_ENV=production \
     PORT=3000 \
     HOSTNAME="0.0.0.0" \
     DATABASE_URL="file:/app/data/rastar.db" \
-    NEXT_TELEMETRY_DISABLED=1
+    NEXT_TELEMETRY_DISABLED=1 \
+    NODE_PATH=/app/node_modules
 
 # Health check
 # HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
