@@ -16,15 +16,20 @@ echo "🔍 DEBUG: Checking migrations directory..."
 ls -la /app/packages/shared/prisma/ || echo "❌ prisma directory not found"
 ls -la /app/packages/shared/prisma/migrations/ || echo "⚠️  migrations directory not found (will be created)"
 
-# Run database migrations
+# Run database migrations (single migration runner)
 echo "📊 Running database migrations..."
 cd /app/packages/shared
 
-# For first-time setup or if migration state is corrupted, use db push
-# This will create tables based on schema without checking migration history
+# Optionally resolve a failed migration if provided
+# Example: PRISMA_RESOLVE_ACTION=rolled-back PRISMA_RESOLVE_MIGRATION=20251228134626_test
+if [ -n "$PRISMA_RESOLVE_ACTION" ] && [ -n "$PRISMA_RESOLVE_MIGRATION" ]; then
+  echo "🩹 Resolving failed migration: $PRISMA_RESOLVE_MIGRATION ($PRISMA_RESOLVE_ACTION)"
+  npx prisma migrate resolve --$PRISMA_RESOLVE_ACTION "$PRISMA_RESOLVE_MIGRATION" || echo "⚠️  Migration resolve failed (non-critical)"
+fi
+
 npx prisma migrate deploy || {
-  echo "⚠️  Migration history issue, attempting db push..."
-  npx prisma db push --skip-generate
+  echo "⚠️  Migration history issue, attempting db push with accept-data-loss..."
+  npx prisma db push --accept-data-loss
 }
 
 cd /app
