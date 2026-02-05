@@ -81,6 +81,7 @@ COPY --from=builder --chown=nodejs:nodejs /app/packages/shared/dist ./packages/s
 COPY --from=builder --chown=nodejs:nodejs /app/packages/job-scheduler/dist ./packages/job-scheduler/dist
 COPY --from=builder --chown=nodejs:nodejs /app/packages/rastar-service/dist ./packages/rastar-service/dist
 COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nodejs:nodejs /app/scripts ./scripts
 
 # Install Prisma CLI at the same version as @prisma/client
 RUN npm install --global --save-exact "prisma@$(node --print 'require("./node_modules/@prisma/client/package.json").version')"

@@ -89,7 +89,7 @@ COPY --from=builder --chown=nodejs:nodejs /app/packages/mcp-rastar/dist ./packag
 # Copy locale files for i18n
 COPY --from=builder --chown=nodejs:nodejs /app/apps/telegram-bot/src/locales ./apps/telegram-bot/dist/locales
 
-# Copy Prisma schema and generated client
+# Copy Prisma schema, migrations, and generated client
 COPY --from=builder --chown=nodejs:nodejs /app/packages/shared/prisma ./packages/shared/prisma
 COPY --from=builder --chown=nodejs:nodejs /app/packages/shared/prisma.config.ts ./packages/shared/prisma.config.ts
 COPY --from=builder --chown=nodejs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
