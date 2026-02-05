@@ -28,8 +28,7 @@ if [ -n "$PRISMA_RESOLVE_ACTION" ] && [ -n "$PRISMA_RESOLVE_MIGRATION" ]; then
 fi
 
 npx prisma migrate deploy || {
-  echo "⚠️  Migration history issue, attempting db push with accept-data-loss..."
-  npx prisma db push --accept-data-loss
+  echo "⚠️  Migration failed. Skipping db push to avoid data loss."
 }
 
 cd /app

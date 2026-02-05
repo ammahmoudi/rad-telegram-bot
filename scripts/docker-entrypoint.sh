@@ -18,8 +18,7 @@ if [ "${RUN_MIGRATIONS:-false}" = "true" ]; then
   echo "📊 Running database migrations..."
   cd /app/packages/shared
   npx prisma migrate deploy || {
-    echo "⚠️  Migration failed, attempting db push with accept-data-loss..."
-    npx prisma db push --accept-data-loss
+    echo "⚠️  Migration failed. Skipping db push to avoid data loss."
   }
   cd /app
 else
