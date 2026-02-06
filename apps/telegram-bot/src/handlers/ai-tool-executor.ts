@@ -28,6 +28,7 @@ export async function executeAiTools(
   client: any,
   trimmedHistory: ChatMessage[],
   systemPrompt: string,
+  model: string,
   tools: any[],
   sessionId: string,
   sentMessage: { chat: { id: number }, message_id: number },
@@ -57,7 +58,8 @@ export async function executeAiTools(
   let response = await client.chat(
     trimmedHistory, 
     { 
-      systemPrompt, 
+      systemPrompt,
+      model,
       useMiddleOutTransform: enableMiddleOut 
     }, 
     tools,
@@ -260,6 +262,7 @@ export async function executeAiTools(
       trimmedHistory, 
       { 
         systemPrompt,
+        model,
         useMiddleOutTransform: enableMiddleOut 
       }, 
       tools,

@@ -3,13 +3,17 @@
 import { useState } from 'react';
 import { toast, Toaster } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { ModelSelector } from './ModelSelector';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export function PackFormClient() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    aiModel: '',
     isDefault: false,
     systemPromptEn: '',
     systemPromptFa: '',
@@ -132,6 +136,23 @@ export function PackFormClient() {
             <label htmlFor="isDefault" className="text-sm font-medium text-white flex-1 cursor-pointer">
               ⭐ Set as default pack for new users
             </label>
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="aiModel" className="text-sm font-medium text-white block">
+              {t.packs.aiModel}
+            </label>
+            <div className="relative">
+              <ModelSelector
+                defaultModel={formData.aiModel}
+                name="aiModel"
+                allowEmpty
+                emptyLabel={t.packs.aiModelInheritLabel}
+                emptyDescription={t.packs.aiModelInheritHelp}
+                onChange={(modelId) => setFormData({ ...formData, aiModel: modelId })}
+              />
+            </div>
+            <p className="text-xs text-slate-400">{t.packs.aiModelHelp}</p>
           </div>
         </div>
 

@@ -3,16 +3,19 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { ModelSelector } from './ModelSelector';
 
 interface PackInfoFormProps {
   packId: string;
   defaultName: string;
   defaultDescription: string;
+  defaultAiModel: string;
 }
 
-export function PackInfoForm({ packId, defaultName, defaultDescription }: PackInfoFormProps) {
+export function PackInfoForm({ packId, defaultName, defaultDescription, defaultAiModel }: PackInfoFormProps) {
   const [name, setName] = useState(defaultName);
   const [description, setDescription] = useState(defaultDescription);
+  const [aiModel, setAiModel] = useState(defaultAiModel);
   const [loading, setLoading] = useState(false);
   const { t } = useLanguage();
 
@@ -24,7 +27,7 @@ export function PackInfoForm({ packId, defaultName, defaultDescription }: PackIn
       const res = await fetch(`/api/packs/${packId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, description }),
+        body: JSON.stringify({ name, description, aiModel }),
       });
 
       if (res.ok) {
@@ -68,6 +71,25 @@ export function PackInfoForm({ packId, defaultName, defaultDescription }: PackIn
           className="w-full px-4 py-2 border border-white/10 bg-white/5 rounded-lg text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
           placeholder={t.packs.descriptionPlaceholder}
         />
+      </div>
+
+      <div>
+        <label className="block text-sm font-semibold text-slate-200 mb-2">
+          {t.packs.aiModel}
+        </label>
+        <div className="relative">
+          <ModelSelector
+            defaultModel={aiModel}
+            name="aiModel"
+            allowEmpty
+            emptyLabel={t.packs.aiModelInheritLabel}
+            emptyDescription={t.packs.aiModelInheritHelp}
+            onChange={(modelId) => setAiModel(modelId)}
+          />
+        </div>
+        <p className="mt-2 text-xs text-slate-400">
+          {t.packs.aiModelHelp}
+        </p>
       </div>
 
       <button

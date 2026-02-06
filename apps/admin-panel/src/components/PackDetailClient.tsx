@@ -17,6 +17,7 @@ interface PackDetailClientProps {
     name: string;
     description: string | null;
     isDefault: boolean;
+    aiModel: string | null;
     userAssignments: Array<{ telegramUserId: string }>;
   };
   users: User[];
@@ -79,6 +80,7 @@ export function PackDetailClient({ pack, users, usersMap, messagesByType }: Pack
               packId={pack.id}
               defaultName={pack.name}
               defaultDescription={pack.description || ''}
+              defaultAiModel={pack.aiModel || ''}
             />
           </div>
 

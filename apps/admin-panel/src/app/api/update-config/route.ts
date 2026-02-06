@@ -1,4 +1,4 @@
-import { setSystemConfig } from '@rad/shared';
+import { getPrisma, setSystemConfig } from '@rad/shared';
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 
@@ -52,6 +52,19 @@ export async function POST(request: Request) {
 
     if (defaultModel && typeof defaultModel === 'string') {
       await setSystemConfig('DEFAULT_AI_MODEL', defaultModel);
+
+      const trimmedModel = defaultModel.trim();
+      const prisma = getPrisma();
+      const defaultPack = await prisma.characterPack.findFirst({
+        where: { isDefault: true },
+      });
+
+      if (defaultPack) {
+        await prisma.characterPack.update({
+          where: { id: defaultPack.id },
+          data: { aiModel: trimmedModel || null, updatedAt: Date.now() },
+        });
+      }
     }
 
     if (maxToolCalls && typeof maxToolCalls === 'string') {

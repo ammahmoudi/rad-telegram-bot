@@ -6,6 +6,10 @@ import type { OpenRouterModel } from '@rad/shared';
 interface ModelSelectorProps {
   defaultModel: string;
   name: string;
+  allowEmpty?: boolean;
+  emptyLabel?: string;
+  emptyDescription?: string;
+  onChange?: (modelId: string) => void;
 }
 
 interface ModelGroup {
@@ -13,7 +17,14 @@ interface ModelGroup {
   models: OpenRouterModel[];
 }
 
-export function ModelSelector({ defaultModel, name }: ModelSelectorProps) {
+export function ModelSelector({
+  defaultModel,
+  name,
+  allowEmpty = false,
+  emptyLabel = 'Use global default',
+  emptyDescription = 'Inherit the model set in AI settings',
+  onChange,
+}: ModelSelectorProps) {
   const [models, setModels] = useState<OpenRouterModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -107,6 +118,12 @@ export function ModelSelector({ defaultModel, name }: ModelSelectorProps) {
 
   const selectedModelData = models.find((m) => m.id === selectedModel);
 
+  const handleSelectModel = (modelId: string) => {
+    setSelectedModel(modelId);
+    onChange?.(modelId);
+    setIsOpen(false);
+  };
+
   return (
     <div className="space-y-2">
       <input type="hidden" name={name} value={selectedModel} />
@@ -125,6 +142,10 @@ export function ModelSelector({ defaultModel, name }: ModelSelectorProps) {
                 ({formatPrice(selectedModelData)})
               </span>
             </>
+          ) : allowEmpty && !selectedModel ? (
+            <span className="text-slate-500">
+              {emptyLabel}
+            </span>
           ) : (
             <span className="text-slate-500">Select a model...</span>
           )}
@@ -178,68 +199,95 @@ export function ModelSelector({ defaultModel, name }: ModelSelectorProps) {
             ) : groupedModels.length === 0 ? (
               <div className="p-4 text-center text-sm text-slate-500">No models found</div>
             ) : (
-              groupedModels.map((group) => (
-                <div key={group.category} className="border-b border-slate-200 dark:border-slate-800 last:border-0">
-                  <div className="px-3 py-2 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold text-slate-600 dark:text-slate-400">
-                    {group.category} ({group.models.length})
-                  </div>
-                  {group.models.map((model) => (
+              <>
+                {allowEmpty && (
+                  <div className="border-b border-slate-200 dark:border-slate-800">
                     <button
-                      key={model.id}
                       type="button"
                       onClick={() => {
-                        setSelectedModel(model.id);
-                        setIsOpen(false);
+                        handleSelectModel('');
                       }}
                       className={`w-full px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors ${
-                        selectedModel === model.id ? 'bg-primary/5 dark:bg-primary/10' : ''
+                        selectedModel === '' ? 'bg-primary/5 dark:bg-primary/10' : ''
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-sm text-slate-900 dark:text-slate-50 truncate">
-                              {model.name}
+                              {emptyLabel}
                             </span>
-                            {isModelFree(model) && (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
-                                FREE
-                              </span>
-                            )}
-                            {model.id === 'openrouter/auto' && (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
-                                AUTO
-                              </span>
-                            )}
                           </div>
-                          <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
-                            {model.id}
+                          <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                            {emptyDescription}
                           </div>
-                          {model.description && (
-                            <div className="text-xs text-slate-600 dark:text-slate-400 mt-1 line-clamp-2">
-                              {model.description}
-                            </div>
-                          )}
                         </div>
-                        <div className="text-right shrink-0">
-                          <div className="text-xs font-medium text-slate-900 dark:text-slate-50">
-                            {formatPrice(model)}
-                          </div>
-                          {!isModelFree(model) && (
-                            <div className="text-xs text-slate-500 dark:text-slate-400">per 1M tokens</div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 dark:text-slate-400">
-                        <span>Context: {model.context_length.toLocaleString()}</span>
-                        {model.top_provider.is_moderated && (
-                          <span className="text-amber-600 dark:text-amber-400">⚠️ Moderated</span>
-                        )}
                       </div>
                     </button>
-                  ))}
-                </div>
-              ))
+                  </div>
+                )}
+                {groupedModels.map((group) => (
+                  <div key={group.category} className="border-b border-slate-200 dark:border-slate-800 last:border-0">
+                    <div className="px-3 py-2 bg-slate-50 dark:bg-slate-900/50 text-xs font-semibold text-slate-600 dark:text-slate-400">
+                      {group.category} ({group.models.length})
+                    </div>
+                    {group.models.map((model) => (
+                      <button
+                        key={model.id}
+                        type="button"
+                        onClick={() => {
+                          handleSelectModel(model.id);
+                        }}
+                        className={`w-full px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors ${
+                          selectedModel === model.id ? 'bg-primary/5 dark:bg-primary/10' : ''
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-sm text-slate-900 dark:text-slate-50 truncate">
+                                {model.name}
+                              </span>
+                              {isModelFree(model) && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+                                  FREE
+                                </span>
+                              )}
+                              {model.id === 'openrouter/auto' && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
+                                  AUTO
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                              {model.id}
+                            </div>
+                            {model.description && (
+                              <div className="text-xs text-slate-600 dark:text-slate-400 mt-1 line-clamp-2">
+                                {model.description}
+                              </div>
+                            )}
+                          </div>
+                          <div className="text-right shrink-0">
+                            <div className="text-xs font-medium text-slate-900 dark:text-slate-50">
+                              {formatPrice(model)}
+                            </div>
+                            {!isModelFree(model) && (
+                              <div className="text-xs text-slate-500 dark:text-slate-400">per 1M tokens</div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 dark:text-slate-400">
+                          <span>Context: {model.context_length.toLocaleString()}</span>
+                          {model.top_provider.is_moderated && (
+                            <span className="text-amber-600 dark:text-amber-400">⚠️ Moderated</span>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ))}
+              </>
             )}
           </div>
 

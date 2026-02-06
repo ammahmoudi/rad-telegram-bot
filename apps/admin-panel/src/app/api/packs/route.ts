@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getPrisma } from '@rad/shared';
+import { getPrisma, getSystemConfig, setSystemConfig } from '@rad/shared';
 
 // GET /api/packs - List all packs
 export async function GET() {
@@ -57,6 +57,7 @@ export async function POST(request: Request) {
     const { 
       name, 
       description, 
+      aiModel,
       isDefault,
       systemPromptEn, 
       systemPromptFa,
@@ -81,15 +82,27 @@ export async function POST(request: Request) {
     }
 
     // Create the pack
+    let resolvedModel = typeof aiModel === 'string' && aiModel.trim() ? aiModel.trim() : null;
+
+    if (isDefault && !resolvedModel) {
+      const systemDefault = await getSystemConfig('DEFAULT_AI_MODEL');
+      resolvedModel = systemDefault?.trim() || null;
+    }
+
     const pack = await prisma.characterPack.create({
       data: {
         name,
         description: description || null,
+        aiModel: resolvedModel,
         isDefault: isDefault || false,
         createdAt: now,
         updatedAt: now,
       },
     });
+
+    if (isDefault && resolvedModel) {
+      await setSystemConfig('DEFAULT_AI_MODEL', resolvedModel);
+    }
 
     // Create messages if provided
     const messages = [];

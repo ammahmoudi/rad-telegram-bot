@@ -1,4 +1,4 @@
-import { OpenRouterClient, getSystemConfig, saveLlmUsage } from '@rad/shared';
+import { OpenRouterClient, getPrisma, getSystemConfig, saveLlmUsage } from '@rad/shared';
 
 // Cache for AI client
 let aiClient: OpenRouterClient | null = null;
@@ -41,6 +41,46 @@ export async function getAiClient(): Promise<OpenRouterClient | null> {
   }
 
   return aiClient;
+}
+
+/**
+ * Resolve the AI model for a specific user.
+ * Pack-specific overrides apply when the user has a custom pack assignment,
+ * otherwise the default pack model is used if set.
+ */
+export async function getAiModelForUser(telegramUserId?: string): Promise<string> {
+  const systemModel = await getSystemConfig('DEFAULT_AI_MODEL');
+  const fallbackModel = systemModel || process.env.DEFAULT_AI_MODEL || 'anthropic/claude-3.5-sonnet';
+
+  if (!telegramUserId) {
+    return fallbackModel;
+  }
+
+  try {
+    const prisma = getPrisma();
+    const assignment = await prisma.userPackAssignment.findUnique({
+      where: { telegramUserId },
+      include: { pack: true },
+    });
+
+    const packModel = assignment?.pack?.aiModel?.trim();
+    if (packModel) {
+      return packModel;
+    }
+
+    const defaultPack = await prisma.characterPack.findFirst({
+      where: { isDefault: true },
+    });
+
+    const defaultModel = defaultPack?.aiModel?.trim();
+    if (defaultModel) {
+      return defaultModel;
+    }
+  } catch (error) {
+    console.error('[telegram-bot] Failed to resolve pack model:', error);
+  }
+
+  return fallbackModel;
 }
 
 /**

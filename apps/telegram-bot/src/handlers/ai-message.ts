@@ -17,7 +17,7 @@ import {
   getPrisma,
   restoreToolResultsFromLogs,
 } from '@rad/shared';
-import { getAiClient } from '../services/ai-client.js';
+import { getAiClient, getAiModelForUser } from '../services/ai-client.js';
 import { getAiTools } from '../services/tools-manager.js';
 import { getSystemPrompt } from '../config/system-prompt.js';
 import { handleStreamingResponse } from './message-streaming.js';
@@ -130,6 +130,7 @@ export async function handleAiMessage(ctx: BotContext): Promise<void> {
     // Get user language for system prompt
     const userLanguage = await getUserLanguage(telegramUserId);
     const systemPrompt = await getSystemPrompt(userLanguage as 'fa' | 'en', telegramUserId);
+    const aiModel = await getAiModelForUser(telegramUserId);
 
     // Update user info in database
     await updateUserInfo(ctx, telegramUserId);
@@ -264,6 +265,7 @@ export async function handleAiMessage(ctx: BotContext): Promise<void> {
         client,
         trimmedHistory,
         systemPrompt,
+        aiModel,
         tools,
         sentMessage,
         session.id
@@ -292,6 +294,7 @@ export async function handleAiMessage(ctx: BotContext): Promise<void> {
         client,
         trimmedHistory,
         systemPrompt,
+        aiModel,
         tools,
         session.id,
         sentMessage,
@@ -308,6 +311,7 @@ export async function handleAiMessage(ctx: BotContext): Promise<void> {
         trimmedHistory, 
         { 
           systemPrompt,
+          model: aiModel,
           useMiddleOutTransform: enableMiddleOut 
         },
         undefined,

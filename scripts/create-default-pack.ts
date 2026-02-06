@@ -101,6 +101,7 @@ Just send me a message to start chatting! I can help you with Planka tasks once 
 
 async function createDefaultPack() {
   const prisma = getPrisma();
+  const defaultModel = process.env.DEFAULT_AI_MODEL?.trim();
   
   try {
     // Check if default pack already exists
@@ -113,6 +114,14 @@ async function createDefaultPack() {
       console.log('✅ Default pack already exists:', existingDefault.name);
       console.log('   ID:', existingDefault.id);
       console.log('   Messages:', existingDefault.messages.length);
+
+      if (!existingDefault.aiModel && defaultModel) {
+        await prisma.characterPack.update({
+          where: { id: existingDefault.id },
+          data: { aiModel: defaultModel, updatedAt: Date.now() },
+        });
+        console.log('✅ Synced default pack AI model from env');
+      }
       
       if (existingDefault.messages.length === 0) {
         console.log('\n⚠️  Pack has no messages! Populating now...');
@@ -144,6 +153,7 @@ async function createDefaultPack() {
         data: {
           name: 'Default Pack',
           description: 'Default pack with standard settings',
+          aiModel: defaultModel || null,
           isDefault: true,
           createdAt: now,
           updatedAt: now,

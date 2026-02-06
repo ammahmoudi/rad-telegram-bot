@@ -18,6 +18,7 @@ export async function handleStreamingResponse(
   client: OpenRouterClient,
   trimmedHistory: ChatMessage[],
   systemPrompt: string,
+  model: string,
   tools: ChatCompletionTool[],
   sentMessage: Message.TextMessage,
   sessionId: string
@@ -197,7 +198,7 @@ export async function handleStreamingResponse(
   // Stream AI response
   const stream = client.streamChat(
     trimmedHistory,
-    { systemPrompt },
+    { systemPrompt, model },
     tools,
     {
       telegramUserId: ctx.from?.id?.toString() || 'unknown',

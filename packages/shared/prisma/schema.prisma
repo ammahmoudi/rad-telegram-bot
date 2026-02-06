@@ -62,6 +62,7 @@ model CharacterPack {
   id              String   @id @default(cuid())
   name            String
   description     String?
+  aiModel         String?
   isDefault       Boolean  @default(false)
   createdAt       BigInt
   updatedAt       BigInt

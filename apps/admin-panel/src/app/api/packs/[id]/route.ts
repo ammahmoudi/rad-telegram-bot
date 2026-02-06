@@ -1,4 +1,4 @@
-import { getPrisma } from '@rad/shared';
+import { getPrisma, setSystemConfig } from '@rad/shared';
 import { NextRequest, NextResponse } from 'next/server';
 
 interface RouteParams {
@@ -10,18 +10,23 @@ interface RouteParams {
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
     const { id: packId } = await params;
-    const { name, description } = await request.json();
+    const { name, description, aiModel } = await request.json();
 
     const prisma = getPrisma();
 
-    await prisma.characterPack.update({
+    const updatedPack = await prisma.characterPack.update({
       where: { id: packId },
       data: {
         name,
         description,
+        aiModel: typeof aiModel === 'string' && aiModel.trim() ? aiModel.trim() : null,
         updatedAt: Date.now(),
       },
     });
+
+    if (updatedPack.isDefault && typeof aiModel === 'string') {
+      await setSystemConfig('DEFAULT_AI_MODEL', aiModel.trim());
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
