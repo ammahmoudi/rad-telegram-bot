@@ -4,6 +4,7 @@
  */
 
 import type { FoodItem, FoodRecommendation, UserFoodPreferences, DailyFoodOption } from './types.js';
+import { formatDateForLocale, getAppTimezone } from '@rad/shared';
 
 /**
  * Analyze user's selection history to find patterns
@@ -151,8 +152,10 @@ export function formatRecommendationsMessage(
   }
 
   for (const rec of recommendations) {
-    const dateFormatted = new Date(rec.date).toLocaleDateString(
+    const dateFormatted = formatDateForLocale(
+      rec.date,
       language === 'fa' ? 'fa-IR' : 'en-US',
+      getAppTimezone(),
       { weekday: 'long', month: 'short', day: 'numeric' }
     );
 

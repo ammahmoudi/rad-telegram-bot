@@ -7,6 +7,7 @@ import utc from 'dayjs/plugin/utc.js';
 import timezone from 'dayjs/plugin/timezone.js';
 import quarterOfYear from 'dayjs/plugin/quarterOfYear.js';
 import moment from 'moment-jalaali';
+import { getAppTimezone } from '@rad/shared';
 
 // Extend dayjs with plugins
 dayjs.extend(utc);
@@ -52,7 +53,7 @@ moment.loadPersian({ dialect: 'persian-modern' });
 /**
  * Get current time in multiple formats
  */
-export function getCurrentTime(timezone: string = 'Asia/Tehran'): TimeResult {
+export function getCurrentTime(timezone: string = getAppTimezone()): TimeResult {
   const now = dayjs().tz(timezone);
   
   // Gregorian
@@ -105,7 +106,7 @@ export function getCurrentTime(timezone: string = 'Asia/Tehran'): TimeResult {
  */
 export function calculateRelativeDate(
   expression: string,
-  timezone: string = 'Asia/Tehran'
+  timezone: string = getAppTimezone()
 ): TimeResult {
   const lower = expression.toLowerCase().trim();
   let date = dayjs().tz(timezone);
@@ -149,7 +150,7 @@ export function calculateRelativeDate(
 export function addDuration(
   baseTime: string,
   duration: string,
-  timezone: string = 'Asia/Tehran'
+  timezone: string = getAppTimezone()
 ): TimeResult {
   let date = baseTime === 'now' ? dayjs().tz(timezone) : dayjs(baseTime).tz(timezone);
   
@@ -182,7 +183,7 @@ export function addDuration(
  */
 export function getTimeRange(
   range: string,
-  timezone: string = 'Asia/Tehran'
+  timezone: string = getAppTimezone()
 ): { start: TimeResult; end: TimeResult } {
   if (!range || typeof range !== 'string') {
     throw new Error('Invalid range parameter: must be a non-empty string');

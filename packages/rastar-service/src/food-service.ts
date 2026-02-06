@@ -4,7 +4,7 @@
  * Used by scheduled jobs to check food selections and send reminders
  */
 
-import { getPrisma, decryptString } from '@rad/shared';
+import { getPrisma, decryptString, getAppTimezone, formatDateYmd, addDaysToYmd } from '@rad/shared';
 import {
   getMenuSchedule,
   getUserMenuSelections,
@@ -18,25 +18,21 @@ import type { UserFoodStatus, DailyFoodOption } from './types.js';
  * Get today's date in YYYY-MM-DD format
  */
 function getToday(): string {
-  return new Date().toISOString().split('T')[0];
+  return formatDateYmd(new Date(), getAppTimezone());
 }
 
 /**
  * Get tomorrow's date in YYYY-MM-DD format
  */
 function getTomorrow(): string {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  return tomorrow.toISOString().split('T')[0];
+  return addDaysToYmd(getToday(), 1);
 }
 
 /**
  * Get date N days from now
  */
 function getDateFromNow(days: number): string {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  return date.toISOString().split('T')[0];
+  return addDaysToYmd(getToday(), days);
 }
 
 /**
