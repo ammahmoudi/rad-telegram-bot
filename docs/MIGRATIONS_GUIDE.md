@@ -77,7 +77,9 @@ npm run build
 
 ### Automatic Migration on Startup
 
-The `docker-entrypoint.sh` automatically runs:
+Only one container should run migrations in production. Use the **admin panel** container as the migration runner.
+
+The `admin-panel-entrypoint.sh` runs:
 
 ```bash
 npx prisma migrate deploy
@@ -89,23 +91,28 @@ This:
 3. ✅ Never drops data
 4. ✅ Works with PostgreSQL
 
+The Telegram bot container **does not** run migrations by default.
+
 ### Docker Compose Deployment
 
 ```bash
 # Build with new schema changes
 docker compose up -d --build
 
-# The entrypoint will:
-# 1. Generate Prisma Client
-# 2. Apply pending migrations
-# 3. Start application
+# The admin panel entrypoint will:
+# 1. Apply pending migrations
+# 2. Start admin panel
+
+# The telegram bot entrypoint will:
+# 1. Skip migrations by default
+# 2. Start the bot
 ```
 
 ### Docker Logs
 
 ```bash
 # Watch migration progress
-docker compose logs -f telegram-bot
+docker compose logs -f admin-panel
 
 # You'll see:
 # 📊 Running database migrations...
@@ -131,9 +138,9 @@ Dokploy will automatically:
 1. Pull latest code
 2. Build Docker image
 3. Run container
-4. Execute `docker-entrypoint.sh`
-   - Applies migrations
-   - Starts application
+4. Execute entrypoints
+   - **Admin panel**: applies migrations, starts admin panel
+   - **Telegram bot**: skips migrations, starts bot
 
 ### 3. **Monitor Migration**
 
@@ -155,6 +162,9 @@ Required in `.env` (production):
 
 ```bash
 DATABASE_URL=postgresql://user:password@postgres-host:5432/rastar
+
+# Optional: only on admin panel container
+RUN_MIGRATIONS=true
 ```
 
 ### Docker Compose (Local PostgreSQL Testing)
@@ -215,13 +225,24 @@ npm run prisma:migrate
 
 **Check logs:**
 ```bash
-docker compose logs telegram-bot | grep -A 10 "Running database migrations"
+docker compose logs admin-panel | grep -A 10 "Running database migrations"
 ```
 
-**Manual migration:**
+**Manual migration (admin panel container):**
 ```bash
-docker exec -it rastar-telegram-bot sh
-cd packages/shared
+docker exec -it rastar-admin-panel sh
+cd /app/packages/shared
+npx prisma migrate deploy
+```
+
+**If migrations are already applied outside Prisma** (tables/columns exist but migration history is missing), mark them as applied:
+```bash
+docker exec -it rastar-admin-panel sh
+cd /app/packages/shared
+npx prisma migrate resolve --applied 20251228134626_test
+npx prisma migrate resolve --applied 20260105085347_add_thread_and_reply_metadata
+npx prisma migrate resolve --applied 20260106063036_add_mcp_tool_logging
+npx prisma migrate resolve --applied 20260106070831_add_session_message_to_tool_logs
 npx prisma migrate deploy
 ```
 
@@ -275,8 +296,8 @@ npm run dev
 git push origin main
 
 # Dokploy auto-deploys
-# Migrations run automatically
-# Zero downtime
+# Migrations run on admin-panel container
+# Telegram bot skips migrations
 ```
 
 ### Docker Compose Testing
@@ -331,10 +352,10 @@ docker compose logs -f telegram-bot
 ## 🎓 Summary
 
 - ✅ **Local dev**: Automatic verification with `npm run dev`
-- ✅ **Docker**: Migrations run automatically on container start
-- ✅ **Dokploy**: Migrations run automatically on deploy
+- ✅ **Docker**: Migrations run on admin panel container start
+- ✅ **Dokploy**: Migrations run on admin panel container deploy
 - ✅ **Zero downtime**: Additive migrations are safe
-- ✅ **No manual steps**: Everything is automated
+- ⚠️ **Manual resolve**: Needed if DB schema exists but migration history is missing
 - ✅ **Works with both**: SQLite (dev) and PostgreSQL (prod)
 
-**Just push your code, and migrations happen automatically!** 🚀
+**Push your code, and migrations run on the admin panel container.** 🚀

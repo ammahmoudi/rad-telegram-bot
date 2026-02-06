@@ -24,7 +24,12 @@ cd /app/packages/shared
 # Example: PRISMA_RESOLVE_ACTION=rolled-back PRISMA_RESOLVE_MIGRATION=20251228134626_test
 if [ -n "$PRISMA_RESOLVE_ACTION" ] && [ -n "$PRISMA_RESOLVE_MIGRATION" ]; then
   echo "🩹 Resolving failed migration: $PRISMA_RESOLVE_MIGRATION ($PRISMA_RESOLVE_ACTION)"
-  npx prisma migrate resolve --$PRISMA_RESOLVE_ACTION "$PRISMA_RESOLVE_MIGRATION" || echo "⚠️  Migration resolve failed (non-critical)"
+  resolve_output=$(npx prisma migrate resolve --$PRISMA_RESOLVE_ACTION "$PRISMA_RESOLVE_MIGRATION" 2>&1) || resolve_status=$?
+  if [ "${resolve_status:-0}" -ne 0 ]; then
+    echo "$resolve_output"
+    echo "$resolve_output" | grep -q "P3008" && echo "ℹ️  Migration already recorded, skipping resolve."
+    echo "$resolve_output" | grep -q "P3008" || echo "⚠️  Migration resolve failed (non-critical)"
+  fi
 fi
 
 npx prisma migrate deploy || {
