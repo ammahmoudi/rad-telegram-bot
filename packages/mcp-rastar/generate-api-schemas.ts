@@ -150,7 +150,7 @@ async function testAPIWithRealData(
 async function generateSchemas() {
   const EMAIL = process.env.TEST_EMAIL;
   const PASSWORD = process.env.TEST_PASSWORD;
-  const BASE_URL = process.env.RASTAR_BASE_URL || 'https://hhryf.supabase.co';
+  const BASE_URL = process.env.RASTAR_BASE_URL || 'https://my-api.rastar.company';
 
   if (!EMAIL || !PASSWORD) {
     throw new Error(

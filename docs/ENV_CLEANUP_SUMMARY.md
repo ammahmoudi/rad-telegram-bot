@@ -41,7 +41,7 @@ All code changes include backward compatibility:
 const RASTAR_SUPABASE_URL = 
   process.env.RASTAR_SUPABASE_URL || 
   process.env.THIRD_PARTY_BASE_URL || 
-  'https://hhryfmueyrkbnjxgjzlf.supabase.co';
+  'https://my-api.rastar.company';
 ```
 
 This allows existing deployments to continue working while migrating to new variable names.
@@ -49,7 +49,7 @@ This allows existing deployments to continue working while migrating to new vari
 ### 4. Architecture
 
 **Rastar Integration** uses Supabase backend:
-- URL: `https://hhryfmueyrkbnjxgjzlf.supabase.co`
+- URL: `https://my-api.rastar.company`
 - Authentication: Individual user authentication via `/link_rastar` command in Telegram bot
 - API Key: Public anon key for client requests
 - User tokens: Stored encrypted in PostgreSQL database

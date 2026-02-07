@@ -125,7 +125,7 @@ export function ModelSelector({
   };
 
   return (
-    <div className="space-y-2">
+    <div className="relative z-30 space-y-2">
       <input type="hidden" name={name} value={selectedModel} />
 
       {/* Selected Model Display */}
@@ -168,7 +168,7 @@ export function ModelSelector({
 
       {/* Dropdown Panel */}
       {isOpen && (
-        <div className="absolute z-50 mt-1 w-full max-w-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg">
+        <div className="absolute left-0 top-full z-50 mt-1 w-full max-w-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg">
           {/* Search and Filters */}
           <div className="p-3 border-b border-slate-200 dark:border-slate-800 space-y-2">
             <input

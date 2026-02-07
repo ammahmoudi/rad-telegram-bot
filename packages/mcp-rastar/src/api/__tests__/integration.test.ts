@@ -61,7 +61,7 @@ describe.skipIf(!process.env.INTEGRATION_TEST)('Rastar Integration Tests', () =>
     // Get credentials from environment
     const email = process.env.TEST_EMAIL;
     const password = process.env.TEST_PASSWORD;
-    const baseUrl = process.env.RASTAR_BASE_URL || 'https://hhryf.supabase.co';
+    const baseUrl = process.env.RASTAR_BASE_URL || 'https://my-api.rastar.company';
 
     if (!email || !password) {
       throw new Error(

@@ -36,7 +36,7 @@ Integration tests make REAL API calls to a live Rastar instance. They are more c
 
 2. Fill in your test credentials in `.env.test`:
    ```env
-   RASTAR_BASE_URL=https://hhryf.supabase.co
+  RASTAR_BASE_URL=https://my-api.rastar.company
    TEST_EMAIL=your-email@example.com
    TEST_PASSWORD=your-password
    ```

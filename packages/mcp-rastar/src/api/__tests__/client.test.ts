@@ -40,7 +40,7 @@ describe('rastarFetch', () => {
     });
 
     expect(fetch).toHaveBeenCalledWith(
-      'https://hhryfmueyrkbnjxgjzlf.supabase.co/rest/v1/menu_schedule',
+      'https://my-api.rastar.company/rest/v1/menu_schedule',
       expect.objectContaining({
         method: 'GET',
         headers: expect.objectContaining({
@@ -60,7 +60,7 @@ describe('rastarFetch', () => {
     await rastarFetch('/rest/v1/menu_schedule', auth, { method: 'GET' });
 
     expect(fetch).toHaveBeenCalledWith(
-      'https://hhryfmueyrkbnjxgjzlf.supabase.co/rest/v1/menu_schedule',
+      'https://my-api.rastar.company/rest/v1/menu_schedule',
       expect.any(Object)
     );
   });
@@ -73,7 +73,7 @@ describe('rastarFetch', () => {
     await rastarFetch('rest/v1/menu_schedule', auth, { method: 'GET' });
 
     expect(fetch).toHaveBeenCalledWith(
-      'https://hhryfmueyrkbnjxgjzlf.supabase.co/rest/v1/menu_schedule',
+      'https://my-api.rastar.company/rest/v1/menu_schedule',
       expect.any(Object)
     );
   });
@@ -91,7 +91,7 @@ describe('rastarFetch', () => {
     });
 
     expect(fetch).toHaveBeenCalledWith(
-      'https://hhryfmueyrkbnjxgjzlf.supabase.co/auth/v1/token',
+      'https://my-api.rastar.company/auth/v1/token',
       expect.objectContaining({
         headers: expect.objectContaining({
           Accept: 'application/json',
@@ -115,7 +115,7 @@ describe('rastarFetch', () => {
     });
 
     expect(fetch).toHaveBeenCalledWith(
-      'https://hhryfmueyrkbnjxgjzlf.supabase.co/rest/v1/menu_schedule',
+      'https://my-api.rastar.company/rest/v1/menu_schedule',
       expect.objectContaining({
         headers: expect.objectContaining({
           Accept: 'application/json',
@@ -141,7 +141,7 @@ describe('rastarFetch', () => {
     });
 
     expect(fetch).toHaveBeenCalledWith(
-      'https://hhryfmueyrkbnjxgjzlf.supabase.co/rest/v1/menu_schedule?select=*&order=date.asc',
+      'https://my-api.rastar.company/rest/v1/menu_schedule?select=*&order=date.asc',
       expect.any(Object)
     );
   });
@@ -158,7 +158,7 @@ describe('rastarFetch', () => {
     });
 
     expect(fetch).toHaveBeenCalledWith(
-      'https://hhryfmueyrkbnjxgjzlf.supabase.co/rest/v1/user_menu_selections',
+      'https://my-api.rastar.company/rest/v1/user_menu_selections',
       expect.objectContaining({
         method: 'POST',
         body,

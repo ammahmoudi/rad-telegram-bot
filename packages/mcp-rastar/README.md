@@ -162,8 +162,8 @@ deleteMenuSelection(auth, selectionId)
 Required environment variables:
 
 ```
-RASTAR_BASE_URL=https://hhryfmueyrkbnjxgjzlf.supabase.co
-RASTAR_API_KEY=<your-api-key>
+RASTAR_SUPABASE_URL=https://my-api.rastar.company
+RASTAR_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzY5NjE0NDMwLCJleHAiOjE5MjcyOTQ0MzB9.LRItEoNveDk6rALZlcDpLrN_t7YX1othdPwgtIatVZ0
 ```
 
 ## Development

@@ -45,7 +45,7 @@ describe('Auth API', () => {
           method: 'POST',
           params: { grant_type: 'password' },
           headers: {
-            apikey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhocnlmbXVleXJrYm5qeGdqemxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk5MDMwMDYsImV4cCI6MjA1NTQ3OTAwNn0.zB6aDG8aTVqXkyguz1u35rGYlz05bDy20d5GXjhxirU',
+            apikey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzY5NjE0NDMwLCJleHAiOjE5MjcyOTQ0MzB9.LRItEoNveDk6rALZlcDpLrN_t7YX1othdPwgtIatVZ0',
           },
           body: JSON.stringify({
             email: 'test@example.com',
@@ -96,7 +96,7 @@ describe('Auth API', () => {
         undefined,
         expect.objectContaining({
           headers: {
-            apikey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhocnlmbXVleXJrYm5qeGdqemxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk5MDMwMDYsImV4cCI6MjA1NTQ3OTAwNn0.zB6aDG8aTVqXkyguz1u35rGYlz05bDy20d5GXjhxirU',
+            apikey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzY5NjE0NDMwLCJleHAiOjE5MjcyOTQ0MzB9.LRItEoNveDk6rALZlcDpLrN_t7YX1othdPwgtIatVZ0',
           },
         })
       );
@@ -132,7 +132,7 @@ describe('Auth API', () => {
           method: 'POST',
           params: { grant_type: 'refresh_token' },
           headers: {
-            apikey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhocnlmbXVleXJrYm5qeGdqemxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk5MDMwMDYsImV4cCI6MjA1NTQ3OTAwNn0.zB6aDG8aTVqXkyguz1u35rGYlz05bDy20d5GXjhxirU',
+            apikey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzY5NjE0NDMwLCJleHAiOjE5MjcyOTQ0MzB9.LRItEoNveDk6rALZlcDpLrN_t7YX1othdPwgtIatVZ0',
           },
           body: JSON.stringify({
             refresh_token: 'old-refresh-token',

@@ -108,21 +108,22 @@ export async function handleStreamingError(ctx: BotContext, error: unknown, clie
   // Check if it's a network/connection error
   if (error instanceof Error) {
     const errMsg = error.message.toLowerCase();
-    if (errMsg.includes('terminated') || errMsg.includes('socket') || errMsg.includes('closed') || errMsg.includes('econnreset')) {
+    if (errMsg.includes('stream terminated') || errMsg.includes('finish_reason') || errMsg.includes('stream error') || errMsg.includes('terminated') || errMsg.includes('socket') || errMsg.includes('closed') || errMsg.includes('econnreset')) {
       const isGemini = client.model.includes('gemini') || client.model.includes('google');
       
-      let message = '⚠️ <b>Connection Issue</b>\n\n' +
-        'The AI service connection was interrupted.\n\n';
+      let message = `<b>${ctx.t('errors-streaming-connection-title')}</b>\n\n` +
+        `${ctx.t('errors-streaming-connection-description')}\n\n`;
       
       if (isGemini) {
-        message += '💡 <b>Note:</b> Gemini reasoning models occasionally have connection issues when generating responses.\n\n' +
-          '<b>What you can do:</b>\n' +
-          '• Send your message again - it usually works on retry\n' +
-          '• Ask an admin to switch to Claude (more stable)\n';
+        message += `💡 <b>${ctx.t('errors-streaming-connection-gemini-note-title')}</b> ` +
+          `${ctx.t('errors-streaming-connection-gemini-note')}\n\n` +
+          `<b>${ctx.t('errors-streaming-connection-what-to-do')}</b>\n` +
+          `${ctx.t('errors-streaming-connection-retry')}\n` +
+          `${ctx.t('errors-streaming-connection-ask-admin')}\n`;
       } else {
-        message += '💡 <b>Try:</b>\n' +
-          '• Send your message again\n' +
-          '• Simplify your query\n';
+        message += `💡 <b>${ctx.t('errors-streaming-connection-try')}</b>\n` +
+          `${ctx.t('errors-streaming-connection-retry')}\n` +
+          `${ctx.t('errors-streaming-connection-simplify')}\n`;
       }
       
       await ctx.reply(message, { parse_mode: 'HTML' });

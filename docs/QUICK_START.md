@@ -53,8 +53,8 @@ DEFAULT_ADMIN_PASSWORD=YourSecurePassword123
 PLANKA_SERVER_URL=https://your-planka-instance.com
 
 # Required: Rastar Integration
-RASTAR_SUPABASE_URL=https://your-project.supabase.co
-RASTAR_SUPABASE_ANON_KEY=your_anon_key_here
+RASTAR_SUPABASE_URL=https://my-api.rastar.company
+RASTAR_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzY5NjE0NDMwLCJleHAiOjE5MjcyOTQ0MzB9.LRItEoNveDk6rALZlcDpLrN_t7YX1othdPwgtIatVZ0
 RASTAR_SUPABASE_AUTH_PATH=/auth/v1/token?grant_type=password
 RASTAR_SUPABASE_KEY_HEADER=apikey
 

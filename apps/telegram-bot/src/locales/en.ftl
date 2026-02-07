@@ -336,6 +336,15 @@ errors-timeout-try = What to do:
 errors-timeout-simplify = • Try a simpler query
 errors-timeout-retry = • Try again in a moment
 errors-timeout-break-up = • Break your request into smaller parts
+errors-streaming-connection-title = ⚠️ Connection Issue
+errors-streaming-connection-description = The AI service connection was interrupted.
+errors-streaming-connection-gemini-note-title = Note:
+errors-streaming-connection-gemini-note = Gemini reasoning models occasionally have connection issues when generating responses.
+errors-streaming-connection-what-to-do = What you can do:
+errors-streaming-connection-retry = • Send your message again - it usually works on retry
+errors-streaming-connection-ask-admin = • Ask an admin to switch to Claude (more stable)
+errors-streaming-connection-try = Try:
+errors-streaming-connection-simplify = • Simplify your query
 
 # Button callback messages
 button-callback-invalid-button-data = ❌ Invalid button data

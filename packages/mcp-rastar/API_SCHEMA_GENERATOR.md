@@ -56,7 +56,7 @@ Automatically deletes any created test resources to keep the database clean.
 ```json
 {
   "generatedAt": "2024-01-01T00:00:00.000Z",
-  "rastarInstance": "https://hhryf.supabase.co",
+  "rastarInstance": "https://my-api.rastar.company",
   "totalAPIs": 7,
   "modules": ["auth", "menu"],
   "schemas": [

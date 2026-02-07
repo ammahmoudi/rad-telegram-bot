@@ -334,6 +334,15 @@ errors-timeout-try = چیکار کنم:
 errors-timeout-simplify = • یک درخواست ساده‌تر امتحان کنید
 errors-timeout-retry = • یه لحظه صبر کنید و دوباره امتحان کنید
 errors-timeout-break-up = • درخواست خود را به قسمت‌های کوچک‌تر تقسیم کنید
+errors-streaming-connection-title = ⚠️ مشکل اتصال
+errors-streaming-connection-description = اتصال به سرویس هوش مصنوعی قطع شد.
+errors-streaming-connection-gemini-note-title = نکته:
+errors-streaming-connection-gemini-note = مدل‌های استدلالی Gemini گاهی موقع تولید پاسخ دچار مشکل اتصال می‌شن.
+errors-streaming-connection-what-to-do = چه کاری می‌تونید انجام بدید:
+errors-streaming-connection-retry = • پیام‌تون رو دوباره بفرستید - معمولاً با تلاش مجدد درست می‌شه
+errors-streaming-connection-ask-admin = • از مدیر بخواهید به Claude تغییر دهد (پایدارتر)
+errors-streaming-connection-try = امتحان کنید:
+errors-streaming-connection-simplify = • درخواست‌تون رو ساده‌تر کنید
 
 # Button callback messages  
 button-callback-invalid-button-data = ❌ داده دکمه نامعتبر است
