@@ -16,6 +16,14 @@ export interface RastarFetchOptions extends RequestInit {
   params?: Record<string, string>;
 }
 
+const REQUEST_TIMEOUT_MS = 60000;
+const MAX_RETRIES = 2;
+const RETRY_DELAY_MS = 1000;
+
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 export async function rastarFetch<T>(
   path: string,
   auth?: RastarAuth,
@@ -30,9 +38,6 @@ export async function rastarFetch<T>(
     url += `?${searchParams.toString()}`;
   }
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-
   const headers: Record<string, string> = {
     Accept: 'application/json',
     'Content-Type': 'application/json',
@@ -44,36 +49,57 @@ export async function rastarFetch<T>(
     headers.Authorization = `Bearer ${auth.accessToken}`;
   }
 
-  try {
-    const resp = await fetch(url, {
-      ...init,
-      headers,
-      signal: controller.signal,
-    });
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-    clearTimeout(timeoutId);
+    try {
+      const resp = await fetch(url, {
+        ...init,
+        headers,
+        signal: controller.signal,
+      });
 
-    // Handle 204 No Content
-    if (resp.status === 204 || resp.headers.get('content-length') === '0') {
-      return null as T;
+      clearTimeout(timeoutId);
+
+      // Handle 204 No Content
+      if (resp.status === 204 || resp.headers.get('content-length') === '0') {
+        return null as T;
+      }
+
+      if (!resp.ok) {
+        const text = await resp.text().catch(() => '');
+        throw new Error(`Rastar API error (${resp.status}): ${text}`);
+      }
+
+      const contentType = resp.headers.get('content-type');
+      if (contentType?.includes('application/json')) {
+        return (await resp.json()) as T;
+      }
+
+      return (await resp.text()) as T;
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      const isAbort = error?.name === 'AbortError';
+      const canRetry = attempt < MAX_RETRIES;
+
+      if (isAbort && canRetry) {
+        await delay(RETRY_DELAY_MS * (attempt + 1));
+        continue;
+      }
+
+      if (isAbort) {
+        throw new Error(`Rastar API timeout after ${REQUEST_TIMEOUT_MS / 1000} seconds`);
+      }
+
+      if (canRetry) {
+        await delay(RETRY_DELAY_MS * (attempt + 1));
+        continue;
+      }
+
+      throw error;
     }
-
-    if (!resp.ok) {
-      const text = await resp.text().catch(() => '');
-      throw new Error(`Rastar API error (${resp.status}): ${text}`);
-    }
-
-    const contentType = resp.headers.get('content-type');
-    if (contentType?.includes('application/json')) {
-      return (await resp.json()) as T;
-    }
-
-    return (await resp.text()) as T;
-  } catch (error: any) {
-    clearTimeout(timeoutId);
-    if (error.name === 'AbortError') {
-      throw new Error('Rastar API timeout after 30 seconds');
-    }
-    throw error;
   }
+
+  throw new Error('Rastar API request failed after retries');
 }
