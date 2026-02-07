@@ -43,6 +43,7 @@ interface SessionMessage {
     cachedTokens: number;
     cacheWriteTokens: number;
     reasoningTokens: number;
+    audioTokens: number;
     cost: number;
     upstreamCost: number | null;
     finishReason: string | null;
@@ -457,10 +458,21 @@ export function ChatSessionView({ sessionId }: ChatSessionViewProps) {
                           {!isEmptyAssistantWithTools && (
                             <div className={`text-xs text-muted-foreground mt-1 px-2 flex items-center gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}>
                               <span>{msg.timestamp.toLocaleString()}</span>
-                              {/* Show cost for assistant messages */}
                               {!isUser && msg.llmCalls && msg.llmCalls.length > 0 && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 rounded font-semibold">
-                                  💸 ${msg.llmCalls.reduce((sum, call) => sum + call.cost, 0).toFixed(6)}
+                                <span className="inline-flex flex-wrap items-center gap-1">
+                                  {msg.llmCalls.map((call) => (
+                                    <span
+                                      key={call.id}
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 rounded font-semibold"
+                                    >
+                                      🤖 {call.model} · 💸 ${call.cost.toFixed(6)}
+                                    </span>
+                                  ))}
+                                  {msg.llmCalls.length > 1 && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-500/5 text-blue-700 dark:text-blue-300 border border-blue-500/10 rounded">
+                                      {t.chatLogs.totalCostLabel}: ${msg.llmCalls.reduce((sum, call) => sum + call.cost, 0).toFixed(6)}
+                                    </span>
+                                  )}
                                 </span>
                               )}
                             </div>
@@ -526,22 +538,34 @@ export function ChatSessionView({ sessionId }: ChatSessionViewProps) {
                                     </div>
                                   </div>
                                   <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                                    <div>📝 Prompt: {llmCall.promptTokens.toLocaleString()} tokens</div>
-                                    <div>💬 Completion: {llmCall.completionTokens.toLocaleString()} tokens</div>
+                                    <div>{t.chatLogs.inputTokensLabel}: {llmCall.promptTokens.toLocaleString()}</div>
+                                    <div>{t.chatLogs.outputTokensLabel}: {llmCall.completionTokens.toLocaleString()}</div>
                                     {llmCall.cachedTokens > 0 && (
-                                      <div className="text-green-600 dark:text-green-400">⚡ Cached: {llmCall.cachedTokens.toLocaleString()} tokens</div>
+                                      <div className="text-green-600 dark:text-green-400">{t.chatLogs.cachedTokensLabel}: {llmCall.cachedTokens.toLocaleString()}</div>
                                     )}
                                     {llmCall.cacheWriteTokens > 0 && (
-                                      <div>💾 Cache Write: {llmCall.cacheWriteTokens.toLocaleString()} tokens</div>
+                                      <div>{t.chatLogs.cacheWriteTokensLabel}: {llmCall.cacheWriteTokens.toLocaleString()}</div>
                                     )}
                                     {llmCall.reasoningTokens > 0 && (
-                                      <div>🧠 Reasoning: {llmCall.reasoningTokens.toLocaleString()} tokens</div>
+                                      <div>{t.chatLogs.reasoningTokensLabel}: {llmCall.reasoningTokens.toLocaleString()}</div>
+                                    )}
+                                    {llmCall.audioTokens > 0 && (
+                                      <div>{t.chatLogs.audioTokensLabel}: {llmCall.audioTokens.toLocaleString()}</div>
                                     )}
                                     {llmCall.requestDurationMs && (
-                                      <div>⏱️ Duration: {llmCall.requestDurationMs}ms</div>
+                                      <div>{t.chatLogs.llmDurationLabel}: {llmCall.requestDurationMs}ms</div>
+                                    )}
+                                    {llmCall.finishReason && (
+                                      <div>{t.chatLogs.finishReasonLabel}: {llmCall.finishReason}</div>
+                                    )}
+                                    {llmCall.toolCallCount > 0 && (
+                                      <div>{t.chatLogs.toolCallsLabel}: {llmCall.toolCallCount}</div>
+                                    )}
+                                    {llmCall.upstreamCost !== null && (
+                                      <div>{t.chatLogs.upstreamCostLabel}: ${llmCall.upstreamCost.toFixed(6)}</div>
                                     )}
                                     <div className="col-span-2 border-t border-blue-200 dark:border-blue-800 pt-1 mt-1">
-                                      ∑ Total: {llmCall.totalTokens.toLocaleString()} tokens
+                                      {t.chatLogs.totalTokensLabel}: {llmCall.totalTokens.toLocaleString()}
                                     </div>
                                   </div>
                                 </div>

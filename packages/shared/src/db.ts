@@ -726,6 +726,7 @@ export async function getSessionMessagesWithToolCalls(sessionId: string): Promis
     cachedTokens: number;
     cacheWriteTokens: number;
     reasoningTokens: number;
+    audioTokens: number;
     cost: number;
     upstreamCost: number | null;
     finishReason: string | null;
@@ -791,6 +792,7 @@ export async function getSessionMessagesWithToolCalls(sessionId: string): Promis
           cachedTokens: call.cachedTokens,
           cacheWriteTokens: call.cacheWriteTokens,
           reasoningTokens: call.reasoningTokens,
+          audioTokens: call.audioTokens,
           cost: call.cost,
           upstreamCost: call.upstreamCost,
           finishReason: call.finishReason,
