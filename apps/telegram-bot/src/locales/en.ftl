@@ -39,11 +39,6 @@ buttons-new-chat = 💬 New Chat
 buttons-clear-chat = 🗑️ Clear Chat
 
 # Chat management
-new-chat-confirm = ⚠️ <b>Start New Chat?</b>
-
-This will clear your conversation history.
-
-Type <b>yes</b> to confirm or <b>no</b> to cancel.
 chat-new-topic-created = ✨ New chat created: <b>{$topicName}</b>\nWelcome to your new conversation!
 chat-new-chat-only-private = This feature is only available in private chats.
 chat-forum-mode-required = To use this feature, Forum Topic Mode must be enabled in @BotFather.
@@ -105,21 +100,6 @@ welcome-start-message = Start by connecting your accounts with /link_planka and 
 welcome-quick-access = ⌨️ Quick Access: Use the buttons below for instant access!
 
 # Planka
-link-planka-enter-url = 🔗 <b>Link Planka Account</b>
-
-Please enter your Planka server URL (e.g., https://planka.example.com):
-link-planka-enter-username = 👤 Now enter your Planka username or email:
-link-planka-enter-password = 🔐 Finally, enter your Planka password:
-
-<i>Note: Your password is never stored, only used to get an access token.</i>
-link-planka-invalid-url = ❌ Invalid URL. Please try again with /link_planka
-link-planka-invalid-username = ❌ Invalid username. Please try again.
-link-planka-invalid-password = ❌ Invalid password. Please try again.
-link-planka-use-portal = 🔗 <b>Please use the link portal</b>
-
-For security reasons, account linking is done through our secure web portal.
-
-Use the /link_planka command to get your personalized link!
 planka-already-linked = ✅ Your Planka account is already linked!
 planka-base-url = Base URL: {$url}
 planka-token-expires = Token expires in: {$hours} hours
@@ -171,21 +151,6 @@ planka-no-account = ℹ️ No Account Linked
 planka-no-account-message = There was no Planka account connected to unlink.
 
 # Rastar
-link-rastar-enter-url = 🔗 <b>Link Rastar Account</b>
-
-Please enter your Rastar server URL (e.g., https://rastar.example.com):
-link-rastar-enter-username = 👤 Now enter your Rastar username:
-link-rastar-enter-password = 🔐 Finally, enter your Rastar password:
-
-<i>Note: Your password is never stored, only used to get an access token.</i>
-link-rastar-invalid-url = ❌ Invalid URL. Please try again with /link_rastar
-link-rastar-invalid-username = ❌ Invalid username. Please try again.
-link-rastar-invalid-password = ❌ Invalid password. Please try again.
-link-rastar-use-portal = 🔗 <b>Please use the link portal</b>
-
-For security reasons, account linking is done through our secure web portal.
-
-Use the /link_rastar command to get your personalized link!
 rastar-already-linked = ✅ Your Rastar account is already linked!
 rastar-email = Email
 rastar-token-expires = Token expires in {$hours} hours

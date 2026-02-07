@@ -5,7 +5,6 @@
 
 import { Bot, Context, session, SessionFlavor } from 'grammy';
 import { hydrate, HydrateFlavor } from '@grammyjs/hydrate';
-import { conversations, ConversationFlavor } from '@grammyjs/conversations';
 import { parseMode, ParseModeFlavor } from '@grammyjs/parse-mode';
 import { autoRetry } from '@grammyjs/auto-retry';
 import { limit } from '@grammyjs/ratelimiter';
@@ -60,7 +59,6 @@ export interface SessionData {
 export type BotContext = 
   & Context
   & SessionFlavor<SessionData>
-  & ConversationFlavor
   & HydrateFlavor<Context>
   & ParseModeFlavor<Context>
   & I18nFlavor;
@@ -193,12 +191,6 @@ export function createBot(token: string): Bot<BotContext> {
   const i18n = createI18n();
   bot.use(i18n);
   console.log('[grammy] ✓ i18n plugin loaded');
-  
-  // ============================================================================
-  // Plugin #5: Conversations (multi-step flows)
-  // ============================================================================
-  bot.use(conversations());
-  console.log('[grammy] ✓ Conversations plugin loaded');
   
   // ============================================================================
   // Custom Middleware #1: Logging

@@ -20,7 +20,7 @@ integrationCommands.command(
   'link_planka',
   'Link your Planka account',
   async (ctx: BotContext) => {
-    await ctx.conversation.enter('linkPlankaConversation');
+    await handleLinkPlankaCommand(ctx);
   }
 )
   .localize('fa', 'link_planka', 'اتصال حساب پلانکای خود');
@@ -44,7 +44,7 @@ integrationCommands.command(
   'link_rastar',
   'Link your Rastar account',
   async (ctx: BotContext) => {
-    await ctx.conversation.enter('linkRastarConversation');
+    await handleLinkRastarCommand(ctx);
   }
 )
   .localize('fa', 'link_rastar', 'اتصال حساب رستار خود');

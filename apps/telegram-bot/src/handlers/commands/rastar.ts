@@ -255,7 +255,7 @@ export async function handleRastarUnlinkCommand(ctx: BotContext) {
       plankaLinked: ctx.session.plankaLinked,
       rastarLinked: false,
     });
-    await ctx.reply(ctx.t('start-welcome') || 'Main Menu', {
+    await ctx.reply(ctx.t('menu-welcome') || '🤖 <b>Main Menu</b>\n\nChoose an option below:', {
       reply_markup: mainKeyboard,
     });
   } else {

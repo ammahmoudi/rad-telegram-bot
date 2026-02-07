@@ -33,8 +33,6 @@ import { run, sequentialize } from '@grammyjs/runner';
 
 import { createBot, setupErrorHandling, replyWithTopic } from './bot.js';
 import { mainMenu, showMainMenu } from './menus/index.js';
-import { linkPlankaConversation, linkRastarConversation, newChatConversation } from './conversations/index.js';
-import { createConversation } from '@grammyjs/conversations';
 import { initializeMcpServers } from './mcp-client.js';
 
 // Import Grammy commands plugin
@@ -77,16 +75,6 @@ if (!TELEGRAM_BOT_TOKEN) {
 }
 
 const bot = createBot(TELEGRAM_BOT_TOKEN);
-
-// ============================================================================
-// Register Conversations
-// ============================================================================
-
-bot.use(createConversation(linkPlankaConversation));
-bot.use(createConversation(linkRastarConversation));
-bot.use(createConversation(newChatConversation));
-
-console.log('[grammy] ✓ Conversations registered');
 
 // ============================================================================
 // Register Menu System

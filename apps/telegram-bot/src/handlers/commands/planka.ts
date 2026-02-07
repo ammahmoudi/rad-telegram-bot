@@ -203,7 +203,7 @@ export async function handlePlankaUnlinkCommand(ctx: BotContext) {
       plankaLinked: false,
       rastarLinked: ctx.session.rastarLinked,
     });
-    await ctx.reply(ctx.t('start-welcome') || 'Main Menu', {
+    await ctx.reply(ctx.t('menu-welcome') || '🤖 <b>Main Menu</b>\n\nChoose an option below:', {
       reply_markup: mainKeyboard,
     });  } else {
     await ctx.reply(
