@@ -8,8 +8,6 @@ COPY package*.json ./
 COPY tsconfig*.json ./
 
 # Copy workspace package files
-COPY packages/shared/package*.json ./packages/shared/
-COPY packages/shared/tsconfig.json ./packages/shared/
 COPY packages/mcp-time/package*.json ./packages/mcp-time/
 COPY packages/mcp-time/tsconfig.json ./packages/mcp-time/
 
@@ -17,7 +15,6 @@ COPY packages/mcp-time/tsconfig.json ./packages/mcp-time/
 RUN npm ci --workspaces
 
 # Copy source code
-COPY packages/shared ./packages/shared
 COPY packages/mcp-time ./packages/mcp-time
 
 # Build TypeScript

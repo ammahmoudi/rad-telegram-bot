@@ -7,7 +7,7 @@ import utc from 'dayjs/plugin/utc.js';
 import timezone from 'dayjs/plugin/timezone.js';
 import quarterOfYear from 'dayjs/plugin/quarterOfYear.js';
 import moment from 'moment-jalaali';
-import { getAppTimezone } from '@rad/shared';
+import { getAppTimezone } from './timezone.js';
 
 // Extend dayjs with plugins
 dayjs.extend(utc);
